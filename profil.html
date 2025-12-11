@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profil Pegawai</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --sidebar: #0f172a;
+      --sidebar-active: #e5edff;
+      --sidebar-text: #cbd5f5;
+      --sidebar-text-active: #1d4ed8;
+      --card: #ffffff;
+      --border: #e2e6eb;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --success: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter','Segoe UI',Arial,sans-serif; background: var(--bg); color: #0f172a; }
+    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    .sidebar { background: linear-gradient(180deg,#111827 0%,#0f172a 100%); color: var(--sidebar-text); padding: 18px 14px; display:flex; flex-direction:column; gap:18px; }
+    .logo { display:flex; align-items:center; gap:10px; color:#e5e7eb; font-weight:800; }
+    .logo img { width:38px; height:38px; object-fit:contain; }
+    .logo-title { font-size:13px; }
+    .logo-sub { font-size:12px; color:#94a3b8; }
+    nav { display:flex; flex-direction:column; gap:6px; }
+    .nav-title { margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; color:var(--sidebar-text); text-decoration:none; transition:background .15s ease, color .15s ease; }
+    .nav-item:hover { background:rgba(255,255,255,0.06); }
+    .nav-item.active { background:var(--sidebar-active); color:var(--sidebar-text-active); font-weight:700; }
+    .icon { width:18px; height:18px; border-radius:6px; background:rgba(255,255,255,0.12); display:grid; place-items:center; font-size:12px; }
+    .topbar { background:#fff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .badge { display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#0369a1; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; }
+    .ghost-btn { padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#f8fafc; cursor:pointer; }
+    .user { display:inline-flex; align-items:center; gap:10px; padding:8px 10px; background:#f8fafc; border-radius:999px; border:1px solid var(--border); }
+    .user img { width:32px; height:32px; border-radius:10px; object-fit:cover; }
+    .user-name { font-weight:800; }
+    .user-role { font-size:12px; color:var(--muted); }
+    .danger-btn { background:#ef4444; color:#fff; border:none; border-radius:8px; padding:8px 10px; cursor:pointer; }
+    main { padding:18px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
+    .flex { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+    .avatar { width:110px; height:110px; border-radius:14px; object-fit:cover; background:#e5e7eb; }
+    .info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:10px 16px; }
+    .info-item { background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+    .info-label { color: var(--muted); font-weight:700; font-size:12px; letter-spacing:.3px; }
+    .info-value { font-size:14px; margin-top:4px; }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; background:#e0f2fe; color:#0369a1; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div id="sidebar-container"></div>
+    <div style="display:flex;flex-direction:column;min-height:100vh;">
+      <div id="header-container"></div>
+      <main>
+        <div class="card flex">
+          <img src="foto/Dinkes.png" alt="Avatar" class="avatar" id="avatar" />
+          <div>
+            <div class="pill" id="pillRole">-</div>
+            <h2 id="namaPegawai" style="margin:6px 0 4px;">Nama Pegawai</h2>
+            <div style="color:var(--muted);" id="jabatanPegawai">Jabatan</div>
+            <div style="margin-top:8px; font-weight:700;">Unit/UKPD: <span id="unitPegawai"></span></div>
+            <div style="margin-top:6px; color:var(--muted);">Status Aktif: <span id="statusAktif"></span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 12px;">Identitas</h3>
+          <div class="info-grid">
+            <div class="info-item"><div class="info-label">NIP</div><div class="info-value" id="nip">-</div></div>
+            <div class="info-item"><div class="info-label">NIK</div><div class="info-value" id="nik">-</div></div>
+            <div class="info-item"><div class="info-label">Jenis Kelamin</div><div class="info-value" id="jenisKelamin">-</div></div>
+            <div class="info-item"><div class="info-label">Tempat / Tanggal Lahir</div><div class="info-value" id="ttl">-</div></div>
+            <div class="info-item"><div class="info-label">Agama</div><div class="info-value" id="agama">-</div></div>
+            <div class="info-item"><div class="info-label">Status Pernikahan</div><div class="info-value" id="statusNikah">-</div></div>
+            <div class="info-item"><div class="info-label">Golongan Darah</div><div class="info-value" id="goldar">-</div></div>
+            <div class="info-item"><div class="info-label">NPWP</div><div class="info-value" id="npwp">-</div></div>
+            <div class="info-item"><div class="info-label">No BPJS</div><div class="info-value" id="bpjs">-</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 12px;">Kepegawaian</h3>
+          <div class="info-grid">
+            <div class="info-item"><div class="info-label">Jenis Pegawai</div><div class="info-value" id="jenisPegawai">-</div></div>
+            <div class="info-item"><div class="info-label">Status Aktif</div><div class="info-value" id="statusAktifDetail">-</div></div>
+            <div class="info-item"><div class="info-label">Status Rumpun</div><div class="info-value" id="statusRumpun">-</div></div>
+            <div class="info-item"><div class="info-label">Jenis Kontrak</div><div class="info-value" id="jenisKontrak">-</div></div>
+            <div class="info-item"><div class="info-label">Jabatan ORB</div><div class="info-value" id="jabatanOrb">-</div></div>
+            <div class="info-item"><div class="info-label">Jabatan PRB</div><div class="info-value" id="jabatanPrb">-</div></div>
+            <div class="info-item"><div class="info-label">TMT Kerja UKPD</div><div class="info-value" id="tmtKerja">-</div></div>
+            <div class="info-item"><div class="info-label">UKPD</div><div class="info-value" id="ukpdDetail">-</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 12px;">Pendidikan & Gelar</h3>
+          <div class="info-grid">
+            <div class="info-item"><div class="info-label">Jenjang Pendidikan</div><div class="info-value" id="jenjang">-</div></div>
+            <div class="info-item"><div class="info-label">Jurusan Pendidikan</div><div class="info-value" id="jurusan">-</div></div>
+            <div class="info-item"><div class="info-label">Gelar Depan</div><div class="info-value" id="gelarDepan">-</div></div>
+            <div class="info-item"><div class="info-label">Gelar Belakang</div><div class="info-value" id="gelarBelakang">-</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 12px;">Kontak & Alamat</h3>
+          <div class="info-grid">
+            <div class="info-item"><div class="info-label">Email</div><div class="info-value" id="emailPegawai">-</div></div>
+            <div class="info-item"><div class="info-label">Telepon</div><div class="info-value" id="telpPegawai">-</div></div>
+            <div class="info-item"><div class="info-label">Alamat KTP</div><div class="info-value" id="alamatKtp">-</div></div>
+            <div class="info-item"><div class="info-label">Alamat Domisili</div><div class="info-value" id="alamatDomisili">-</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 12px;">Catatan</h3>
+          <div class="info-item" style="background:#fff;">
+            <div class="info-value" id="catatan">-</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5002';
+    const sidebar = fetch('sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch('header.html').then(r=>r.text()).catch(()=>'');
+    Promise.all([sidebar, header]).then(([s,h])=>{ document.getElementById('sidebar-container').innerHTML = s; document.getElementById('header-container').innerHTML = h; const logoutBtn = document.getElementById('logoutBtn'); if (logoutBtn) logoutBtn.addEventListener('click', doLogout); updateHeaderUser(); setActiveNav(); });
+
+    const authUser = (() => { try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = 'index.html'; }
+
+    function updateHeaderUser() {
+      if (!authUser) return;
+      const badge = document.querySelector('.badge');
+      const uname = document.querySelector('.user-name');
+      const urole = document.querySelector('.user-role');
+      if (badge) badge.textContent = (authUser.role || '').toUpperCase() || 'USER';
+      if (uname) uname.textContent = authUser.namaUkpd || authUser.username || 'User';
+      if (urole) urole.textContent = authUser.role || '';
+    }
+    function setActiveNav() {
+      document.querySelectorAll('.nav-item').forEach(a => {
+        if (a.getAttribute('href') === 'profil.html') a.classList.add('active');
+        else a.classList.remove('active');
+      });
+    }
+    function doLogout() {
+      localStorage.removeItem('authUser');
+      window.location.href = 'index.html';
+    }
+
+    function fmtDate(raw){
+      if (!raw) return '-';
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return raw;
+      return d.toLocaleDateString('id-ID');
+    }
+
+    function fillProfile(p){
+      document.getElementById('namaPegawai').textContent = p.nama_pegawai || p.nama || '-';
+      document.getElementById('jabatanPegawai').textContent = p.nama_jabatan_orb || p.jabatan || '-';
+      document.getElementById('unitPegawai').textContent = p.nama_ukpd || p.unit || p.ukpd || '-';
+      document.getElementById('statusAktif').textContent = p.nama_status_aktif || p.aktif || '-';
+
+      document.getElementById('nip').textContent = p.nip || '-';
+      document.getElementById('nik').textContent = p.nik || '-';
+      document.getElementById('jenisKelamin').textContent = p.jenis_kelamin || '-';
+      const ttlVal = [p.tempat_lahir, fmtDate(p.tanggal_lahir)].filter(Boolean).join(' / ') || '-';
+      document.getElementById('ttl').textContent = ttlVal;
+      document.getElementById('agama').textContent = p.agama || '-';
+      document.getElementById('statusNikah').textContent = p.status_pernikahan || '-';
+      document.getElementById('goldar').textContent = p.golongan_darah || '-';
+      document.getElementById('npwp').textContent = p.npwp || '-';
+      document.getElementById('bpjs').textContent = p.no_bpjs || '-';
+
+      document.getElementById('jenisPegawai').textContent = p.nama_jenis_pegawai || '-';
+      document.getElementById('statusAktifDetail').textContent = p.nama_status_aktif || '-';
+      document.getElementById('statusRumpun').textContent = p.nama_status_rumpun || '-';
+      document.getElementById('jenisKontrak').textContent = p.jenis_kontrak || '-';
+      document.getElementById('jabatanOrb').textContent = p.nama_jabatan_orb || '-';
+      document.getElementById('jabatanPrb').textContent = p.nama_jabatan_prb || '-';
+      document.getElementById('tmtKerja').textContent = p.tmt_kerja_ukpd || '-';
+      document.getElementById('ukpdDetail').textContent = p.nama_ukpd || '-';
+
+      document.getElementById('jenjang').textContent = p.jenjang_pendidikan || '-';
+      document.getElementById('jurusan').textContent = p.jurusan_pendidikan || '-';
+      document.getElementById('gelarDepan').textContent = p.gelar_depan || '-';
+      document.getElementById('gelarBelakang').textContent = p.gelar_belakang || '-';
+
+      document.getElementById('emailPegawai').textContent = p.email || '-';
+      document.getElementById('telpPegawai').textContent = p.no_tlp || p.telepon || '-';
+      document.getElementById('alamatKtp').textContent = p.alamat_ktp || '-';
+      document.getElementById('alamatDomisili').textContent = p.alamat_domisili || '-';
+
+      document.getElementById('catatan').textContent = p.catatan_revisi_biodata || p.catatan || '-';
+      document.getElementById('pillRole').textContent = (p.nama_jenis_pegawai || p.statusKaryawan || 'PEGAWAI').toUpperCase();
+    }
+
+    async function loadProfil() {
+      const selected = (()=>{ try { return JSON.parse(localStorage.getItem('selectedPegawai')||'null'); } catch { return null; } })();
+      if (selected) { fillProfile(selected); return; }
+      try {
+        const res = await fetch(API_BASE + '/pegawai');
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
+        let data = body.rows || [];
+        const role = (authUser?.role || '').toLowerCase();
+        if (!role.includes('super')) {
+          const ukpd = (authUser?.namaUkpd || authUser?.username || '').toLowerCase();
+          data = data.filter(d => (d.nama_ukpd || d.ukpd || d.unit || '').toLowerCase() === ukpd);
+        }
+        if (data.length === 0) return;
+        fillProfile(data[0]);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadProfil();
+  </script>
+</body>
+</html>

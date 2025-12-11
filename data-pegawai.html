@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Data Pegawai</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --sidebar: #0f172a;
+      --sidebar-active: #e5edff;
+      --sidebar-text: #cbd5f5;
+      --sidebar-text-active: #1d4ed8;
+      --card: #ffffff;
+      --border: #e2e6eb;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --success: #16a34a;
+      --danger: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter','Segoe UI',Arial,sans-serif; background: var(--bg); color: #0f172a; }
+    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    .sidebar { background: linear-gradient(180deg,#111827 0%,#0f172a 100%); color: var(--sidebar-text); padding: 18px 14px; display:flex; flex-direction:column; gap:18px; }
+    .logo { display:flex; align-items:center; gap:10px; color:#e5e7eb; font-weight:800; }
+    .logo img { width:38px; height:38px; object-fit:contain; }
+    .logo-title { font-size:13px; }
+    .logo-sub { font-size:12px; color:#94a3b8; }
+    nav { display:flex; flex-direction:column; gap:6px; }
+    .nav-title { margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; color:var(--sidebar-text); text-decoration:none; transition:background .15s ease, color .15s ease; }
+    .nav-item:hover { background:rgba(255,255,255,0.06); }
+    .nav-item.active { background:var(--sidebar-active); color:var(--sidebar-text-active); font-weight:700; }
+    .icon { width:18px; height:18px; border-radius:6px; background:rgba(255,255,255,0.12); display:grid; place-items:center; font-size:12px; }
+    .topbar { background:#fff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .badge { display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#0369a1; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; }
+    .ghost-btn { padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#f8fafc; cursor:pointer; }
+    .user { display:inline-flex; align-items:center; gap:10px; padding:8px 10px; background:#f8fafc; border-radius:999px; border:1px solid var(--border); }
+    .user img { width:32px; height:32px; border-radius:10px; object-fit:cover; }
+    .user-name { font-weight:800; }
+    .user-role { font-size:12px; color:var(--muted); }
+    .danger-btn { background:var(--danger); color:#fff; border:none; border-radius:8px; padding:8px 10px; cursor:pointer; }
+    main { padding:18px; }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
+    .stat .title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .stat .value { font-size: 28px; font-weight: 800; }
+    .filters { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:10px; align-items:end; }
+    label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    input, select, button { padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+    button { cursor: pointer; background: var(--accent); color: white; border: none; font-weight: 700; }
+    button.secondary { background: #e5e7eb; color: #0f172a; }
+    button.danger { background: var(--danger); }
+    button:disabled { background: #9ec2ff; cursor: not-allowed; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; border:1px solid var(--border); background:#f8fafc; cursor:pointer; }
+    .chip.active { border-color: var(--accent); color: var(--accent); font-weight:700; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; font-size: 13px; }
+    th { background: #eef2f8; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+    tr:hover { background: #f7f9fd; }
+    #status { margin-top: 10px; color: #0b5ed7; font-weight: 600; }
+    .hidden { display: none; }
+    .actions { display:flex; gap:6px; align-items:center; }
+    .icon-btn { width:34px; height:34px; display:grid; place-items:center; border:1px solid transparent; border-radius:10px; cursor:pointer; font-size:16px; box-shadow: 0 4px 10px rgba(15,23,42,0.08); transition: transform .12s ease, box-shadow .12s ease; }
+    .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(15,23,42,0.12); }
+    .icon-view { background:#e0f2fe; color:#0f5098; border-color:#bfdbfe; }
+    .icon-edit { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+    .icon-delete { background:#fee2e2; color:#b91c1c; border-color:#fecdd3; }
+    .table-tools { display:flex; gap:8px; align-items:center; justify-content:space-between; margin:8px 0; flex-wrap:wrap; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 20; }
+    .modal-backdrop.show { display: flex; }
+    .modal { background: #fff; border-radius: 12px; padding: 16px; width: min(900px, 95vw); box-shadow: 0 16px 40px rgba(0,0,0,0.18); }
+    .modal h3 { margin: 0 0 12px; }
+    .modal form { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; max-height: 70vh; overflow:auto; }
+    .modal .full { grid-column: 1 / -1; }
+    .pill { display:inline-flex; gap:6px; align-items:center; padding:6px 10px; background:#e0f2fe; color:#0369a1; border-radius:999px; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div id="sidebar-container"></div>
+    <div style="display:flex;flex-direction:column;min-height:100vh;">
+      <div id="header-container"></div>
+      <main>
+        <div class="panel">
+          <h3 style="margin:0 0 12px;">Data Pegawai Dinas Kesehatan Provinsi DKI Jakarta</h3>
+          <div class="grid" id="stats"></div>
+        </div>
+
+        <div class="panel">
+          <div class="filters">
+            <div class="full">
+              <label>Kata Kunci (NIP/NIK/Nama)</label>
+              <input id="search" placeholder="Cari NIP/NIK/Nama" />
+            </div>
+            <div>
+              <label>Nama UKPD</label>
+              <select id="unitFilter"><option value="">Pilih UKPD</option></select>
+            </div>
+            <div>
+              <label>Jabatan (ORB)</label>
+              <select id="jabatanFilter"><option value="">Pilih Jabatan</option></select>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="applyFilter">Terapkan</button>
+              <button id="resetFilter" class="secondary">Reset</button>
+            </div>
+          </div>
+          <div style="margin-top:10px;" class="chips" id="chipStatus">
+            <!-- chips injected -->
+          </div>
+          <div id="status">Status: menunggu data...</div>
+        </div>
+
+        <div class="panel">
+          <div class="table-tools">
+            <div style="display:flex; gap:8px; align-items:center;">
+              <label for="pageSize">Tampilkan</label>
+              <select id="pageSize">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>data</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="quickSearch" placeholder="Cari cepat..." />
+              <button class="secondary">Export CSV</button>
+              <button class="secondary">Export Semua (xls)</button>
+              <button class="secondary">Export Filter (xls)</button>
+              <button class="success" id="addBtn">+ Tambah Pegawai</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th><th>NIP</th><th>NIK</th><th>Nama</th><th>Jabatan ORB</th><th>Rumpun</th><th>Status Pegawai</th><th>UKPD</th><th>Kondisi</th><th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;">
+            <div id="pagerInfo" style="font-size:12px;color:var(--muted);">Halaman 1</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button id="prevPage" class="secondary" type="button">Sebelumnya</button>
+              <button id="nextPage" class="secondary" type="button">Berikutnya</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3 id="modalTitle">Tambah Pegawai</h3>
+      <form id="pegawaiForm">
+        <div><label>Nama Pegawai</label><input name="nama_pegawai" required /></div>
+        <div><label>NPWP</label><input name="npwp" required /></div>
+        <div><label>No BPJS</label><input name="no_bpjs" required /></div>
+        <div><label>Jabatan ORB</label><input name="nama_jabatan_orb" required /></div>
+        <div><label>Jabatan PRB</label><input name="nama_jabatan_prb" required /></div>
+        <div><label>Status Aktif</label><select name="nama_status_aktif" id="nama_status_aktif" required></select></div>
+        <div><label>Status Rumpun</label><select name="nama_status_rumpun" id="nama_status_rumpun" required></select></div>
+        <div><label>Jenis Kontrak</label><select name="jenis_kontrak" id="jenis_kontrak" required></select></div>
+        <div><label>NIP</label><input name="nip" required /></div>
+        <div><label>NIK</label><input name="nik" required /></div>
+        <div><label>Jenis Kelamin</label><select name="jenis_kelamin" id="jenis_kelamin" required></select></div>
+        <div><label>TMT Kerja UKPD</label><input type="date" name="tmt_kerja_ukpd" required /></div>
+        <div><label>Tempat Lahir</label><input name="tempat_lahir" required /></div>
+        <div><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" required /></div>
+        <div><label>Agama</label><select name="agama" id="agama" required></select></div>
+        <div><label>Jenjang Pendidikan</label><select name="jenjang_pendidikan" id="jenjang_pendidikan" required></select></div>
+        <div><label>Jurusan Pendidikan</label><input name="jurusan_pendidikan" required /></div>
+        <div><label>No Tlp</label><input name="no_tlp" required /></div>
+        <div><label>Email</label><input name="email" required /></div>
+        <div><label>Nama UKPD</label><input name="nama_ukpd" id="nama_ukpd" required /></div>
+        <div><label>Golongan Darah</label><select name="golongan_darah" id="golongan_darah" required></select></div>
+        <div><label>Gelar Depan</label><input name="gelar_depan" required /></div>
+        <div><label>Gelar Belakang</label><input name="gelar_belakang" required /></div>
+        <div><label>Status Pernikahan</label><select name="status_pernikahan" id="status_pernikahan" required></select></div>
+        <div><label>Jenis Pegawai</label><input name="nama_jenis_pegawai" required /></div>
+        <div class="full"><label>Catatan Revisi Biodata</label><textarea name="catatan_revisi_biodata" rows="2" required></textarea></div>
+        <div class="full"><label>Alamat KTP</label><textarea name="alamat_ktp" rows="2" required></textarea></div>
+        <div class="full"><label>Alamat Domisili</label><textarea name="alamat_domisili" rows="3" required></textarea></div>
+        <div class="full" style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+          <button type="button" class="secondary" id="cancelModal">Batal</button>
+          <button type="submit" id="submitModal">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5002';
+    const sidebar = fetch('sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch('header.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebar, header]).then(([s,h])=>{
+      document.getElementById('sidebar-container').innerHTML = s;
+      document.getElementById('header-container').innerHTML = h;
+      const logoutBtn = document.getElementById('logoutBtn'); if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
+      updateHeaderUser(); setActiveNav();
+    });
+
+    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = 'index.html'; }
+
+    const statusEl = document.getElementById('status');
+    const tableBody = document.getElementById('tableBody');
+    const statsEl = document.getElementById('stats');
+    const unitFilter = document.getElementById('unitFilter');
+    const jabatanFilter = document.getElementById('jabatanFilter');
+    const aktifFilter = document.getElementById('aktifFilter');
+    const searchInput = document.getElementById('search');
+    const quickSearch = document.getElementById('quickSearch');
+    const refreshBtn = document.getElementById('refresh');
+    const addBtn = document.getElementById('addBtn');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const pegawaiForm = document.getElementById('pegawaiForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const submitModal = document.getElementById('submitModal');
+    const cancelModal = document.getElementById('cancelModal');
+    const selectStatusAktif = document.getElementById('nama_status_aktif');
+    const selectStatusRumpun = document.getElementById('nama_status_rumpun');
+    const selectJenisKontrak = document.getElementById('jenis_kontrak');
+    const selectJenisKelamin = document.getElementById('jenis_kelamin');
+    const selectAgama = document.getElementById('agama');
+    const selectJenjang = document.getElementById('jenjang_pendidikan');
+    const selectGoldar = document.getElementById('golongan_darah');
+    const selectStatusNikah = document.getElementById('status_pernikahan');
+    const inputUkpd = document.getElementById('nama_ukpd');
+    const pageSize = document.getElementById('pageSize');
+    const chipStatus = document.getElementById('chipStatus');
+    const applyFilter = document.getElementById('applyFilter');
+    const resetFilter = document.getElementById('resetFilter');
+    const pagerInfo = document.getElementById('pagerInfo');
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+
+    let rows = [];
+    let initialized = false;
+    let editingId = null;
+    let statusTags = [];
+    let currentPage = 1;
+    let totalCount = 0;
+
+    const LIST_STATUS_RUMPUN = [
+      'Jabatan Administrator',
+      'Jabatan Fungsional Keahlian Kesehatan',
+      'Jabatan Fungsional Keterampilan Non Kesehatan',
+      'Jabatan Fungsional Keterampilan Kesehatan',
+      'Jabatan Pelaksana Administrasi Tingkat Ahli',
+      'Jabatan Pelaksana Administrasi Tingkat Terampil',
+      'Jabatan Pelaksana Operasional Tingkat Terampil',
+      'Jabatan Pelaksana Pelayan Tingkat Ahli',
+      'Jabatan Pelaksana Pelayan Tingkat Terampil',
+      'Jabatan Pelaksana Pelayanan Tingkat Ahli',
+      'Jabatan Pelaksana Pelayanan Tingkat Terampil',
+      'Jabatan Pelaksana Satuan',
+      'Jabatan Pelaksana Teknis Tingkat Ahli',
+      'Jabatan Pelaksana Teknis Tingkat Terampil'
+    ];
+    const LIST_JENIS_KONTRAK = ['KONTRAK','Part Time','TETAP'];
+    const LIST_AGAMA = ['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu','Lainnya'];
+    const LIST_STATUS_AKTIF = ['AKTIF','Diberhentikan Dengan Hormat','Resign Atas Permintaan Sendiri','Tidak cakap jasmani/rohani'];
+    const LIST_JENIS_KELAMIN = ['Laki-laki','Perempuan'];
+    const LIST_GOLDAR = ['A-','A+','AB+','AB-','B-','B+','O-','O+'];
+    const LIST_JENJANG = ['SD','SMP','SMA/SEDERAJAT','D-I','D-II','D-III','D-IV','S-1','PROFESI','S-2','S-3','Spesialis'];
+    const LIST_STATUS_NIKAH = ['Belum Menikah','Cerai Hidup','Cerai Mati','Menikah'];
+
+    function setStatus(msg){ statusEl.textContent = 'Status: ' + msg; }
+    function toggleDataSection(show){ /* intentionally keep always visible */ }
+    function updateHeaderUser(){
+      if (!authUser) return;
+      const badge = document.querySelector('.badge');
+      const uname = document.querySelector('.user-name');
+      const urole = document.querySelector('.user-role');
+      if (badge) badge.textContent = (authUser.role || '').toUpperCase() || 'USER';
+      if (uname) uname.textContent = authUser.namaUkpd || authUser.username || 'User';
+      if (urole) urole.textContent = authUser.role || '';
+    }
+    function setActiveNav(){
+      document.querySelectorAll('.nav-item').forEach(a=>{
+        if (a.getAttribute('href') === 'data-pegawai.html') a.classList.add('active');
+        else a.classList.remove('active');
+      });
+    }
+
+    async function init(){
+      try {
+        setStatus('Cek koneksi server...');
+        const res = await fetch(API_BASE + '/health');
+        if (!res.ok) throw new Error('Server tidak siap');
+        initialized = true;
+        setStatus('Server siap. Memuat data...');
+        initSelectOptions();
+        setUkpdField();
+        await loadData();
+      } catch(err){
+        setStatus('Gagal konek server: ' + err.message);
+      }
+    }
+
+    function initSelectOptions(){
+      const setOpts = (el, list)=>{ if (!el) return; el.innerHTML = '<option value=\"\">Pilih</option>' + list.map(v=>`<option value=\"${v}\">${v}</option>`).join(''); };
+      setOpts(selectStatusRumpun, LIST_STATUS_RUMPUN);
+      setOpts(selectJenisKontrak, LIST_JENIS_KONTRAK);
+      setOpts(selectAgama, LIST_AGAMA);
+      setOpts(selectStatusAktif, LIST_STATUS_AKTIF);
+      setOpts(selectJenisKelamin, LIST_JENIS_KELAMIN);
+      setOpts(selectGoldar, LIST_GOLDAR);
+      setOpts(selectJenjang, LIST_JENJANG);
+      setOpts(selectStatusNikah, LIST_STATUS_NIKAH);
+    }
+
+    function setUkpdField(){
+      if (!inputUkpd) return;
+      const role = (authUser?.role || '').toLowerCase();
+      if (role.includes('super')) {
+        inputUkpd.value = '';
+        inputUkpd.readOnly = false;
+      } else {
+        const ukpd = authUser?.namaUkpd || authUser?.username || '';
+        inputUkpd.value = ukpd;
+        inputUkpd.readOnly = true;
+      }
+    }
+
+    function applyRoleFilter(data){
+      const role = (authUser?.role || '').toLowerCase();
+      if (role.includes('super')) return data;
+      const ukpd = (authUser?.namaUkpd || authUser?.username || '').toLowerCase().trim();
+      if (!ukpd) return data;
+      return data.filter(d => {
+        const val = (d.nama_ukpd || d.unit || '').toLowerCase().trim();
+        return val === ukpd;
+      });
+    }
+
+    async function loadData(){
+      if (!initialized) return;
+      setStatus('Memuat data pegawai...');
+      try {
+        const size = parseInt(pageSize.value,10) || 25;
+        const params = new URLSearchParams({
+          limit: String(size),
+          offset: String((currentPage - 1) * size)
+        });
+        const role = (authUser?.role || '').toLowerCase();
+        let unitVal = unitFilter.value || '';
+        if (!role.includes('super')) unitVal = unitVal || (authUser?.namaUkpd || authUser?.username || '');
+        if (unitVal) params.set('unit', unitVal);
+        const jabVal = jabatanFilter.value;
+        if (jabVal) params.set('jabatan', jabVal);
+        const searchTerm = searchInput.value || quickSearch.value;
+        if (searchTerm) params.set('search', searchTerm);
+        const activeChips = Array.from(document.querySelectorAll('.chip.active')).map(c=>c.dataset.status);
+        if (activeChips.length) params.set('status', activeChips.join(','));
+
+        const res = await fetch(`${API_BASE}/pegawai?${params.toString()}`);
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
+        rows = applyRoleFilter(body.rows || []);
+        totalCount = body.total || rows.length;
+        populateFilters(body, rows);
+        renderStats(body.summary, rows.length);
+        renderTable();
+        const maxPage = Math.max(1, Math.ceil(totalCount / size));
+        if (currentPage > maxPage) { currentPage = maxPage; renderTable(); }
+        setStatus('Data dimuat: ' + totalCount.toLocaleString('id-ID') + ' baris (halaman ' + currentPage + ').');
+      } catch(err){
+        setStatus('Gagal ambil data: ' + err.message);
+      }
+    }
+
+    function populateFilters(body, dataRows){
+      const role = (authUser?.role || '').toLowerCase();
+      const units = (body?.units && body.units.length ? body.units : Array.from(new Set(dataRows.map(d => d.nama_ukpd).filter(Boolean)))).sort();
+      unitFilter.innerHTML = '<option value="">Pilih UKPD</option>' + units.map(u => `<option value="${u}">${u}</option>`).join('');
+      if (!role.includes('super')) {
+        const ukpd = authUser?.namaUkpd || authUser?.username || '';
+        unitFilter.value = ukpd;
+        unitFilter.disabled = true;
+      } else {
+        unitFilter.disabled = false;
+        if (!unitFilter.value) unitFilter.value = '';
+      }
+      const jabs = (body?.jabs && body.jabs.length ? body.jabs : Array.from(new Set(dataRows.map(d => d.nama_jabatan_orb).filter(Boolean)))).sort();
+      jabatanFilter.innerHTML = '<option value="">Pilih Jabatan</option>' + jabs.map(u => `<option value="${u}">${u}</option>`).join('');
+      const statuses = (body?.statuses && body.statuses.length ? body.statuses : Array.from(new Set(dataRows.map(d => d.nama_jenis_pegawai || d.nama_status_aktif).filter(Boolean)))).sort();
+      const activeSet = new Set(Array.from(chipStatus.querySelectorAll('.chip.active')).map(c=>c.dataset.status));
+      statusTags = statuses;
+      chipStatus.innerHTML = statuses.map(s => `<div class="chip" data-status="${s}">${s}</div>`).join('');
+      chipStatus.querySelectorAll('.chip').forEach(chip=>{ if (activeSet.has(chip.dataset.status)) chip.classList.add('active'); });
+      chipStatus.onclick = (e)=>{
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        chip.classList.toggle('active');
+        currentPage = 1;
+        loadData();
+      };
+    }
+
+    function applyFilters(){
+      currentPage = 1;
+      loadData();
+    }
+
+    function renderStats(summary, countInPage){
+      statsEl.innerHTML = '';
+      const cards = [{ title: 'Total Pegawai (filter)', value: totalCount || countInPage || 0 }];
+      if (summary) {
+        Object.entries(summary).forEach(([k,v]) => cards.push({ title: k, value: v }));
+      }
+      cards.forEach(c=>{
+        const div = document.createElement('div');
+        div.className = 'stat';
+        div.innerHTML = `<div class="title">${c.title}</div><div class="value">${c.value}</div>`;
+        statsEl.appendChild(div);
+      });
+    }
+
+    function renderTable(){
+      const size = parseInt(pageSize.value,10) || 10;
+      const total = totalCount || rows.length;
+      const maxPage = Math.max(1, Math.ceil(total / size));
+      if (currentPage > maxPage) currentPage = maxPage;
+      tableBody.innerHTML = '';
+      rows.forEach((r, idx)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${(currentPage - 1) * size + idx + 1}</td>
+          <td>${r.nip}</td>
+          <td>${r.nik}</td>
+          <td>${r.nama_pegawai}</td>
+          <td>${r.nama_jabatan_orb}</td>
+          <td>${r.nama_status_rumpun || '-'}</td>
+          <td>${r.nama_jenis_pegawai || '-'}</td>
+          <td>${r.nama_ukpd || '-'}</td>
+          <td>${r.nama_status_aktif || '-'}</td>
+          <td class="actions">
+            <button class="icon-btn icon-view" title="Lihat Profil" data-id="${r.nip || r.nik}" data-action="view">&#128065;</button>
+            <button class="icon-btn icon-edit" title="Edit" data-id="${r.nip || r.nik}" data-action="edit">&#9998;</button>
+            <button class="icon-btn icon-delete" title="Hapus" data-id="${r.nip || r.nik}" data-action="delete">&#128465;</button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+      if (pagerInfo) pagerInfo.textContent = `Halaman ${currentPage} / ${maxPage} • Total ${total.toLocaleString('id-ID')} baris`;
+    }
+
+    function countBy(arr, fn){ return arr.reduce((acc, item)=>{ const k = fn(item); acc[k] = (acc[k]||0)+1; return acc; }, {}); }
+
+    function openModal(data){
+      modalBackdrop.classList.add('show');
+      pegawaiForm.reset();
+      editingId = data?.nip || data?.nik || null;
+      modalTitle.textContent = editingId ? 'Edit Pegawai' : 'Tambah Pegawai';
+      submitModal.textContent = editingId ? 'Simpan Perubahan' : 'Tambah';
+      if (data){
+        Object.keys(data).forEach(k => { if (pegawaiForm.elements[k]) pegawaiForm.elements[k].value = data[k] || ''; });
+      } else {
+        setUkpdField();
+      }
+    }
+    function closeModal(){ modalBackdrop.classList.remove('show'); editingId = null; }
+
+    async function savePegawai(e){
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(pegawaiForm).entries());
+      const idKey = editingId || data.nip || data.nik;
+      if (!data.nip && !editingId){ setStatus('NIP wajib diisi'); return; }
+      try {
+        setStatus(editingId ? 'Menyimpan perubahan...' : 'Menambah pegawai...');
+        const url = editingId ? `${API_BASE}/pegawai/${idKey}` : `${API_BASE}/pegawai`;
+        const method = editingId ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal simpan');
+        closeModal();
+        await loadData();
+        setStatus('Berhasil disimpan');
+      } catch(err){
+        setStatus('Gagal simpan: ' + err.message);
+      }
+    }
+
+    async function deletePegawai(id){
+      if (!confirm('Hapus data ini?')) return;
+      try {
+        setStatus('Menghapus...');
+        const res = await fetch(`${API_BASE}/pegawai/${id}`, { method:'DELETE' });
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal hapus');
+        await loadData();
+        setStatus('Data terhapus');
+      } catch(err){
+        setStatus('Gagal hapus: ' + err.message);
+      }
+    }
+
+    function doLogout(){ localStorage.removeItem('authUser'); window.location.href = 'index.html'; }
+
+    if (refreshBtn) refreshBtn.addEventListener('click', loadData);
+    addBtn.addEventListener('click', ()=>openModal(null));
+    cancelModal.addEventListener('click', closeModal);
+    pegawaiForm.addEventListener('submit', savePegawai);
+    unitFilter.addEventListener('change', applyFilters);
+    jabatanFilter.addEventListener('change', applyFilters);
+    if (aktifFilter) aktifFilter.addEventListener('change', applyFilters);
+    searchInput.addEventListener('input', applyFilters);
+    quickSearch.addEventListener('input', applyFilters);
+    pageSize.addEventListener('change', ()=>{ currentPage = 1; loadData(); });
+    prevPage.addEventListener('click', ()=>{ if (currentPage > 1) { currentPage--; loadData(); } });
+    nextPage.addEventListener('click', ()=>{ const size = parseInt(pageSize.value,10)||10; const maxPage = Math.max(1, Math.ceil((totalCount||rows.length)/size)); if (currentPage < maxPage) { currentPage++; loadData(); } });
+    applyFilter.addEventListener('click', applyFilters);
+    resetFilter.addEventListener('click', ()=>{
+      searchInput.value='';
+      quickSearch.value='';
+      jabatanFilter.value='';
+      aktifFilter.value='';
+      document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      const role = (authUser?.role || '').toLowerCase();
+      if (!role.includes('super')) {
+        unitFilter.value = authUser?.namaUkpd || authUser?.username || '';
+      } else {
+        unitFilter.value = '';
+      }
+      applyFilters();
+    });
+    tableBody.addEventListener('click', (e)=>{ 
+      const btn = e.target.closest('button'); 
+      if(!btn) return; 
+      const id = btn.dataset.id; 
+      const action = btn.dataset.action; 
+      const row = rows.find(r => r.nip === id || r.nik === id); 
+      if(action==='edit' && row) openModal(row); 
+      if(action==='delete' && id) deletePegawai(id); 
+      if(action==='view' && row){ 
+        try { localStorage.setItem('selectedPegawai', JSON.stringify(row)); } catch(_){} 
+        window.location.href = 'profil.html'; 
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

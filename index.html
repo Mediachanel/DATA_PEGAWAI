@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>SI Data Pegawai - Masuk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+  <style>
+    :root {
+      --bg: #f6fbf7;
+      --panel: #ffffff;
+      --deep: #0d6b45;
+      --accent: #19a564;
+      --accent-soft: #5fd89b;
+      --muted: #6a7a73;
+      --shadow: 0 20px 38px rgba(0, 96, 61, 0.18);
+      --border: #e0ede4;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: var(--bg); color: #10352b; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #ffffff; border-bottom: 1px solid var(--border); }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { width: 38px; height: 38px; object-fit: contain; }
+    .brand .title { font-weight: 800; font-size: 15px; color: #0d2f1f; line-height: 1.2; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; background: #0f7b50; color: #e8fff4; padding: 8px 12px; border-radius: 999px; font-size: 12px; box-shadow: 0 10px 20px rgba(13,107,69,0.25); }
+    .pill .dot { width: 8px; height: 8px; background: #4ef0a4; border-radius: 50%; box-shadow: 0 0 0 4px rgba(78,240,164,0.2); }
+
+    main { padding: 24px 18px 36px; }
+    .hero { max-width: 1100px; margin: 0 auto; background: linear-gradient(135deg, #0f7b50 0%, #0c5f40 60%, #0a4e38 100%); border-radius: 22px; padding: 28px; box-shadow: var(--shadow); color: #e7fff3; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; position: relative; overflow: hidden; }
+    .bubble { position: absolute; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.14); right: 26px; top: 26px; }
+    .bubble.small { width: 86px; height: 86px; right: 60px; bottom: 22px; background: rgba(255,255,255,0.08); }
+    h1 { margin: 6px 0 10px; font-size: 30px; line-height: 1.2; }
+    .tag { display: inline-block; padding: 8px 12px; background: rgba(255,255,255,0.14); border-radius: 999px; font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+    p { margin: 0; color: #d5f3e4; line-height: 1.55; }
+    .cta { margin-top: 16px; display: inline-block; background: #f7c948; color: #0f4f34; padding: 12px 18px; border-radius: 999px; font-weight: 800; text-decoration: none; box-shadow: 0 12px 24px rgba(247,201,72,0.35); }
+
+    .login-card { background: var(--panel); color: #123629; border-radius: 14px; padding: 20px 18px; box-shadow: 0 12px 24px rgba(0,0,0,0.12); border: 1px solid var(--border); }
+    .login-card h3 { margin: 0 0 14px; font-size: 18px; color: #0e3b2b; }
+    label { display: block; font-size: 12px; font-weight: 700; color: #4d5a54; margin-bottom: 6px; }
+    input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d5e3d8; font-size: 14px; }
+    .btn { margin-top: 12px; width: 100%; padding: 12px 14px; border: none; border-radius: 10px; background: linear-gradient(90deg, #1fa774, #13c487); color: white; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px rgba(31,167,116,0.35); font-size: 14px; }
+    .btn:disabled { background: #a9d7c1; cursor: not-allowed; }
+    .status { margin-top: 10px; padding: 10px; border-radius: 10px; background: #f1fbf5; border: 1px solid #d5eddf; color: #0f7b50; font-weight: 700; font-size: 13px; }
+    .muted { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    footer { text-align: center; padding: 20px; color: #6c7b73; font-size: 12px; }
+    @media (max-width: 700px) {
+      h1 { font-size: 24px; }
+      .hero { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="foto/Dinkes.png" alt="Logo Dinkes" />
+      <div class="title">Subkelompok Kepegawaian<br/><span style="font-weight:600;color:#4a5c55;">Dinas Kesehatan</span></div>
+    </div>
+    <div class="pill"><span class="dot"></span><span id="clock">Memuat...</span></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="tag">Informasi Kepegawaian</div>
+        <h1>Layanan Kepegawaian Dinas Kesehatan Provinsi DKI Jakarta</h1>
+        <p>Akses informasi perencanaan dan pendayagunaan pegawai, kesejahteraan pegawai, pengembangan karir, serta disiplin pegawai terintegrasi.</p>
+        <a class="cta" href="#" aria-disabled="true">Baca Selengkapnya</a>
+      </div>
+      <div class="login-card">
+        <h3>Masuk Sistem Informasi Data Pegawai</h3>
+        <form id="loginForm">
+          <div>
+            <label>Username / UKPD ID</label>
+            <input name="username" placeholder="Username" required />
+          </div>
+          <div style="margin-top:10px;">
+            <label>Password</label>
+            <input name="password" type="password" placeholder="Password" required />
+          </div>
+          <button type="submit" class="btn" id="loginBtn" disabled>Masuk</button>
+        </form>
+        <div class="muted">Lupa password? Hubungi admin TI.</div>
+        <div id="status" class="status">Status: menunggu koneksi server...</div>
+      </div>
+      <div class="bubble"></div>
+      <div class="bubble small"></div>
+    </section>
+  </main>
+
+  <footer>(c) 2025 SI Data Pegawai. Semua hak dilindungi.</footer>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5002';
+    const statusEl = document.getElementById('status');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginForm = document.getElementById('loginForm');
+    const clockEl = document.getElementById('clock');
+
+    let serverReady = false;
+
+    function setStatus(msg) { statusEl.textContent = 'Status: ' + msg; }
+
+    function updateClock() {
+      const now = new Date();
+      const hari = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      clockEl.textContent = hari + ' - ' + jam + ' WIB';
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    async function checkServer() {
+      try {
+        const res = await fetch(API_BASE + '/health');
+        const body = await res.json();
+        if (res.ok && body.ok) {
+          serverReady = true;
+          loginBtn.disabled = false;
+          setStatus('Server siap. Silakan login.');
+        } else {
+          setStatus('Server tidak siap.');
+        }
+      } catch (err) {
+        setStatus('Gagal konek server: ' + err.message);
+      }
+    }
+    checkServer();
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!serverReady) { setStatus('Server belum siap.'); return; }
+      loginBtn.disabled = true;
+      setStatus('Memproses login...');
+      const data = new FormData(loginForm);
+      const payload = {
+        username: data.get('username') || '',
+        password: data.get('password') || ''
+      };
+      try {
+        const res = await fetch(API_BASE + '/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body.error || 'Login gagal');
+        if (body.user) {
+          localStorage.setItem('authUser', JSON.stringify(body.user));
+        }
+        setStatus('Login berhasil. Membuka dashboard...');
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        setStatus('Gagal login: ' + err.message);
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

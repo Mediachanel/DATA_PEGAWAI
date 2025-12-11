@@ -1,0 +1,593 @@
+﻿<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Dinas Kesehatan</title>
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans','Inter','Segoe UI','sans-serif'] },
+          colors: { brand:'#0EA5E9', cpns:'#06B6D4', pppk:'#22C55E', pro:'#14B8A6', pjlp:'#8B5CF6', card:'#ffffff' },
+          boxShadow: { soft:'0 10px 30px -12px rgba(15,23,42,.25)' }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0" defer></script>
+  <style>
+    :root{
+      --sidebar-w: 18rem;
+      --h-status: 320px;
+      --h-ukpd: 520px;
+      --h-rumpun: 440px;
+      --tbl-font: 0.875rem;
+      --tbl-pad-y: .5rem;
+    }
+    body{
+      background:
+        radial-gradient(900px 480px at 0% 0%, rgba(14,165,233,.10), transparent 45%),
+        radial-gradient(900px 520px at 100% 0%, rgba(139,92,246,.08), transparent 46%),
+        #f8fafc;
+      font-family:'Plus Jakarta Sans','Inter','Segoe UI',sans-serif;
+    }
+    #mainWrap{ margin-left: var(--sidebar-w); transition: margin .2s ease; }
+    @media (max-width: 1023px){ #mainWrap{ margin-left: 0; } }
+    body.compact{
+      --h-status: 240px;
+      --h-ukpd: 360px;
+      --h-rumpun: 320px;
+      --tbl-font: 0.8125rem;
+      --tbl-pad-y: .375rem;
+    }
+    #scrollProg{ position: fixed; inset: 0 auto auto 0; height:3px; width:0; background:#fbbf24; z-index:60; }
+    .card{
+      background: #fff;
+      border: 1px solid rgba(226,232,240,.9);
+      border-radius: 16px;
+      box-shadow: var(--shadow, 0 10px 30px -12px rgba(15,23,42,.15));
+      padding: 16px;
+    }
+    table#ukpdTable th, table#ukpdTable td{
+      font-size: var(--tbl-font);
+      padding-top: var(--tbl-pad-y);
+      padding-bottom: var(--tbl-pad-y);
+    }
+    .sidebar{
+      position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
+      background: linear-gradient(180deg,#111827 0%,#0f172a 100%);
+      color: #e5e7eb; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; box-shadow: 8px 0 30px -20px rgba(0,0,0,.5);
+    }
+    .sidebar .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#cbd5f5; text-decoration:none; transition:all .15s ease; }
+    .sidebar .nav-item:hover{ background:rgba(255,255,255,0.06); }
+    .sidebar .nav-item.active{ background:#e5edff; color:#1d4ed8; font-weight:700; }
+    [data-animate]{ opacity:0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
+    [data-animate].in-view{ opacity:1; transform:none; }
+  </style>
+</head>
+<body class="text-slate-900">
+  <div id="scrollProg"></div>
+  <div class="flex min-h-screen">
+    <div id="sidebar-container"></div>
+    <div class="flex-1" id="mainWrap">
+      <div class="px-4 sm:px-6 pt-4 flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center gap-3 flex-wrap">
+          <h1 class="text-xl font-semibold">Dashboard Dinas Kesehatan</h1>
+          <span id="roleBadge" class="text-xs px-3 py-1.5 rounded-full bg-sky-100 text-sky-700 font-semibold">-</span>
+          <button id="compactToggle" class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">
+            <span>Compact mode</span>
+            <span id="compactDot" class="inline-block h-2.5 w-2.5 rounded-full bg-slate-300"></span>
+          </button>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <div id="userName" class="font-semibold text-sm">Pengguna</div>
+            <div id="userRole" class="text-xs text-slate-500">-</div>
+          </div>
+          <button id="logoutBtn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">Logout</button>
+        </div>
+      </div>
+
+      <div id="statusBar" class="px-4 sm:px-6 text-sm text-slate-600 mt-1">Status: memuat...</div>
+
+      <main class="px-4 sm:px-6 pb-10 space-y-4" id="contentRoot">
+        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4" data-animate>
+          <div class="card text-white bg-gradient-to-br from-sky-600 to-brand shadow-soft" data-kpi="PNS">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">P</div>
+              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PNS</p></div>
+            </div>
+            <div class="mt-3 text-3xl font-bold" data-count>0</div>
+          </div>
+          <div class="card text-white bg-gradient-to-br from-cyan-500 to-cpns shadow-soft" data-kpi="CPNS">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">C</div>
+              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">CPNS</p></div>
+            </div>
+            <div class="mt-3 text-3xl font-bold" data-count>0</div>
+          </div>
+          <div class="card text-white bg-gradient-to-br from-green-600 to-pppk shadow-soft" data-kpi="PPPK">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">P3</div>
+              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PPPK</p></div>
+            </div>
+            <div class="mt-3 text-3xl font-bold" data-count>0</div>
+          </div>
+          <div class="card text-white bg-gradient-to-br from-teal-700 to-pro shadow-soft" data-kpi="PROFESIONAL">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">NP</div>
+              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PROFESIONAL</p></div>
+            </div>
+            <div class="mt-3 text-3xl font-bold" data-count>0</div>
+          </div>
+          <div class="card text-white bg-gradient-to-br from-violet-700 to-pjlp shadow-soft" data-kpi="PJLP">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">J</div>
+              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PJLP</p></div>
+            </div>
+            <div class="mt-3 text-3xl font-bold" data-count>0</div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card" data-animate>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold">Distribusi Pegawai per Status (Aktif)</h3>
+              <button data-download="status" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">Unduh PNG</button>
+            </div>
+            <div class="mt-3 flex items-center justify-center" style="height: var(--h-status);">
+              <canvas id="statusChart" class="max-w-[520px] w-full h-full"></canvas>
+            </div>
+          </div>
+          <div class="card" data-animate>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold">Distribusi Pegawai per UKPD (Aktif)</h3>
+              <button data-download="ukpd" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">Unduh PNG</button>
+            </div>
+            <div class="mt-3 flex items-center justify-center" style="height: var(--h-ukpd);">
+              <canvas id="ukpdChart" class="w-full h-full"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card" data-animate>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold">Distribusi Pegawai per Jenjang Pendidikan</h3>
+              <button data-download="pendidikan" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">Unduh PNG</button>
+            </div>
+            <div class="mt-3 flex items-center justify-center" style="height: var(--h-rumpun);">
+              <canvas id="pendidikanChart" class="w-full h-full"></canvas>
+            </div>
+          </div>
+          <div class="card" data-animate>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold">Rumpun A- Status Pegawai</h3>
+              <button data-download="rumpun" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">Unduh PNG</button>
+            </div>
+            <div class="mt-3 flex items-center justify-center" style="height: var(--h-rumpun);">
+              <canvas id="rumpunChart" class="w-full h-full"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" data-animate>
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="text-sm font-semibold">Daftar UKPD (Aktif)</h3>
+            <input id="tableFilter" type="search" placeholder="Cari UKPD..." class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm" />
+          </div>
+          <div class="overflow-x-auto mt-2">
+            <table class="min-w-full text-sm" id="ukpdTable">
+              <thead class="sticky top-0 bg-white border-b border-slate-200">
+                <tr>
+                  <th class="px-3 py-2 text-center w-16">NO</th>
+                  <th class="px-3 py-2 text-left">Nama UKPD</th>
+                  <th class="px-3 py-2 text-center">PNS</th>
+                  <th class="px-3 py-2 text-center">CPNS</th>
+                  <th class="px-3 py-2 text-center">PPPK</th>
+                  <th class="px-3 py-2 text-center">PROFESIONAL</th>
+                  <th class="px-3 py-2 text-center">PJLP</th>
+                  <th class="px-3 py-2 text-center">Total</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+              <tfoot>
+                <tr class="bg-sky-50 font-semibold" id="tableTotalRow">
+                  <td class="px-3 py-2 text-right" colspan="2">Total Keseluruhan</td>
+                  <td class="px-3 py-2 text-center">0</td>
+                  <td class="px-3 py-2 text-center">0</td>
+                  <td class="px-3 py-2 text-center">0</td>
+                  <td class="px-3 py-2 text-center">0</td>
+                  <td class="px-3 py-2 text-center">0</td>
+                  <td class="px-3 py-2 text-center">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="py-3 px-4 sm:px-6 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
+        <span>Dinas Kesehatan Provinsi DKI Jakarta</span>
+        <span>SUBKELOMPOK KEPEGAWAIAN</span>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5002';
+    const statusOrder = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP'];
+    const statusLabels = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP' };
+    const statusColors = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
+
+    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = 'index.html'; }
+
+    const charts = { status:null, ukpd:null, rumpun:null, pendidikan:null };
+
+    const statusBar = document.getElementById('statusBar');
+    const tableBody = document.querySelector('#ukpdTable tbody');
+    const tableTotalRow = document.getElementById('tableTotalRow');
+    const roleBadge = document.getElementById('roleBadge');
+    const userNameEl = document.getElementById('userName');
+    const userRoleEl = document.getElementById('userRole');
+    const compactDot = document.getElementById('compactDot');
+
+    const sidebarPromise = fetch('sidebar.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebarPromise]).then(([s])=>{
+      const wrap = document.getElementById('sidebar-container');
+      wrap.innerHTML = s;
+      setActiveNav();
+      const logoutLink = wrap.querySelector('.nav-item[href="#"]');
+      if (logoutLink) logoutLink.addEventListener('click', doLogout);
+    });
+
+    if (roleBadge) roleBadge.textContent = (authUser?.role || 'USER').toUpperCase();
+    if (userNameEl) userNameEl.textContent = authUser?.namaUkpd || authUser?.username || 'Pengguna';
+    if (userRoleEl) userRoleEl.textContent = authUser?.role || '';
+    document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+
+    document.getElementById('compactToggle')?.addEventListener('click', ()=>{
+      const now = !document.body.classList.contains('compact');
+      setCompact(now);
+    });
+
+    document.getElementById('tableFilter')?.addEventListener('input', filterTable);
+    document.querySelectorAll('[data-download]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const key = btn.getAttribute('data-download');
+        const map = { status:'statusChart', ukpd:'ukpdChart', rumpun:'rumpunChart', pendidikan:'pendidikanChart' };
+        const id = map[key];
+        if (!id) return;
+        const canvas = document.getElementById(id);
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png', 1);
+        a.download = `${key}.png`;
+        a.click();
+      });
+    });
+
+    function setStatus(msg){ if (statusBar) statusBar.textContent = 'Status: ' + msg; }
+    function doLogout(){ localStorage.removeItem('authUser'); window.location.href = 'index.html'; }
+    function setActiveNav(){
+      document.querySelectorAll('.nav-item').forEach(a=>{
+        if (a.getAttribute('href') === 'dashboard.html') a.classList.add('active');
+        else a.classList.remove('active');
+      });
+    }
+
+    function normalizeStatus(raw){
+      const t = (raw || '').toUpperCase().trim();
+      if (t === 'PNS') return 'PNS';
+      if (t === 'CPNS') return 'CPNS';
+      if (t.includes('PPPK') || t.includes('P3K')) return 'PPPK';
+      if (t.includes('PJLP')) return 'PJLP';
+      if (['NON PNS','NON ASN','PROFESIONAL','PROFESIONAL (NON PNS)','PROFESIONAL/NON PNS','TENAGA PROFESIONAL'].includes(t)) return 'PROFESIONAL';
+      return 'LAINNYA';
+    }
+
+    function cleanLabel(v){ return (v || '').trim() || '(Tidak Tercatat)'; }
+
+    function applyRoleFilter(data){
+      const role = (authUser?.role || '').toLowerCase();
+      if (role.includes('super')) return data;
+      const ukpd = (authUser?.namaUkpd || authUser?.username || '').toLowerCase().trim();
+      if (!ukpd) return data;
+      return data.filter(d => (d.nama_ukpd || d.unit || '').toLowerCase().trim() === ukpd);
+    }
+
+    async function init(){
+      try{
+        setStatus('Cek koneksi server...');
+        const health = await fetch(API_BASE + '/health');
+        if (!health.ok) throw new Error('Server tidak siap');
+        setStatus('Server siap. Memuat data...');
+        await loadData();
+      }catch(err){
+        setStatus('Gagal konek server: ' + err.message);
+      }
+    }
+
+    async function loadData(){
+      try{
+        const params = new URLSearchParams({ limit:'20000', offset:'0' });
+        const role = (authUser?.role || '').toLowerCase();
+        if (!role.includes('super')) {
+          const ukpd = (authUser?.namaUkpd || authUser?.username || '').trim();
+          if (ukpd) params.set('unit', ukpd);
+        }
+        const res = await fetch(`${API_BASE}/pegawai?${params.toString()}`);
+        const body = await res.json();
+        if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
+        const rows = applyRoleFilter(body.rows || []);
+        const prepared = prepareData(rows);
+        renderKpi(prepared.statusCounts);
+        renderCharts(prepared);
+        renderTable(prepared.tableRows);
+        setStatus('Data dimuat: ' + rows.length + ' baris.');
+      }catch(err){
+        setStatus('Gagal ambil data: ' + err.message);
+      }
+    }
+
+    function prepareData(rows){
+      const statusCounts = { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0 };
+      const unitMap = {};
+      const rumpunMap = {};
+      const pendidikanMap = {};
+
+      rows.forEach(r=>{
+        const st = normalizeStatus(r.nama_jenis_pegawai || r.nama_status_aktif || r.nama_status_rumpun);
+        if (st === 'LAINNYA') return;
+        statusCounts[st] = (statusCounts[st] || 0) + 1;
+        const unit = cleanLabel(r.nama_ukpd);
+        const rumpun = cleanLabel(r.nama_status_rumpun);
+        const pend = cleanLabel(r.jenjang_pendidikan);
+        unitMap[unit] = unitMap[unit] || { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0 };
+        unitMap[unit][st] += 1;
+        rumpunMap[rumpun] = rumpunMap[rumpun] || { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0 };
+        rumpunMap[rumpun][st] += 1;
+        pendidikanMap[pend] = pendidikanMap[pend] || { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0 };
+        pendidikanMap[pend][st] += 1;
+      });
+
+      const unitLabels = Object.keys(unitMap).sort();
+      const rumpunLabels = Object.keys(rumpunMap).sort((a,b)=> total(rumpunMap[b]) - total(rumpunMap[a]));
+      const pendidikanLabels = Object.keys(pendidikanMap).sort((a,b)=> total(pendidikanMap[b]) - total(pendidikanMap[a]));
+
+      const makeDatasets = (map, labels) => statusOrder.map(s=>({
+        label: statusLabels[s],
+        data: labels.map(l => map[l]?.[s] || 0),
+        backgroundColor: statusColors[s],
+        borderRadius: 6
+      }));
+
+      const tableRows = unitLabels.map((u, idx)=>{
+        const counts = unitMap[u] || {};
+        const tot = total(counts);
+        return { no: idx + 1, unit: u, ...counts, total: tot };
+      }).sort((a,b)=> b.total - a.total);
+
+      return {
+        statusCounts,
+        unitLabels,
+        unitDatasets: makeDatasets(unitMap, unitLabels),
+        rumpunLabels,
+        rumpunDatasets: makeDatasets(rumpunMap, rumpunLabels),
+        pendidikanLabels,
+        pendidikanDatasets: makeDatasets(pendidikanMap, pendidikanLabels),
+        tableRows
+      };
+    }
+
+    function total(obj){ return Object.values(obj || {}).reduce((s,n)=> s + (+n || 0), 0); }
+
+    function renderKpi(statusCounts){
+      document.querySelectorAll('[data-kpi]').forEach(card=>{
+        const key = card.getAttribute('data-kpi');
+        const target = statusCounts[key] || 0;
+        const numEl = card.querySelector('[data-count]');
+        if (!numEl) return;
+        animateNumber(numEl, target);
+      });
+    }
+
+    function animateNumber(el, target){
+      const duration = 1000 + Math.min(2000, target * 0.2);
+      const start = performance.now();
+      const fmt = n => n.toLocaleString('id-ID');
+      function step(now){
+        const p = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const val = Math.floor(target * eased);
+        el.textContent = fmt(val);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = fmt(target);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function renderCharts(data){
+      if (typeof Chart === 'undefined') return;
+      if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
+
+      const emptyPlugin = {
+        id:'empty',
+        afterDraw(chart){
+          const totalVal = (chart.data.datasets || []).reduce((sum, ds)=> sum + (ds.data || []).reduce((a,b)=> a + (+b || 0), 0), 0);
+          if (!totalVal) {
+            const { ctx, chartArea } = chart; if (!chartArea) return;
+            ctx.save();
+            ctx.fillStyle = getComputedStyle(document.body).color;
+            ctx.globalAlpha = .6;
+            ctx.textAlign = 'center';
+            ctx.font = '600 14px "Plus Jakarta Sans", system-ui';
+            ctx.fillText('Tidak ada data', (chartArea.left+chartArea.right)/2, (chartArea.top+chartArea.bottom)/2);
+            ctx.restore();
+          }
+        }
+      };
+      Chart.register(emptyPlugin);
+
+      const isDark = () => document.documentElement.classList.contains('dark');
+      const gridColor = () => isDark() ? '#334155' : '#e5e7eb';
+      const commonAnim = { duration: 800, easing: 'easeOutQuart' };
+
+      const statusData = {
+        labels: statusOrder.map(s => statusLabels[s]),
+        datasets: [{ data: statusOrder.map(s => data.statusCounts[s] || 0), backgroundColor: statusOrder.map(s => statusColors[s]) }]
+      };
+
+      destroyChart('status');
+      charts.status = new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: statusData,
+        options: {
+          responsive:true,
+          cutout:'58%',
+          plugins:{
+            legend:{ position:'bottom' },
+            tooltip:{ callbacks:{ label:c=>{ const v = +c.raw || 0; const tot = visibleTotal(c.chart, c.datasetIndex); const p = (v / tot * 100); return `${c.label}: ${v.toLocaleString('id-ID')} (${p.toFixed(1)}%)`; } } },
+            datalabels:{
+              color:'#fff', font:{ weight:'bold' },
+              formatter:(v,ctx)=>{ const tot = visibleTotal(ctx.chart, ctx.datasetIndex); const p = v / tot * 100; return p >= 4 ? p.toFixed(1)+'%' : ''; }
+            },
+            empty:{}
+          },
+          animation:{ animateRotate:true, duration:900, easing:'easeOutQuart' }
+        }
+      });
+
+      destroyChart('ukpd');
+      charts.ukpd = new Chart(document.getElementById('ukpdChart'), {
+        type:'bar',
+        data:{ labels:data.unitLabels, datasets: JSON.parse(JSON.stringify(data.unitDatasets)) },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ position:'top', align:'start', labels:{ usePointStyle:true } }, datalabels:{ display:false }, tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${( +c.raw).toLocaleString('id-ID')}` } }, empty:{} },
+          scales:{ x:{ stacked:true, ticks:{ autoSkip:false, maxRotation:60 }, grid:{ color:gridColor } }, y:{ stacked:true, beginAtZero:true, grid:{ color:gridColor } } },
+          animation: commonAnim
+        }
+      });
+
+      destroyChart('pendidikan');
+      charts.pendidikan = new Chart(document.getElementById('pendidikanChart'), {
+        type:'bar',
+        data:{ labels:data.pendidikanLabels, datasets: JSON.parse(JSON.stringify(data.pendidikanDatasets)) },
+        options:{
+          indexAxis:'y',
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ position:'top', align:'start', labels:{ usePointStyle:true } }, datalabels:{ display:false }, tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${( +c.raw).toLocaleString('id-ID')}` } }, empty:{} },
+          scales:{ x:{ stacked:true, beginAtZero:true, grid:{ color:gridColor } }, y:{ stacked:true, grid:{ color:gridColor } } },
+          animation: commonAnim
+        }
+      });
+
+      destroyChart('rumpun');
+      charts.rumpun = new Chart(document.getElementById('rumpunChart'), {
+        type:'bar',
+        data:{ labels:data.rumpunLabels, datasets: JSON.parse(JSON.stringify(data.rumpunDatasets)) },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ position:'top', align:'start', labels:{ usePointStyle:true } }, datalabels:{ display:false }, tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${( +c.raw).toLocaleString('id-ID')}` } }, empty:{} },
+          scales:{ x:{ stacked:true, grid:{ color:gridColor } }, y:{ stacked:true, beginAtZero:true, grid:{ color:gridColor } } },
+          animation: commonAnim
+        }
+      });
+    }
+
+    function visibleTotal(chart, dsIndex){
+      const ds = chart.data.datasets[dsIndex];
+      let sum = 0;
+      ds.data.forEach((v,i)=>{ if (chart.getDataVisibility(i)) sum += (+v || 0); });
+      return sum || 1;
+    }
+
+    function destroyChart(key){
+      if (charts[key]) { charts[key].destroy(); charts[key] = null; }
+    }
+
+    function renderTable(rows){
+      tableBody.innerHTML = '';
+      let totalP=0,totalC=0,totalP3=0,totalPro=0,totalJ=0,totalAll=0;
+      rows.forEach((r, idx)=>{
+        totalP += r.PNS || 0; totalC += r.CPNS || 0; totalP3 += r.PPPK || 0; totalPro += r.PROFESIONAL || 0; totalJ += r.PJLP || 0; totalAll += r.total || 0;
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-100';
+        tr.dataset.unit = r.unit.toLowerCase();
+        tr.innerHTML = `
+          <td class="px-3 py-2 text-center">${idx + 1}</td>
+          <td class="px-3 py-2">${r.unit}</td>
+          <td class="px-3 py-2 text-center">${(r.PNS||0).toLocaleString('id-ID')}</td>
+          <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
+          <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
+          <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
+          <td class="px-3 py-2 text-center">${(r.PJLP||0).toLocaleString('id-ID')}</td>
+          <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+      const cells = tableTotalRow?.querySelectorAll('td');
+      if (cells && cells.length >= 7){
+        cells[1].textContent = totalP.toLocaleString('id-ID');
+        cells[2].textContent = totalC.toLocaleString('id-ID');
+        cells[3].textContent = totalP3.toLocaleString('id-ID');
+        cells[4].textContent = totalPro.toLocaleString('id-ID');
+        cells[5].textContent = totalJ.toLocaleString('id-ID');
+        cells[6].textContent = totalAll.toLocaleString('id-ID');
+      }
+    }
+
+    function filterTable(){
+      const q = (document.getElementById('tableFilter')?.value || '').toLowerCase();
+      const rows = tableBody.querySelectorAll('tr');
+      rows.forEach(tr=>{
+        const text = tr.dataset.unit || '';
+        tr.style.display = !q || text.includes(q) ? '' : 'none';
+      });
+    }
+
+    function setCompact(enabled){
+      document.body.classList.toggle('compact', !!enabled);
+      localStorage.setItem('compactMode', enabled ? '1' : '0');
+      if (compactDot){
+        compactDot.classList.toggle('bg-emerald-500', enabled);
+        compactDot.classList.toggle('bg-slate-300', !enabled);
+      }
+      setTimeout(()=>{
+        try{ charts.status?.resize(); }catch(e){}
+        try{ charts.ukpd?.resize(); }catch(e){}
+        try{ charts.rumpun?.resize(); }catch(e){}
+        try{ charts.pendidikan?.resize(); }catch(e){}
+      }, 0);
+    }
+
+    const savedCompact = localStorage.getItem('compactMode') === '1';
+    setCompact(savedCompact);
+
+    const prog = document.getElementById('scrollProg');
+    function onScrollProg(){
+      const t = window.scrollY || document.documentElement.scrollTop;
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      prog.style.width = (Math.max(0, Math.min(1, h ? t / h : 0)) * 100) + '%';
+    }
+    onScrollProg();
+    window.addEventListener('scroll', onScrollProg, { passive:true });
+
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if (e.isIntersecting){ e.target.classList.add('in-view'); io.unobserve(e.target); } });
+    }, { threshold:.12, rootMargin:'0px 0px -40px 0px' });
+    document.querySelectorAll('[data-animate]').forEach(el=>io.observe(el));
+
+    init();
+  </script>
+</body>
+</html>
