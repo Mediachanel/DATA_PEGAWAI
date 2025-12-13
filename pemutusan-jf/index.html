@@ -55,7 +55,7 @@
     .status-strip { display:flex; flex-wrap:wrap; gap:8px; }
     .chip { padding:8px 10px; border-radius:12px; background:#f8fafc; border:1px solid var(--border); font-weight:700; color:#475569; cursor:pointer; }
     .chip.active { background:#e0f2fe; border-color:#bfdbfe; color:#1d4ed8; }
-    .table-wrap { background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.06); }
+    .table-wrap { background:#fff; border:1px solid var(--border); border-radius:12px; overflow:visible; box-shadow:0 10px 24px rgba(15,23,42,.06); }
     table { width:100%; border-collapse:collapse; }
     th, td { padding:12px 10px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; }
     th { background:#f8fafc; font-weight:700; color:#475569; }
@@ -67,7 +67,7 @@
     .badge.s4 { background:#fee2e2; color:#b91c1c; }
     .actions { position:relative; }
     .actions button { border:1px solid var(--border); background:#fff; padding:6px 8px; border-radius:8px; cursor:pointer; }
-    .dropdown { position:absolute; top:110%; right:0; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 12px 30px rgba(15,23,42,.1); min-width:140px; display:none; z-index:10; }
+    .dropdown { position:absolute; top:110%; right:0; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 12px 30px rgba(15,23,42,.1); min-width:140px; display:none; z-index:50; }
     .dropdown a, .dropdown button { display:block; width:100%; text-align:left; padding:8px 10px; border:0; background:#fff; cursor:pointer; font-size:13px; }
     .dropdown a:hover, .dropdown button:hover { background:#f8fafc; }
     .empty { padding:20px; text-align:center; color:var(--muted); }
