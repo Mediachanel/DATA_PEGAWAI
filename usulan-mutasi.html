@@ -382,7 +382,10 @@
     }
 
     async function apiFetch(url, options={}){
-      const res = await fetch(url, options);
+      const opts = { ...options };
+      // default to text/plain to avoid preflight on Apps Script
+      if (opts.method && !opts.headers) opts.headers = { 'Content-Type':'text/plain' };
+      const res = await fetch(url, opts);
       const text = await res.text();
       let body;
       try { body = JSON.parse(text); }
@@ -504,7 +507,7 @@
       }
       const url = editingId ? `${API_BASE}/mutasi/${editingId}` : `${API_BASE}/mutasi`;
       const method = editingId ? 'PUT' : 'POST';
-      await apiFetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+      await apiFetch(url, { method, headers:{'Content-Type':'text/plain'}, body: JSON.stringify(data) });
       editingId = null;
       form.reset();
       await loadData();

@@ -149,7 +149,7 @@
       try {
         const res = await fetch(API_BASE + '/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' }, // hindari preflight di Apps Script
           body: JSON.stringify(payload)
         });
         const body = await res.json();
