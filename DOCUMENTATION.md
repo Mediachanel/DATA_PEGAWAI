@@ -5,7 +5,7 @@
 - Port: 5002 (hardcode di front-end)
 - Spreadsheet ID: `1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw`
 - Sheet data: `DATA PEGAWAI!A:AB` (28 kolom)
-- Sheet login: `username!A:D` (Nama UKPD, Username, Password, Hak akses)
+- Sheet login: `username!A:D` (Nama UKPD, Username, Password, Hak akses, Wilayah)
 - Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
 
 ## Frontend
@@ -41,6 +41,56 @@
 26. catatan_revisi_biodata
 27. alamat_ktp
 28. alamat_domisili
+
+### Usulan Mutasi (USULAN_MUTASI!A:S, 19 kolom)
+1. id
+2. nip
+3. nama_pegawai
+4. jabatan_asal
+5. jabatan_baru
+6. nama_ukpd_asal
+7. nama_ukpd_tujuan
+8. wilayah_asal
+9. wilayah_tujuan
+10. jenis_mutasi
+11. alasan
+12. tanggal_usulan
+13. status
+14. keterangan
+15. abk_j_lama
+16. bezetting_j_lama
+17. abk_j_baru
+18. bezetting_j_baru
+19. berkas_url
+
+### Usulan Pemutusan JF (USULAN_PEMUTUSAN_JF!A:T, 20 kolom)
+1. id_usulan
+2. status
+3. nama_pegawai
+4. nip
+5. pangkat_gol
+6. jabatan_lama
+7. jabatan_baru
+8. angka_kredit
+9. ukpd
+10. wilayah
+11. nomor_surat
+12. tanggal_surat
+13. alasan_usulan
+14. link_dokumen
+15. verifikasi_oleh
+16. verifikasi_tanggal
+17. verifikasi_catatan
+18. dibuat_oleh
+19. dibuat_pada
+20. diupdate_pada
+
+### Aturan Akses Wilayah/UKPD
+- Superadmin: lihat semua data.
+- Admin Wilayah: data dibatasi sesuai `wilayah` login.
+- Admin UKPD: data dibatasi UKPD login.
+- Frontend mengirim query `wilayah`/`ukpd` otomatis saat load; backend memfilter ulang sesuai query.
+- Penambahan data otomatis mengisi `wilayah` (pemutusan JF) atau `wilayah_asal/tujuan` (mutasi) dari sheet `username` jika kosong.
 
 ### Endpoint utama
 - `GET /health` - cek status server.
