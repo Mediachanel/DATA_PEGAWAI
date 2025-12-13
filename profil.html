@@ -159,7 +159,7 @@
   </div>
 
   <script>
-    const API_BASE = 'https://white-recipe-9aa7.seftian23.workers.dev';
+    const API_BASE = 'https://data.seftian23.workers.dev';
     const sidebar = fetch('sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch('header.html').then(r=>r.text()).catch(()=>''), footer = fetch('footer.html').then(r=>r.text()).catch(()=> '');
     Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
       document.getElementById('sidebar-container').innerHTML = s;
