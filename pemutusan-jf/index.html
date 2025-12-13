@@ -221,6 +221,10 @@
           <input id="f_ukpd" placeholder="UKPD" autocomplete="off" />
         </div>
         <div>
+          <label>Wilayah</label>
+          <input id="f_wilayah" placeholder="Wilayah" autocomplete="off" />
+        </div>
+        <div>
           <label>Nomor Surat</label>
           <input id="f_no_surat" placeholder="Nomor surat" autocomplete="off" />
         </div>
@@ -422,6 +426,14 @@
         ukpdInput.disabled = false;
         ukpdInput.value = row?.ukpd || '';
       }
+      const wilInput = document.getElementById('f_wilayah');
+      if (!isSuperAdmin) {
+        wilInput.value = authUser?.wilayah || '';
+        wilInput.disabled = true;
+      } else {
+        wilInput.disabled = false;
+        wilInput.value = row?.wilayah || '';
+      }
       document.getElementById('f_no_surat').value = row?.nomor_surat || '';
       document.getElementById('f_tgl_surat').value = row?.tanggal_surat || '';
       document.getElementById('f_link').value = row?.link_dokumen || '';
@@ -441,6 +453,7 @@
         jabatan_baru: document.getElementById('f_jab_baru').value.trim(),
         angka_kredit: document.getElementById('f_ak').value.trim(),
         ukpd: (document.getElementById('f_ukpd').value || '').trim() || (authUser?.namaUkpd || ''),
+        wilayah: (document.getElementById('f_wilayah').value || '').trim() || (authUser?.wilayah || ''),
         nomor_surat: document.getElementById('f_no_surat').value.trim(),
         tanggal_surat: document.getElementById('f_tgl_surat').value,
         alasan_usulan: document.getElementById('f_alasan').value.trim(),

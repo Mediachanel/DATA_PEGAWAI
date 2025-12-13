@@ -25,10 +25,10 @@ const MUTASI_COLS = [
   'jenis_mutasi','alasan','tanggal_usulan','status','keterangan',
   'abk_j_lama','bezetting_j_lama','abk_j_baru','bezetting_j_baru','berkas_url'
 ];
-const PEMUTUSAN_RANGE = process.env.PEMUTUSAN_RANGE || 'USULAN_PEMUTUSAN_JF!A:S';
+const PEMUTUSAN_RANGE = process.env.PEMUTUSAN_RANGE || 'USULAN_PEMUTUSAN_JF!A:T';
 const PEMUTUSAN_COLS = [
   'id_usulan','status','nama_pegawai','nip','pangkat_gol','jabatan_lama','jabatan_baru','angka_kredit',
-  'ukpd','nomor_surat','tanggal_surat','alasan_usulan','link_dokumen',
+  'ukpd','wilayah','nomor_surat','tanggal_surat','alasan_usulan','link_dokumen',
   'verifikasi_oleh','verifikasi_tanggal','verifikasi_catatan',
   'dibuat_oleh','dibuat_pada','diupdate_pada'
 ];
@@ -479,7 +479,14 @@ app.post('/pemutusan-jf', async (req, res) => {
   try {
     const d = req.body || {};
     const id = d.id_usulan || `PJ-${Date.now()}`;
-    const row = PEMUTUSAN_COLS.map(k => k === 'id_usulan' ? id : (d[k] || ''));
+    // isi wilayah jika kosong berdasarkan user sheet
+    let wilayahVal = d.wilayah || '';
+    if (!wilayahVal && d.ukpd) {
+      const map = await getUkpdWilayahMap();
+      wilayahVal = map[norm(d.ukpd)] || '';
+    }
+    const rowData = { ...d, id_usulan: id, wilayah: wilayahVal };
+    const row = PEMUTUSAN_COLS.map(k => rowData[k] || '');
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: PEMUTUSAN_RANGE,
@@ -502,10 +509,16 @@ app.put('/pemutusan-jf/:id', async (req, res) => {
     const idx = data.findIndex(r => (r[0] || '').toString() === id);
     if (idx < 0) return res.status(404).json({ ok: false, error: 'ID usulan tidak ditemukan' });
     const rowNumber = idx + 2; // +1 header
-    const payload = PEMUTUSAN_COLS.map(k => k === 'id_usulan' ? id : (req.body?.[k] || ''));
+    let wilayahVal = req.body?.wilayah || '';
+    if (!wilayahVal && req.body?.ukpd) {
+      const map = await getUkpdWilayahMap();
+      wilayahVal = map[norm(req.body.ukpd)] || '';
+    }
+    const dataPayload = { ...(req.body || {}), id_usulan: id, wilayah: wilayahVal };
+    const payload = PEMUTUSAN_COLS.map(k => dataPayload[k] || '');
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${PEMUTUSAN_RANGE.split('!')[0]}!A${rowNumber}:S${rowNumber}`,
+      range: `${PEMUTUSAN_RANGE.split('!')[0]}!A${rowNumber}:T${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
@@ -645,16 +658,17 @@ function toPemutusanRecord(header, row){
     jabatan_baru: get('jabatan_baru',6),
     angka_kredit: get('angka_kredit',7),
     ukpd: get('ukpd',8),
-    nomor_surat: get('nomor_surat',9),
-    tanggal_surat: get('tanggal_surat',10),
-    alasan_usulan: get('alasan_usulan',11),
-    link_dokumen: get('link_dokumen',12),
-    verifikasi_oleh: get('verifikasi_oleh',13),
-    verifikasi_tanggal: get('verifikasi_tanggal',14),
-    verifikasi_catatan: get('verifikasi_catatan',15),
-    dibuat_oleh: get('dibuat_oleh',16),
-    dibuat_pada: get('dibuat_pada',17),
-    diupdate_pada: get('diupdate_pada',18),
+    wilayah: get('wilayah',9),
+    nomor_surat: get('nomor_surat',10),
+    tanggal_surat: get('tanggal_surat',11),
+    alasan_usulan: get('alasan_usulan',12),
+    link_dokumen: get('link_dokumen',13),
+    verifikasi_oleh: get('verifikasi_oleh',14),
+    verifikasi_tanggal: get('verifikasi_tanggal',15),
+    verifikasi_catatan: get('verifikasi_catatan',16),
+    dibuat_oleh: get('dibuat_oleh',17),
+    dibuat_pada: get('dibuat_pada',18),
+    diupdate_pada: get('diupdate_pada',19),
   };
 }
 
