@@ -159,8 +159,14 @@
   </div>
 
   <script>
+    const BASE = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+    })();
+    const favicon = document.querySelector("link[rel='icon']");
+    if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
     const API_BASE = 'http://127.0.0.1:5002';
-    const sidebar = fetch('sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch('header.html').then(r=>r.text()).catch(()=>''), footer = fetch('footer.html').then(r=>r.text()).catch(()=> '');
+    const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
     Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
       document.getElementById('sidebar-container').innerHTML = s;
       document.getElementById('header-container').innerHTML = h;
@@ -168,11 +174,13 @@
       const logoutBtn = document.getElementById('logoutBtn'); if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
       const logoutNav = document.querySelector('[data-logout]');
       if (logoutNav) logoutNav.addEventListener('click', doLogout);
+      document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
+      document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
       updateHeaderUser(); setActiveNav(); initSidebarToggle();
     });
 
     const authUser = (() => { try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
-    if (!authUser) { window.location.href = 'index.html'; }
+    if (!authUser) { window.location.href = BASE; }
     const norm = (v='') => String(v || '').toLowerCase().trim();
     const roleLower = norm(authUser?.role);
     const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
@@ -207,13 +215,13 @@
     }
     function setActiveNav() {
       document.querySelectorAll('.nav-item').forEach(a => {
-        if (a.getAttribute('href') === 'profil.html') a.classList.add('active');
+        if (a.getAttribute('href') === BASE + 'profil/') a.classList.add('active');
         else a.classList.remove('active');
       });
     }
     function doLogout() {
       localStorage.removeItem('authUser');
-      window.location.href = 'index.html';
+      window.location.href = BASE;
     }
 
     function fmtDate(raw){

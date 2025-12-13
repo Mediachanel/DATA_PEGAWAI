@@ -94,6 +94,12 @@
   <footer>(c) 2025 SI Data Pegawai. Sub Kelompok Kepegawaian Dinas Kesehatan Provinsi DKI Jakarta.</footer>
 
   <script>
+    const BASE = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+    })();
+    const favicon = document.querySelector("link[rel='icon']");
+    if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
     const API_BASE = 'http://127.0.0.1:5002';
     const statusEl = document.getElementById('status');
     const loginBtn = document.getElementById('loginBtn');
@@ -112,7 +118,7 @@
     updateClock(); setInterval(updateClock, 1000);
 
     // inject header konsisten
-    fetch('header.html').then(r=>r.text()).then(html=>{
+    fetch(BASE + 'header.html').then(r=>r.text()).then(html=>{
       document.getElementById('header-container').innerHTML = html;
       const logoutBtn = document.getElementById('logoutBtn');
       const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
@@ -158,7 +164,7 @@
           localStorage.setItem('authUser', JSON.stringify(body.user));
         }
         setStatus('Login berhasil. Membuka dashboard...');
-        window.location.href = 'dashboard.html';
+        window.location.href = BASE + 'dashboard/';
       } catch (err) {
         setStatus('Gagal login: ' + err.message);
       } finally {

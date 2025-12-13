@@ -8,6 +8,10 @@
 - Sheet login: `username!A:D` (Nama UKPD, Username, Password, Hak akses)
 - Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
 
+## Frontend
+- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
+- Header/sidebar/footer di-root (`header.html`, `sidebar.html`, `footer.html`) diambil dengan BASE dinamis; logo/favikon juga di-set ulang via BASE + `foto/Dinkes.png`.
+
 ### Kolom data (urutan A:AB)
 1. nama_pegawai
 2. npwp
@@ -80,6 +84,12 @@
    npm start
    ```
 3. Buka front-end (file:// atau server statis). `API_BASE` default ke `http://127.0.0.1:5002`.
+
+## Catatan percobaan proxy (Des 2025)
+- Sudah dibuat fungsi proxy Vercel di `api/proxy.js` dan konfigurasi `vercel.json` untuk build route `/api/proxy` dengan env `WEB_APP_BASE` ke Apps Script. Deployment Vercel project `data` masih gagal (500) karena project terhubung ke repo lain yang belum memuat commit `api/proxy.js`/`vercel.json` atau belum redeploy dari commit terbaru.
+- Cloudflare Worker proxy (`cf-worker-proxy.js`) juga disiapkan, tetapi subdomain workers.dev belum aktif, sehingga tetap NXDOMAIN/1101.
+- Akhirnya `API_BASE` front-end dikembalikan ke server lokal `http://127.0.0.1:5002`. Jalankan backend lokal sebelum mengakses front-end.
+- Jika ingin pakai proxy publik lagi: pastikan deployment Vercel memakai repo commit terbaru (ada `api/proxy.js` + `vercel.json`), set env `WEB_APP_BASE`, redeploy, lalu set `API_BASE` ke `https://<domain-vercel>/api/proxy`.
 
 ## Menjalankan via ngrok (sementara)
 1. Backend di port 5002.
