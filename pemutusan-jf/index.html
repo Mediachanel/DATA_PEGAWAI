@@ -71,6 +71,17 @@
     .dropdown a, .dropdown button { display:block; width:100%; text-align:left; padding:8px 10px; border:0; background:#fff; cursor:pointer; font-size:13px; }
     .dropdown a:hover, .dropdown button:hover { background:#f8fafc; }
     .empty { padding:20px; text-align:center; color:var(--muted); }
+    /* Modal */
+    .modal { position:fixed; inset:0; background:rgba(15,23,42,0.45); display:none; align-items:center; justify-content:center; z-index:40; }
+    .modal.show { display:flex; }
+    .modal-card { background:#fff; width:90%; max-width:720px; border-radius:14px; padding:18px 18px 14px; box-shadow:0 18px 46px rgba(15,23,42,.25); }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+    .modal-head h3 { margin:0; font-size:18px; }
+    .modal-body { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+    .modal-body label { display:block; font-weight:700; font-size:12px; margin-bottom:4px; color:#475569; }
+    .modal-body input, .modal-body select, .modal-body textarea { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:13px; }
+    .modal-body textarea { min-height:80px; resize:vertical; grid-column:1/-1; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:12px; }
     @media (max-width: 1024px) {
       .sidebar { display:none; }
       .content { padding-left:0; }
@@ -164,6 +175,75 @@
     </div>
   </div>
 
+  <!-- Modal form -->
+  <div class="modal" id="modalForm">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modalTitle">Tambah Usulan</h3>
+        <button class="btn ghost" id="closeModal">Tutup</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <label>Status</label>
+          <select id="f_status">
+            <option value="DIUSULKAN">DIUSULKAN</option>
+            <option value="DIPROSES">DIPROSES</option>
+            <option value="SELESAI">SELESAI</option>
+            <option value="DITOLAK">DITOLAK</option>
+          </select>
+        </div>
+        <div>
+          <label>Nama Pegawai</label>
+          <input id="f_nama" placeholder="Nama pegawai" />
+        </div>
+        <div>
+          <label>NIP</label>
+          <input id="f_nip" placeholder="NIP" />
+        </div>
+        <div>
+          <label>Pangkat/Gol</label>
+          <input id="f_pangkat" placeholder="Mis. Penata Muda Tk I / III/b" />
+        </div>
+        <div>
+          <label>Jabatan Lama</label>
+          <input id="f_jab_lama" placeholder="Jabatan lama" />
+        </div>
+        <div>
+          <label>Jabatan Baru</label>
+          <input id="f_jab_baru" placeholder="Jabatan baru (opsional)" />
+        </div>
+        <div>
+          <label>Angka Kredit</label>
+          <input id="f_ak" placeholder="Angka kredit" />
+        </div>
+        <div>
+          <label>UKPD</label>
+          <input id="f_ukpd" placeholder="UKPD" />
+        </div>
+        <div>
+          <label>Nomor Surat</label>
+          <input id="f_no_surat" placeholder="Nomor surat" />
+        </div>
+        <div>
+          <label>Tanggal Surat</label>
+          <input id="f_tgl_surat" type="date" />
+        </div>
+        <div>
+          <label>Link Dokumen</label>
+          <input id="f_link" placeholder="https://..." />
+        </div>
+        <div>
+          <label>Alasan Usulan</label>
+          <textarea id="f_alasan" placeholder="Alasan usulan"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="cancelModal">Batal</button>
+        <button class="btn primary" id="saveModal">Simpan</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Base path autodetect (GitHub Pages / lokal)
     const BASE = (() => {
@@ -203,6 +283,7 @@
     let rows = [];
     let filtered = [];
     let page = 1;
+    let editingId = null;
 
     function badgeClass(status){
       const s = (status||'').toUpperCase();
@@ -291,9 +372,73 @@
     });
 
     // Dummy handlers (integrasikan dengan API)
-    function editRow(id){ alert('Edit: '+id); }
-    function printRow(id){ alert('Cetak: '+id); }
-    function deleteRow(id){ if(confirm('Hapus usulan? '+id)){ /* TODO: call delete API */ } }
+    function openModal(row){
+      editingId = row?.id_usulan || null;
+      document.getElementById('modalTitle').textContent = editingId ? 'Ubah Usulan' : 'Tambah Usulan';
+      document.getElementById('f_status').value = row?.status || 'DIUSULKAN';
+      document.getElementById('f_nama').value = row?.nama_pegawai || '';
+      document.getElementById('f_nip').value = row?.nip || '';
+      document.getElementById('f_pangkat').value = row?.pangkat_gol || '';
+      document.getElementById('f_jab_lama').value = row?.jabatan_lama || '';
+      document.getElementById('f_jab_baru').value = row?.jabatan_baru || '';
+      document.getElementById('f_ak').value = row?.angka_kredit || '';
+      document.getElementById('f_ukpd').value = row?.ukpd || '';
+      document.getElementById('f_no_surat').value = row?.nomor_surat || '';
+      document.getElementById('f_tgl_surat').value = row?.tanggal_surat || '';
+      document.getElementById('f_link').value = row?.link_dokumen || '';
+      document.getElementById('f_alasan').value = row?.alasan_usulan || '';
+      document.getElementById('modalForm').classList.add('show');
+    }
+    function closeModal(){ document.getElementById('modalForm').classList.remove('show'); }
+    async function saveModal(){
+      const payload = {
+        status: document.getElementById('f_status').value || 'DIUSULKAN',
+        nama_pegawai: document.getElementById('f_nama').value.trim(),
+        nip: document.getElementById('f_nip').value.trim(),
+        pangkat_gol: document.getElementById('f_pangkat').value.trim(),
+        jabatan_lama: document.getElementById('f_jab_lama').value.trim(),
+        jabatan_baru: document.getElementById('f_jab_baru').value.trim(),
+        angka_kredit: document.getElementById('f_ak').value.trim(),
+        ukpd: document.getElementById('f_ukpd').value.trim(),
+        nomor_surat: document.getElementById('f_no_surat').value.trim(),
+        tanggal_surat: document.getElementById('f_tgl_surat').value,
+        alasan_usulan: document.getElementById('f_alasan').value.trim(),
+        link_dokumen: document.getElementById('f_link').value.trim(),
+        diupdate_pada: new Date().toISOString(),
+      };
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `${API_BASE}/pemutusan-jf/${editingId}` : `${API_BASE}/pemutusan-jf`;
+      if (!editingId) payload.dibuat_pada = payload.diupdate_pada;
+      if (!editingId) payload.dibuat_oleh = authUser?.username || authUser?.namaUkpd || 'user';
+      try{
+        const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('Gagal simpan');
+        closeModal();
+        await loadData();
+      }catch(err){
+        alert('Gagal simpan: '+err.message);
+      }
+    }
+    function editRow(id){
+      const row = rows.find(r=>r.id_usulan===id);
+      if (!row) return;
+      openModal(row);
+    }
+    function printRow(id){
+      const row = rows.find(r=>r.id_usulan===id);
+      if (row?.link_dokumen) window.open(row.link_dokumen, '_blank');
+      else alert('Tidak ada dokumen. Silakan isi link_dokumen.');
+    }
+    async function deleteRow(id){
+      if (!confirm('Hapus usulan ini?')) return;
+      try{
+        const res = await fetch(`${API_BASE}/pemutusan-jf/${id}`, { method:'DELETE' });
+        if (!res.ok) throw new Error('Gagal hapus');
+        await loadData();
+      }catch(err){
+        alert('Gagal hapus: '+err.message);
+      }
+    }
 
     async function loadData(){
       try{
@@ -326,7 +471,10 @@
     document.getElementById('search').addEventListener('input', ()=>{ page=1; applyFilters(); });
     document.getElementById('filterUkpd').addEventListener('change', ()=>{ page=1; applyFilters(); });
     document.getElementById('perPage').addEventListener('change', ()=>{ page=1; render(); });
-    document.getElementById('addBtn').addEventListener('click', ()=> alert('Form tambah usulan belum diimplementasikan.'));
+    document.getElementById('addBtn').addEventListener('click', ()=> openModal(null));
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('cancelModal').addEventListener('click', closeModal);
+    document.getElementById('saveModal').addEventListener('click', saveModal);
 
     loadData();
   </script>

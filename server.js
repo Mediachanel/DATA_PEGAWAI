@@ -467,6 +467,68 @@ app.get('/pemutusan-jf', async (req, res) => {
   }
 });
 
+app.post('/pemutusan-jf', async (req, res) => {
+  try {
+    const d = req.body || {};
+    const id = d.id_usulan || `PJ-${Date.now()}`;
+    const row = PEMUTUSAN_COLS.map(k => k === 'id_usulan' ? id : (d[k] || ''));
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: PEMUTUSAN_RANGE,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [row] }
+    });
+    res.json({ ok: true, id_usulan: id });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.put('/pemutusan-jf/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
+    const rows = values.data.values || [];
+    const [header, ...data] = rows;
+    const idx = data.findIndex(r => (r[0] || '').toString() === id);
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID usulan tidak ditemukan' });
+    const rowNumber = idx + 2; // +1 header
+    const payload = PEMUTUSAN_COLS.map(k => k === 'id_usulan' ? id : (req.body?.[k] || ''));
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${PEMUTUSAN_RANGE.split('!')[0]}!A${rowNumber}:S${rowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [payload] }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.delete('/pemutusan-jf/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
+    const rows = values.data.values || [];
+    const idx = rows.findIndex(r => (r[0] || '').toString() === id);
+    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID usulan tidak ditemukan' });
+    const sheetId = await getSheetIdByName(PEMUTUSAN_RANGE.split('!')[0]);
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } }
+        }]
+      }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 function toRecord(header, row) {
   const h = (header || []).map(x => (x || '').toLowerCase().trim());
   const get = (name, fallbackIdx) => {
