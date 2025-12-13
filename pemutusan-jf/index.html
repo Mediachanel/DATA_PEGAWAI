@@ -20,7 +20,17 @@
     * { box-sizing: border-box; }
     body { margin:0; font-family: 'Inter','Segoe UI',Arial,sans-serif; background: linear-gradient(135deg, #f3f6fb 0%, #eef2ff 45%, #f0fff4 100%); color:#0f172a; }
     .layout { min-height:100vh; display:flex; }
-    .sidebar { width:260px; border-right:1px solid var(--border); background:#fff; }
+    .sidebar { width:260px; border-right:1px solid var(--border); background:#fff; padding:16px 14px; }
+    .logo { display:flex; align-items:center; gap:10px; margin-bottom:16px; color:#0f172a; font-weight:800; }
+    .logo img { width:48px; height:48px; object-fit:contain; }
+    .logo-title { font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
+    .logo-sub { font-size:12px; color:#94a3b8; }
+    nav { display:flex; flex-direction:column; gap:6px; }
+    .nav-title { margin:12px 8px 4px; font-size:11px; letter-spacing:0.4px; text-transform:uppercase; color:#94a3b8; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .nav-item:hover { background:#f8fafc; }
+    .nav-item.active { background:#e0f2fe; color:#1d4ed8; font-weight:700; }
+    .icon-round { width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
     .content { flex:1; min-height:100vh; display:flex; flex-direction:column; }
     header.topbar { background:#fff; border-bottom:1px solid var(--border); padding:12px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; box-shadow:0 6px 18px rgba(15,23,42,.05); }
     .badge-role { display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; }
@@ -292,15 +302,7 @@
         const body = await res.json();
         rows = body.rows || body || [];
       }catch(err){
-        // fallback contoh
-        rows = [
-          {id_usulan:'1', status:'DIUSULKAN', nama_pegawai:'Jonathan Aditama Mialando', nip:'1994011290', pangkat_gol:'Penata Muda Tk I / III/b', jabatan_lama:'Dokter Ahli Pertama', jabatan_baru:'Pegawai Tugas Belajar', angka_kredit:'197.86', ukpd:'Puskesmas Menteng', nomor_surat:'6168/KG.03.02', tanggal_surat:'2024-08-02'},
-          {id_usulan:'2', status:'DIUSULKAN', nama_pegawai:'EDWARD LUMBAN RAJA', nip:'1984021202014031001', pangkat_gol:'Penata Muda Tk I / III/b', jabatan_lama:'Kepala Subbagian Tata Usaha', jabatan_baru:'Jabatan Pengawas', angka_kredit:'103.75', ukpd:'Puskesmas Penjaringan', nomor_surat:'7654/KG.03.02', tanggal_surat:'2025-11-14'},
-          {id_usulan:'3', status:'DIPROSES', nama_pegawai:'Alfarobi Musadad', nip:'199006222010431001', pangkat_gol:'Penata Muda / III/a', jabatan_lama:'Perawat Mahir', jabatan_baru:'-', angka_kredit:'13.54', ukpd:'Puskesmas Kalideres', nomor_surat:'5745/KG.03.02', tanggal_surat:'2025-11-05'},
-          {id_usulan:'4', status:'SELESAI', nama_pegawai:'dr. Ni Made Desy Indrayani', nip:'198512042012032001', pangkat_gol:'Penata Muda Tk I / III/b', jabatan_lama:'Dokter Ahli Muda', jabatan_baru:'-', angka_kredit:'-', ukpd:'Puskesmas Sawah Besar', nomor_surat:'11098/KG.03.02', tanggal_surat:'2025-11-14'},
-          {id_usulan:'5', status:'DITOLAK', nama_pegawai:'Contoh Ditolak', nip:'123', pangkat_gol:'II/b', jabatan_lama:'-',
-           jabatan_baru:'-', angka_kredit:'-', ukpd:'Puskesmas Menteng', nomor_surat:'001/X/2025', tanggal_surat:'2025-10-10'}
-        ];
+        rows = [];
       }
       buildUkpdOptions();
       filtered = rows.slice();
