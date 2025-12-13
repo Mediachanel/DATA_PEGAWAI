@@ -490,8 +490,7 @@
         rows = [];
       }
       buildUkpdOptions();
-      filtered = rows.slice();
-      render();
+      applyFilters();
     }
     function buildUkpdOptions(){
       const sel = document.getElementById('filterUkpd');
