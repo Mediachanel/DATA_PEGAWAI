@@ -356,7 +356,7 @@
         const ukVal = norm(r.ukpd);
         if (isSuperAdmin) return true;
         if (isWilayahAdmin) return loginWilayahNorm && ukVal.includes(loginWilayahNorm);
-        return ukVal === loginUkpdNorm;
+        return loginUkpdNorm && ukVal === loginUkpdNorm;
       });
 
       filtered = scoped.filter(r=>{
@@ -499,7 +499,7 @@
         const ukVal = norm(r.ukpd);
         if (isSuperAdmin) return true;
         if (isWilayahAdmin) return loginWilayahNorm && ukVal.includes(loginWilayahNorm);
-        return ukVal === loginUkpdNorm;
+        return loginUkpdNorm && ukVal === loginUkpdNorm;
       });
       const ukpds = Array.from(new Set(scopedUkpds.map(r=>r.ukpd).filter(Boolean))).sort();
       sel.innerHTML = '<option value=\"\">Pilih UKPD</option>' + ukpds.map(u=>`<option value=\"${u}\">${u}</option>`).join('');
