@@ -416,7 +416,7 @@
       document.getElementById('f_ak').value = row?.angka_kredit || '';
       const ukpdInput = document.getElementById('f_ukpd');
       if (!isSuperAdmin) {
-        ukpdInput.value = loginUkpd || row?.ukpd || '';
+        ukpdInput.value = authUser?.namaUkpd || '';
         ukpdInput.disabled = true;
       } else {
         ukpdInput.disabled = false;
@@ -486,7 +486,10 @@
 
     async function loadData(){
       try{
-        const res = await fetch(`${API_BASE}/pemutusan-jf`);
+        const params = new URLSearchParams();
+        if (isWilayahAdmin && loginWilayahNorm) params.set('wilayah', loginWilayahNorm);
+        if (!isSuperAdmin && !isWilayahAdmin && loginUkpdNorm) params.set('ukpd', loginUkpdNorm);
+        const res = await fetch(`${API_BASE}/pemutusan-jf?${params.toString()}`);
         if (!res.ok) throw new Error('Gagal fetch');
         const body = await res.json();
         rows = body.rows || body || [];

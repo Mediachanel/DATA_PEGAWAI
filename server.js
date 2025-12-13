@@ -439,18 +439,26 @@ app.get('/pemutusan-jf', async (req, res) => {
   try {
     const term = norm(req.query.search);
     const status = norm(req.query.status);
-    const ukpd = norm(req.query.ukpd);
+    const ukpdQuery = norm(req.query.ukpd);
+    const wilayahQuery = norm(req.query.wilayah);
 
     const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
     const values = result.data.values || [];
     const [header, ...rows] = values;
     let list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id_usulan);
 
+    let mapWilayah = null;
+    if (wilayahQuery) {
+      mapWilayah = await getUkpdWilayahMap(); // { ukpd_lower: wilayah_lower }
+    }
+
     list = list.filter(r => {
       const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
       const matchStatus = !status || norm(r.status) === status;
-      const matchUkpd = !ukpd || norm(r.ukpd) === ukpd;
-      return matchTerm && matchStatus && matchUkpd;
+      const ukVal = norm(r.ukpd);
+      const matchUkpd = !ukpdQuery || ukVal === ukpdQuery;
+      const matchWilayah = !wilayahQuery || (mapWilayah && mapWilayah[ukVal] === wilayahQuery);
+      return matchTerm && matchStatus && matchUkpd && matchWilayah;
     });
 
     const summary = list.reduce((acc, r) => {
