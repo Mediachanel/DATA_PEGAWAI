@@ -19,9 +19,10 @@ const COLS = [
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
   'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili'
 ];
-const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:Q'; // 17 kolom (tambah berkas_url)
+const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:S'; // 19 kolom (tambah wilayah asal/tujuan)
 const MUTASI_COLS = [
   'id','nip','nama_pegawai','jabatan_asal','jabatan_baru','nama_ukpd_asal','nama_ukpd_tujuan',
+  'wilayah_asal','wilayah_tujuan',
   'jenis_mutasi','alasan','tanggal_usulan','status','keterangan',
   'abk_j_lama','bezetting_j_lama','abk_j_baru','bezetting_j_baru','berkas_url'
 ];
@@ -314,7 +315,13 @@ app.get('/mutasi', async (req, res) => {
     const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: MUTASI_RANGE });
     const values = result.data.values || [];
     const [header, ...rows] = values;
-    const list = rows.map(r => toMutasiRecord(header, r)).filter(r => r.id);
+    const ukpdWilayahMap = await getUkpdWilayahMap();
+    const list = rows.map(r => {
+      const rec = toMutasiRecord(header, r);
+      if (!rec.wilayah_asal) rec.wilayah_asal = ukpdWilayahMap[norm(rec.nama_ukpd_asal)] || '';
+      if (!rec.wilayah_tujuan) rec.wilayah_tujuan = ukpdWilayahMap[norm(rec.nama_ukpd_tujuan)] || '';
+      return rec;
+    }).filter(r => r.id);
 
     const baseFiltered = list.filter(r => {
       const matchTerm = !term || [r.nip, r.nama_pegawai].some(v => (v || '').toLowerCase().includes(term));
@@ -327,15 +334,10 @@ app.get('/mutasi', async (req, res) => {
 
     let filtered = baseFiltered;
     if (wilayah) {
-      const ukpdWilayahMap = await getUkpdWilayahMap();
-      const allowedUnits = new Set(Object.entries(ukpdWilayahMap).filter(([, w]) => w === wilayah).map(([u]) => u));
       filtered = filtered.filter(r => {
-        const asal = norm(r.nama_ukpd_asal);
-        const tuj = norm(r.nama_ukpd_tujuan);
-        if (allowedUnits.size > 0) {
-          return allowedUnits.has(asal) || allowedUnits.has(tuj);
-        }
-        return asal.includes(wilayah) || tuj.includes(wilayah);
+        const wasal = norm(r.wilayah_asal);
+        const wtujuan = norm(r.wilayah_tujuan);
+        return wasal === wilayah || wtujuan === wilayah;
       });
     }
 
@@ -374,7 +376,11 @@ app.post('/mutasi', async (req, res) => {
   try {
     const d = req.body || {};
     const id = d.id || `UM-${Date.now()}`;
-    const row = MUTASI_COLS.map(k => k === 'id' ? id : (d[k] || ''));
+    const map = await getUkpdWilayahMap();
+    const wilayahAsal = d.wilayah_asal || map[norm(d.nama_ukpd_asal)] || '';
+    const wilayahTujuan = d.wilayah_tujuan || map[norm(d.nama_ukpd_tujuan)] || '';
+    const rowData = { ...d, id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
+    const row = MUTASI_COLS.map(k => k === 'id' ? id : (rowData[k] || ''));
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: MUTASI_RANGE,
@@ -397,10 +403,14 @@ app.put('/mutasi/:id', async (req, res) => {
     const idx = data.findIndex(r => (r[0] || '').toString() === id);
     if (idx < 0) return res.status(404).json({ ok: false, error: 'ID mutasi tidak ditemukan' });
     const rowNumber = idx + 2; // +1 header
-    const payload = MUTASI_COLS.map(k => k === 'id' ? id : (req.body?.[k] || ''));
+    const map = await getUkpdWilayahMap();
+    const wilayahAsal = req.body?.wilayah_asal || map[norm(req.body?.nama_ukpd_asal)] || '';
+    const wilayahTujuan = req.body?.wilayah_tujuan || map[norm(req.body?.nama_ukpd_tujuan)] || '';
+    const payloadData = { ...(req.body || {}), id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
+    const payload = MUTASI_COLS.map(k => k === 'id' ? id : (payloadData[k] || ''));
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${MUTASI_RANGE.split('!')[0]}!A${rowNumber}:Q${rowNumber}`,
+      range: `${MUTASI_RANGE.split('!')[0]}!A${rowNumber}:S${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
@@ -627,16 +637,18 @@ function toMutasiRecord(header, row){
     jabatan_baru: get('jabatan_baru',4),
     nama_ukpd_asal: get('nama_ukpd_asal',5),
     nama_ukpd_tujuan: get('nama_ukpd_tujuan',6),
-    jenis_mutasi: get('jenis_mutasi',7),
-    alasan: get('alasan',8),
-    tanggal_usulan: get('tanggal_usulan',9),
-    status: get('status',10),
-    keterangan: get('keterangan',11),
-    abk_j_lama: get('abk_j_lama',12),
-    bezetting_j_lama: get('bezetting_j_lama',13),
-    abk_j_baru: get('abk_j_baru',14),
-    bezetting_j_baru: get('bezetting_j_baru',15),
-    berkas_url: get('berkas_url',16),
+    wilayah_asal: get('wilayah_asal',7),
+    wilayah_tujuan: get('wilayah_tujuan',8),
+    jenis_mutasi: get('jenis_mutasi',9),
+    alasan: get('alasan',10),
+    tanggal_usulan: get('tanggal_usulan',11),
+    status: get('status',12),
+    keterangan: get('keterangan',13),
+    abk_j_lama: get('abk_j_lama',14),
+    bezetting_j_lama: get('bezetting_j_lama',15),
+    abk_j_baru: get('abk_j_baru',16),
+    bezetting_j_baru: get('bezetting_j_baru',17),
+    berkas_url: get('berkas_url',18),
   };
 }
 

@@ -271,6 +271,8 @@
           <div><label>ABK J Baru</label><input name="abk_j_baru" placeholder="ABK J baru"></div>
           <div><label>Bezetting J Baru</label><input name="bezetting_j_baru" placeholder="Bezetting J baru"></div>
           <div><label>Link Usulan (URL)</label><input name="berkas_url" placeholder="https://..." inputmode="url"></div>
+          <input type="hidden" name="wilayah_asal">
+          <input type="hidden" name="wilayah_tujuan">
           <div style="grid-column:1/-1;"><label>Alasan</label><textarea name="alasan" placeholder="Alasan mutasi"></textarea></div>
           <div style="grid-column:1/-1;"><label>Keterangan / Verifikasi</label><textarea name="keterangan" placeholder="Catatan verifikasi..."></textarea></div>
           <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
@@ -513,6 +515,9 @@
       if (!data.berkas_url && currentRow?.berkas_url) {
         data.berkas_url = currentRow.berkas_url;
       }
+      // set wilayah default dari login bila kosong
+      if (!data.wilayah_asal) data.wilayah_asal = loginWilayah;
+      if (!data.wilayah_tujuan) data.wilayah_tujuan = loginWilayah;
       const url = editingId ? `${API_BASE}/mutasi/${editingId}` : `${API_BASE}/mutasi`;
       const method = editingId ? 'PUT' : 'POST';
       await apiFetch(url, { method, headers:{'Content-Type':'text/plain'}, body: JSON.stringify(data) });
@@ -573,15 +578,20 @@
       if (action==='delete' && id) deleteMutasi(id).catch(err=>alert(err.message));
     });
 
+    function setWilayahDefaults(){
+      if (form.elements['wilayah_asal']) form.elements['wilayah_asal'].value = loginWilayah || form.elements['wilayah_asal'].value;
+      if (form.elements['wilayah_tujuan']) form.elements['wilayah_tujuan'].value = loginWilayah || form.elements['wilayah_tujuan'].value;
+    }
+
     form.addEventListener('submit', (e)=>{ saveMutasi(e).catch(err=>alert(err.message)); });
-    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; });
+    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); setWilayahDefaults(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; });
     applyFilter.addEventListener('click', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
     resetFilter.addEventListener('click', ()=>{ statusFilter.value=''; search.value=''; ukpdFilter.value=''; tujuanFilter.value=''; page=1; loadData().catch(err=>alert(err.message)); });
     [statusFilter, ukpdFilter, tujuanFilter, search].forEach(el=> el.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); }));
     pageSize.addEventListener('change', ()=>{ currentLimit=parseInt(pageSize.value,10)||10; page=1; loadData().catch(err=>alert(err.message)); });
     prevPage.addEventListener('click', ()=>{ if (page>1){ page--; loadData().catch(err=>alert(err.message)); } });
     nextPage.addEventListener('click', ()=>{ if (page<totalPages){ page++; loadData().catch(err=>alert(err.message)); } });
-    btnAdd.addEventListener('click', ()=>{ editingId=null; form.reset(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; showModal(formModal); });
+    btnAdd.addEventListener('click', ()=>{ editingId=null; form.reset(); setWilayahDefaults(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; showModal(formModal); });
     closeForm.addEventListener('click', ()=> hideModal(formModal));
     closeView.addEventListener('click', ()=> hideModal(viewModal));
     modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });
