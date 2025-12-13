@@ -412,7 +412,8 @@
       if (!editingId) payload.dibuat_oleh = authUser?.username || authUser?.namaUkpd || 'user';
       try{
         const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error('Gagal simpan');
+        const txt = await res.text();
+        if (!res.ok) throw new Error(txt || 'Gagal simpan');
         closeModal();
         await loadData();
       }catch(err){
