@@ -185,7 +185,7 @@
       <div class="modal-body">
         <div>
           <label>Status</label>
-          <select id="f_status">
+          <select id="f_status" autocomplete="off">
             <option value="DIUSULKAN">DIUSULKAN</option>
             <option value="DIPROSES">DIPROSES</option>
             <option value="SELESAI">SELESAI</option>
@@ -194,35 +194,35 @@
         </div>
         <div>
           <label>Nama Pegawai</label>
-          <input id="f_nama" placeholder="Nama pegawai" />
+          <input id="f_nama" placeholder="Nama pegawai" autocomplete="off" />
         </div>
         <div>
           <label>NIP</label>
-          <input id="f_nip" placeholder="NIP" />
+          <input id="f_nip" placeholder="NIP" autocomplete="off" />
         </div>
         <div>
           <label>Pangkat/Gol</label>
-          <input id="f_pangkat" placeholder="Mis. Penata Muda Tk I / III/b" />
+          <input id="f_pangkat" placeholder="Mis. Penata Muda Tk I / III/b" autocomplete="off" />
         </div>
         <div>
           <label>Jabatan Lama</label>
-          <input id="f_jab_lama" placeholder="Jabatan lama" />
+          <input id="f_jab_lama" placeholder="Jabatan lama" autocomplete="off" />
         </div>
         <div>
           <label>Jabatan Baru</label>
-          <input id="f_jab_baru" placeholder="Jabatan baru (opsional)" />
+          <input id="f_jab_baru" placeholder="Jabatan baru (opsional)" autocomplete="off" />
         </div>
         <div>
           <label>Angka Kredit</label>
-          <input id="f_ak" placeholder="Angka kredit" />
+          <input id="f_ak" placeholder="Angka kredit" autocomplete="off" />
         </div>
         <div>
           <label>UKPD</label>
-          <input id="f_ukpd" placeholder="UKPD" />
+          <input id="f_ukpd" placeholder="UKPD" autocomplete="off" />
         </div>
         <div>
           <label>Nomor Surat</label>
-          <input id="f_no_surat" placeholder="Nomor surat" />
+          <input id="f_no_surat" placeholder="Nomor surat" autocomplete="off" />
         </div>
         <div>
           <label>Tanggal Surat</label>
@@ -230,7 +230,7 @@
         </div>
         <div>
           <label>Link Dokumen</label>
-          <input id="f_link" placeholder="https://..." />
+          <input id="f_link" placeholder="https://..." autocomplete="off" />
         </div>
         <div>
           <label>Alasan Usulan</label>
@@ -273,6 +273,12 @@
     const roleBadge = document.getElementById('roleBadge');
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
+    const roleLower = (authUser?.role || '').toLowerCase();
+    const isSuperAdmin = roleLower.includes('super');
+    const isWilayahAdmin = roleLower.includes('wilayah');
+    const norm = v => (v || '').toString().toLowerCase().trim();
+    const loginUkpdNorm = norm(authUser?.namaUkpd);
+    const loginWilayahNorm = norm(authUser?.wilayah);
     if (roleBadge) roleBadge.textContent = (authUser?.role || '').toUpperCase() || 'USER';
     if (userNameEl) userNameEl.textContent = authUser?.namaUkpd || authUser?.username || 'User';
     if (userRoleEl) userRoleEl.textContent = authUser?.role || '';
@@ -345,7 +351,15 @@
       const q = (document.getElementById('search').value||'').toLowerCase().trim();
       const uk = (document.getElementById('filterUkpd').value||'').toLowerCase().trim();
       const status = document.querySelector('.chip.active')?.dataset.status || '';
-      filtered = rows.filter(r=>{
+      // batasan data sesuai role
+      const scoped = rows.filter(r=>{
+        const ukVal = norm(r.ukpd);
+        if (isSuperAdmin) return true;
+        if (isWilayahAdmin) return loginWilayahNorm && ukVal.includes(loginWilayahNorm);
+        return ukVal === loginUkpdNorm;
+      });
+
+      filtered = scoped.filter(r=>{
         const matchQ = !q || (r.nama_pegawai||'').toLowerCase().includes(q) || (r.nip||'').toLowerCase().includes(q);
         const matchUk = !uk || (r.ukpd||'').toLowerCase()===uk;
         const matchSt = !status || (r.status||'').toUpperCase()===status;
@@ -372,17 +386,42 @@
     });
 
     // Dummy handlers (integrasikan dengan API)
+    function clearForm(){
+      document.getElementById('f_status').value = 'DIUSULKAN';
+      document.getElementById('f_nama').value = '';
+      document.getElementById('f_nip').value = '';
+      document.getElementById('f_pangkat').value = '';
+      document.getElementById('f_jab_lama').value = '';
+      document.getElementById('f_jab_baru').value = '';
+      document.getElementById('f_ak').value = '';
+      document.getElementById('f_ukpd').value = '';
+      document.getElementById('f_no_surat').value = '';
+      document.getElementById('f_tgl_surat').value = '';
+      document.getElementById('f_link').value = '';
+      document.getElementById('f_alasan').value = '';
+    }
+
     function openModal(row){
       editingId = row?.id_usulan || null;
       document.getElementById('modalTitle').textContent = editingId ? 'Ubah Usulan' : 'Tambah Usulan';
-      document.getElementById('f_status').value = row?.status || 'DIUSULKAN';
+      const statusSel = document.getElementById('f_status');
+      statusSel.disabled = !isSuperAdmin;
+      if (!row) clearForm();
+      statusSel.value = isSuperAdmin ? (row?.status || 'DIUSULKAN') : 'DIUSULKAN';
       document.getElementById('f_nama').value = row?.nama_pegawai || '';
       document.getElementById('f_nip').value = row?.nip || '';
       document.getElementById('f_pangkat').value = row?.pangkat_gol || '';
       document.getElementById('f_jab_lama').value = row?.jabatan_lama || '';
       document.getElementById('f_jab_baru').value = row?.jabatan_baru || '';
       document.getElementById('f_ak').value = row?.angka_kredit || '';
-      document.getElementById('f_ukpd').value = row?.ukpd || '';
+      const ukpdInput = document.getElementById('f_ukpd');
+      if (!isSuperAdmin) {
+        ukpdInput.value = loginUkpd || row?.ukpd || '';
+        ukpdInput.disabled = true;
+      } else {
+        ukpdInput.disabled = false;
+        ukpdInput.value = row?.ukpd || '';
+      }
       document.getElementById('f_no_surat').value = row?.nomor_surat || '';
       document.getElementById('f_tgl_surat').value = row?.tanggal_surat || '';
       document.getElementById('f_link').value = row?.link_dokumen || '';
@@ -392,7 +431,7 @@
     function closeModal(){ document.getElementById('modalForm').classList.remove('show'); }
     async function saveModal(){
       const payload = {
-        status: document.getElementById('f_status').value || 'DIUSULKAN',
+        status: isSuperAdmin ? (document.getElementById('f_status').value || 'DIUSULKAN') : 'DIUSULKAN',
         nama_pegawai: document.getElementById('f_nama').value.trim(),
         nip: document.getElementById('f_nip').value.trim(),
         pangkat_gol: document.getElementById('f_pangkat').value.trim(),
@@ -456,8 +495,15 @@
     }
     function buildUkpdOptions(){
       const sel = document.getElementById('filterUkpd');
-      const ukpds = Array.from(new Set(rows.map(r=>r.ukpd).filter(Boolean))).sort();
+      const scopedUkpds = rows.filter(r=>{
+        const ukVal = norm(r.ukpd);
+        if (isSuperAdmin) return true;
+        if (isWilayahAdmin) return loginWilayahNorm && ukVal.includes(loginWilayahNorm);
+        return ukVal === loginUkpdNorm;
+      });
+      const ukpds = Array.from(new Set(scopedUkpds.map(r=>r.ukpd).filter(Boolean))).sort();
       sel.innerHTML = '<option value=\"\">Pilih UKPD</option>' + ukpds.map(u=>`<option value=\"${u}\">${u}</option>`).join('');
+      if (!isSuperAdmin && loginUkpdNorm) sel.value = rows.find(r=> norm(r.ukpd) === loginUkpdNorm)?.ukpd || '';
     }
 
     document.querySelectorAll('.chip').forEach(chip=>{
