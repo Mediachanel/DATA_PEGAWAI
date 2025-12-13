@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Usulan Mutasi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+  <style>
+    :root{
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --success: #16a34a;
+      --warn: #f59e0b;
+      --danger: #dc2626;
+      --purple: #7c3aed;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:'Inter','Segoe UI',Arial,sans-serif; background:var(--bg); color:#0f172a; }
+    .layout{ min-height:100vh; }
+    .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
+    .sidebar{ position:fixed; inset:0 auto 0 0; width:260px; background:#ffffff; color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0; }
+    .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
+    .logo img{ width:38px; height:38px; object-fit:contain; }
+    .logo-title{ font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
+    .logo-sub{ font-size:12px; color:#94a3b8; }
+    nav{ display:flex; flex-direction:column; gap:6px; }
+    .nav-title{ margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
+    .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .nav-item:hover{ background:#f8fafc; }
+    .nav-item.active{ background:var(--accent-soft); color:#1d4ed8; font-weight:700; }
+    .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .topbar{ background:#fff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 6px 24px rgba(15,23,42,0.06); }
+    .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .badge{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#0ea5e9; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:0 10px 28px rgba(15,23,42,0.08); }
+    .metric-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .metric{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 8px 20px rgba(15,23,42,0.06); }
+    .metric .label{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+    .metric .value{ font-size:26px; font-weight:800; }
+    .metric.blue{ background:#e0f2fe; border-color:#c7e0f7; }
+    .metric.orange{ background:#fef3c7; border-color:#fde68a; }
+    .metric.green{ background:#dcfce7; border-color:#bbf7d0; }
+    .metric.red{ background:#fee2e2; border-color:#fecdd3; }
+    label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:6px; }
+    input, select, textarea, button{ padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:'Inter','Segoe UI',Arial,sans-serif; }
+    input, select, textarea{ width:100%; }
+    button.primary{ background:var(--accent); color:white; border:none; font-weight:800; box-shadow:0 10px 24px rgba(37,99,235,0.25); cursor:pointer; }
+    button.ghost{ background:#f8fafc; color:#0f172a; border:1px solid var(--border); cursor:pointer; }
+    .table-wrap{ overflow-x:auto; }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; vertical-align:top; }
+    th{ background:#f8fafc; text-transform:uppercase; letter-spacing:.4px; font-size:12px; }
+    .status-pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; border:1px solid transparent; }
+    .pill-info{ background:#e0f2fe; color:#0f5098; }
+    .pill-success{ background:#dcfce7; color:#166534; }
+    .pill-danger{ background:#fee2e2; color:#b91c1c; }
+    .pill-warn{ background:#fef9c3; color:#92400e; }
+    .actions{ display:flex; gap:6px; align-items:center; }
+    .dropdown{ position:relative; }
+    .dropdown-menu{
+      position:absolute; top:100%; left:0; min-width:140px; background:#fff; border:1px solid var(--border);
+      border-radius:12px; box-shadow:0 10px 28px rgba(15,23,42,0.12); padding:6px 0; display:none; z-index:10;
+    }
+    .dropdown.open .dropdown-menu{ display:block; }
+    .dropdown-menu button{
+      width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:13px; cursor:pointer;
+    }
+    .dropdown-menu button:hover{ background:#f8fafc; }
+    .filters{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; align-items:end; }
+    .pagination{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:10px; flex-wrap:wrap; }
+    .pill-abk{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid var(--border); font-size:12px; }
+    .mobile-toggle{
+      position: fixed; top: 12px; left: 12px; z-index: 70;
+      background: #0f172a; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 9px 12px; display:none; align-items:center; gap:8px; font-weight:700;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    }
+    #sidebarBackdrop{
+      position: fixed; inset:0; background: rgba(0,0,0,0.45);
+      opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
+    }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    /* Modal */
+    .modal-backdrop{
+      position: fixed; inset:0; background: rgba(15,23,42,0.35);
+      opacity:0; pointer-events:none; transition: opacity .15s ease; z-index:80;
+    }
+    .modal-backdrop.show{ opacity:1; pointer-events:auto; }
+    .modal{
+      position: fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; z-index:90; transition: opacity .15s ease;
+      padding:14px;
+    }
+    .modal.show{ opacity:1; pointer-events:auto; }
+    .modal-dialog{
+      width: min(1100px, 100%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 48px rgba(15,23,42,0.18);
+      max-height: 90vh; overflow:auto;
+    }
+    .modal-head{
+      padding: 16px 18px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .close-btn{
+      background: none; border:1px solid var(--border); border-radius:10px;
+      padding:8px 12px; cursor:pointer; font-weight:800;
+    }
+    .modal-body{ padding: 16px 18px 20px; }
+    .detail-grid{ display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
+    .detail-card{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#f8fafc; }
+    .detail-label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+    .detail-value{ font-weight:700; margin-top:2px; }
+    @media (max-width:1100px){
+      .content{ margin-left:0; }
+      .sidebar{
+        position: fixed; inset: 0 auto 0 0; width: calc(100vw - 72px); max-width: 280px;
+        transform: translateX(-100%); transition: transform .2s ease; z-index: 60; min-height: 100vh;
+        box-shadow: 8px 0 30px -20px rgba(0,0,0,0.5);
+      }
+      .sidebar.show{ transform: translateX(0); }
+      .mobile-toggle{ display:inline-flex; }
+      main{ padding:14px; margin-top:20px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle">
+    <span style="font-size:18px;">☰</span> Menu
+  </button>
+  <div class="layout">
+    <div id="sidebar-container"></div>
+    <div class="content">
+      <div id="header-container"></div>
+      <main style="padding:18px;">
+        <div class="metric-grid">
+          <div class="metric blue">
+            <div class="label">Total</div>
+            <div class="value" id="mTotal">0</div>
+          </div>
+          <div class="metric blue">
+            <div class="label">Diusulkan</div>
+            <div class="value" id="mDiusulkan">0</div>
+          </div>
+          <div class="metric orange">
+            <div class="label">Diproses</div>
+            <div class="value" id="mProses">0</div>
+          </div>
+          <div class="metric green">
+            <div class="label">Selesai</div>
+            <div class="value" id="mSelesai">0</div>
+          </div>
+          <div class="metric red">
+            <div class="label">Ditolak</div>
+            <div class="value" id="mDitolak">0</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <h3 style="margin:0 0 4px;">Usulan Mutasi</h3>
+            <div style="color:var(--muted); font-size:13px;">Total (sesuai filter): <span id="totalFiltered">0</span> data</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="pageSize" style="width:auto;">
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+            <button id="btnAdd" class="primary" style="min-width:150px;">+ Tambah Usulan</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="filters" style="grid-template-columns: repeat(auto-fit, minmax(200px,1fr));">
+            <div>
+              <label>Status</label>
+              <select id="statusFilter">
+                <option value="">Semua</option>
+                <option value="DIUSULKAN">Diusulkan</option>
+                <option value="DISETUJUI">Disetujui</option>
+                <option value="DITOLAK">Ditolak</option>
+                <option value="DITARIK">Ditarik</option>
+              </select>
+            </div>
+            <div>
+              <label>Cari Nama / NIP / NRK</label>
+              <input id="search" placeholder="Ketik nama atau NIP/NRK">
+            </div>
+            <div>
+              <label>UKPD Asal</label>
+              <select id="ukpdFilter"><option value="">Semua</option></select>
+            </div>
+            <div>
+              <label>UKPD Tujuan</label>
+              <select id="tujuanFilter"><option value="">Semua</option></select>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+              <button id="applyFilter" class="primary" style="width:auto;">Terapkan</button>
+              <button id="resetFilter" class="ghost" style="width:auto;">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama & NIP</th><th>UKPD Asal • Jabatan Lama</th><th>UKPD Tujuan • Jabatan Baru</th><th>Alasan</th><th>Berkas</th><th>Created By UKPD</th><th>Created At</th><th>Updated At</th><th>Keterangan/Verifikasi</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <button class="ghost" id="prevPage">Sebelumnya</button>
+            <div>Halaman <span id="pageNow">1</span> / <span id="pageTotal">1</span></div>
+            <button class="ghost" id="nextPage">Berikutnya</button>
+          </div>
+        </div>
+      </main>
+      <div id="footer-container"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <div class="modal" id="formModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3 class="panel-title" id="formTitle" style="margin:0;">Tambah Usulan Mutasi</h3>
+        <button type="button" class="close-btn" id="closeForm" aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="mutasiForm" class="detail-grid">
+          <div><label>NIP</label><input name="nip" placeholder="NIP" required></div>
+          <div><label>Nama Pegawai</label><input name="nama_pegawai" placeholder="Nama" required></div>
+          <div><label>NRK</label><input name="nrk" placeholder="NRK"></div>
+          <div><label>Jenis Mutasi</label>
+            <select name="jenis_mutasi">
+              <option value="">Pilih</option>
+              <option>Mutasi</option>
+              <option>Rotasi</option>
+              <option>Promosi</option>
+              <option>Demosi</option>
+            </select>
+          </div>
+          <div><label>Tanggal Usulan</label><input type="date" name="tanggal_usulan"></div>
+          <div><label>Status</label>
+            <select name="status">
+              <option value="DIUSULKAN">DIUSULKAN</option>
+              <option value="DISETUJUI">DISETUJUI</option>
+              <option value="DITOLAK">DITOLAK</option>
+              <option value="DITARIK">DITARIK</option>
+            </select>
+          </div>
+          <div><label>UKPD Asal</label><input name="nama_ukpd_asal" placeholder="UKPD asal"></div>
+          <div><label>Jabatan Asal</label><input name="jabatan_asal" placeholder="Jabatan asal"></div>
+          <div><label>ABK J Lama</label><input name="abk_j_lama" placeholder="ABK J lama"></div>
+          <div><label>Bezetting J Lama</label><input name="bezetting_j_lama" placeholder="Bezetting J lama"></div>
+          <div><label>UKPD Tujuan</label><input name="nama_ukpd_tujuan" placeholder="UKPD tujuan"></div>
+          <div><label>Jabatan Baru</label><input name="jabatan_baru" placeholder="Jabatan baru"></div>
+          <div><label>ABK J Baru</label><input name="abk_j_baru" placeholder="ABK J baru"></div>
+          <div><label>Bezetting J Baru</label><input name="bezetting_j_baru" placeholder="Bezetting J baru"></div>
+          <div><label>Link Usulan (URL)</label><input name="berkas_url" placeholder="https://..." inputmode="url"></div>
+          <div style="grid-column:1/-1;"><label>Alasan</label><textarea name="alasan" placeholder="Alasan mutasi"></textarea></div>
+          <div style="grid-column:1/-1;"><label>Keterangan / Verifikasi</label><textarea name="keterangan" placeholder="Catatan verifikasi..."></textarea></div>
+          <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
+            <button type="button" class="ghost" id="resetForm">Reset</button>
+            <button type="submit" class="primary" id="submitBtn">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="viewModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3 class="panel-title" style="margin:0;">Detail Usulan</h3>
+        <button type="button" class="close-btn" id="closeView" aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-grid" id="detailGrid"></div>
+        <div style="margin-top:12px;">
+          <label>Alasan</label>
+          <div id="detailAlasan" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+        </div>
+        <div style="margin-top:12px;">
+          <label>Keterangan / Verifikasi</label>
+          <div id="detailKet" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec';
+    const sidebar = fetch('sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch('header.html').then(r=>r.text()).catch(()=>''), footer = fetch('footer.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
+      document.getElementById('sidebar-container').innerHTML = s;
+      document.getElementById('header-container').innerHTML = h;
+      document.getElementById('footer-container').innerHTML = f;
+      document.querySelector('.nav-item.active')?.classList.remove('active');
+      const mLink = Array.from(document.querySelectorAll('.nav-item')).find(a=>a.textContent.trim().toLowerCase().includes('usulan mutasi'));
+      if (mLink) mLink.classList.add('active');
+      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+      const logoutNav = document.querySelector('[data-logout]');
+      if (logoutNav) logoutNav.addEventListener('click', doLogout);
+      initSidebarToggle();
+    });
+
+    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = 'index.html'; }
+    const norm = (v='') => String(v || '').toLowerCase().trim();
+    const roleLower = norm(authUser?.role);
+    const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
+    const isWilayahAdmin = roleLower.includes('wilayah');
+    const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
+    const loginWilayah = authUser?.wilayah || '';
+
+    let editingId = null;
+    let cacheRows = [];
+    let page = 1;
+    let totalPages = 1;
+    let currentLimit = 10;
+
+    const form = document.getElementById('mutasiForm');
+    const resetFormBtn = document.getElementById('resetForm');
+    const tableBody = document.getElementById('tableBody');
+    const search = document.getElementById('search');
+    const statusFilter = document.getElementById('statusFilter');
+    const ukpdFilter = document.getElementById('ukpdFilter');
+    const tujuanFilter = document.getElementById('tujuanFilter');
+    const applyFilter = document.getElementById('applyFilter');
+    const resetFilter = document.getElementById('resetFilter');
+    const pageSize = document.getElementById('pageSize');
+    const pageNow = document.getElementById('pageNow');
+    const pageTotal = document.getElementById('pageTotal');
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const btnAdd = document.getElementById('btnAdd');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const formModal = document.getElementById('formModal');
+    const viewModal = document.getElementById('viewModal');
+    const closeForm = document.getElementById('closeForm');
+    const closeView = document.getElementById('closeView');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const detailGrid = document.getElementById('detailGrid');
+    const detailAlasan = document.getElementById('detailAlasan');
+    const detailKet = document.getElementById('detailKet');
+    const totalFiltered = document.getElementById('totalFiltered');
+
+    function showModal(el){
+      el.classList.add('show');
+      modalBackdrop.classList.add('show');
+      el.setAttribute('aria-hidden','false');
+    }
+    function hideModal(el){
+      el.classList.remove('show');
+      if (![formModal, viewModal].some(m=>m.classList.contains('show'))) {
+        modalBackdrop.classList.remove('show');
+      }
+      el.setAttribute('aria-hidden','true');
+    }
+
+    function badgeStatus(val){
+      const v = (val||'').toUpperCase();
+      if (v==='DISETUJUI') return '<span class="status-pill pill-success">Disetujui</span>';
+      if (v==='DITOLAK') return '<span class="status-pill pill-danger">Ditolak</span>';
+      if (v==='DITARIK') return '<span class="status-pill pill-warn">Ditarik</span>';
+      return '<span class="status-pill pill-info">Diusulkan</span>';
+    }
+
+    async function apiFetch(url, options={}){
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let body;
+      try { body = JSON.parse(text); }
+      catch { throw new Error(text || 'Respon bukan JSON'); }
+      if (!res.ok || !body.ok) throw new Error(body.error || 'Permintaan gagal');
+      return body;
+    }
+
+    function renderMetrics(summary){
+      const total = cacheRows.length;
+      const disetujui = summary.DISETUJUI || 0;
+      const ditolak = summary.DITOLAK || 0;
+      const diusulkan = summary.DIUSULKAN || 0;
+      const ditarik = summary.DITARIK || 0;
+      const proses = total - (disetujui + ditolak + ditarik);
+      document.getElementById('mTotal').textContent = total;
+      document.getElementById('mDiusulkan').textContent = diusulkan;
+      document.getElementById('mProses').textContent = proses < 0 ? 0 : proses;
+      document.getElementById('mSelesai').textContent = disetujui;
+      document.getElementById('mDitolak').textContent = ditolak;
+      totalFiltered.textContent = total;
+    }
+
+    function renderFilters(body){
+      const setOptions = (el, list)=>{ el.innerHTML = '<option value="">Semua</option>' + (list||[]).map(v=>`<option>${v}</option>`).join(''); };
+      setOptions(ukpdFilter, body.ukpds || []);
+      setOptions(tujuanFilter, body.tujuan || []);
+      if (!isSuper && !isWilayahAdmin){
+        ukpdFilter.value = loginUkpd;
+        ukpdFilter.disabled = true;
+      } else {
+        ukpdFilter.disabled = false;
+      }
+    }
+
+    function renderTable(){
+      tableBody.innerHTML = '';
+      cacheRows.forEach((r, idx)=>{
+        const tr = document.createElement('tr');
+        const alasan = (r.alasan||'').replace(/\n/g,'<br>');
+        tr.innerHTML = `
+          <td>${(page-1)*currentLimit + idx + 1}</td>
+          <td>${badgeStatus(r.status)}</td>
+          <td class="actions">
+            <div class="dropdown">
+              <button class="ghost dropdown-toggle">Aksi ▾</button>
+              <div class="dropdown-menu">
+                <button data-action="view" data-id="${r.id}">Lihat</button>
+                <button data-action="edit" data-id="${r.id}">Ubah</button>
+                <button data-action="delete" data-id="${r.id}">Hapus</button>
+              </div>
+            </div>
+          </td>
+          <td><div style="font-weight:700;">${r.nama_pegawai||'-'}</div><div style="color:var(--muted); font-size:12px;">NIP: ${r.nip||'-'}</div><div style="color:var(--muted); font-size:12px;">NRK: ${r.nrk||'-'}</div></td>
+          <td>
+            <div style="font-weight:700;">${r.nama_ukpd_asal||'-'}</div>
+            <div style="color:var(--muted); font-size:12px;">${r.jabatan_asal||'-'}</div>
+            <div class="pill-abk">ABK J: ${r.abk_j_lama||'-'} • Bezetting: ${r.bezetting_j_lama||'-'}</div>
+          </td>
+          <td>
+            <div style="font-weight:700;">${r.nama_ukpd_tujuan||'-'}</div>
+            <div style="color:var(--muted); font-size:12px;">${r.jabatan_baru||'-'}</div>
+            <div class="pill-abk">ABK J: ${r.abk_j_baru||'-'} • Bezetting: ${r.bezetting_j_baru||'-'}</div>
+          </td>
+          <td style="min-width:220px;">${alasan||'-'}</td>
+          <td>${r.berkas_url ? `<a href="${r.berkas_url}" target="_blank" rel="noopener">Link</a>` : '-'}</td>
+          <td>${r.created_by_ukpd || '-'}</td>
+          <td>${r.created_at || '-'}</td>
+          <td>${r.updated_at || '-'}</td>
+          <td style="min-width:220px;">${(r.keterangan||'-').replace(/\n/g,'<br>')}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      // dropdown toggle
+      tableBody.querySelectorAll('.dropdown-toggle').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          const dd = btn.closest('.dropdown');
+          document.querySelectorAll('.dropdown').forEach(o=>{ if (o!==dd) o.classList.remove('open'); });
+          dd.classList.toggle('open');
+        });
+      });
+      document.addEventListener('click', ()=> document.querySelectorAll('.dropdown').forEach(o=> o.classList.remove('open')), { once:true });
+    }
+
+    async function loadData(){
+      const params = new URLSearchParams();
+      params.set('limit', currentLimit);
+      params.set('offset', (page-1)*currentLimit);
+      if (search.value) params.set('search', search.value);
+      if (statusFilter.value) params.set('status', statusFilter.value);
+      if (isSuper) {
+        if (ukpdFilter.value) params.set('ukpd', ukpdFilter.value);
+      } else if (isWilayahAdmin) {
+        if (loginWilayah) params.set('wilayah', loginWilayah);
+        if (ukpdFilter.value) params.set('ukpd', ukpdFilter.value);
+      } else {
+        params.set('ukpd', loginUkpd);
+      }
+      if (tujuanFilter.value) params.set('tujuan', tujuanFilter.value);
+      const body = await apiFetch(`${API_BASE}/mutasi?${params.toString()}`);
+      cacheRows = body.rows || [];
+      const total = body.total || cacheRows.length;
+      totalPages = Math.max(1, Math.ceil(total / currentLimit));
+      pageNow.textContent = page;
+      pageTotal.textContent = totalPages;
+      renderMetrics(body.summary || {});
+      renderFilters(body);
+      renderTable();
+    }
+
+    async function saveMutasi(e){
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      const currentRow = editingId ? cacheRows.find(r=>r.id===editingId) : null;
+      if (!data.berkas_url && currentRow?.berkas_url) {
+        data.berkas_url = currentRow.berkas_url;
+      }
+      const url = editingId ? `${API_BASE}/mutasi/${editingId}` : `${API_BASE}/mutasi`;
+      const method = editingId ? 'PUT' : 'POST';
+      await apiFetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+      editingId = null;
+      form.reset();
+      await loadData();
+      alert('Berhasil disimpan');
+      hideModal(formModal);
+    }
+
+    async function deleteMutasi(id){
+      if (!confirm('Hapus usulan ini?')) return;
+      await apiFetch(`${API_BASE}/mutasi/${id}`, { method:'DELETE' });
+      await loadData();
+    }
+
+    function openView(row){
+      const fields = [
+        ['NIP', row.nip],
+        ['Nama', row.nama_pegawai],
+        ['NRK', row.nrk],
+        ['Jenis Mutasi', row.jenis_mutasi],
+        ['Tanggal Usulan', row.tanggal_usulan],
+        ['Status', row.status],
+        ['UKPD Asal', row.nama_ukpd_asal],
+        ['Jabatan Asal', row.jabatan_asal],
+        ['ABK J Lama', row.abk_j_lama],
+        ['Bezetting J Lama', row.bezetting_j_lama],
+        ['UKPD Tujuan', row.nama_ukpd_tujuan],
+        ['Jabatan Baru', row.jabatan_baru],
+        ['ABK J Baru', row.abk_j_baru],
+        ['Bezetting J Baru', row.bezetting_j_baru],
+        ['Berkas', row.berkas_url ? `<a href="${row.berkas_url}" target="_blank" rel="noopener">Buka Link</a>` : '-'],
+        ['Created By UKPD', row.created_by_ukpd],
+        ['Created At', row.created_at],
+        ['Updated At', row.updated_at],
+      ];
+      detailGrid.innerHTML = fields.map(([l,v])=>`<div class="detail-card"><div class="detail-label">${l}</div><div class="detail-value">${v||'-'}</div></div>`).join('');
+      detailAlasan.textContent = row.alasan || '-';
+      detailKet.textContent = row.keterangan || '-';
+      showModal(viewModal);
+    }
+
+    tableBody.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      const row = cacheRows.find(r=>r.id===id);
+      if (action==='view' && row){ openView(row); }
+      if (action==='edit' && row){
+        editingId = id;
+        Object.keys(row).forEach(k=>{ if (form.elements[k]) form.elements[k].value = row[k] || ''; });
+        formTitle.textContent = 'Ubah Usulan Mutasi';
+        submitBtn.textContent = 'Update';
+        showModal(formModal);
+      }
+      if (action==='delete' && id) deleteMutasi(id).catch(err=>alert(err.message));
+    });
+
+    form.addEventListener('submit', (e)=>{ saveMutasi(e).catch(err=>alert(err.message)); });
+    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; });
+    applyFilter.addEventListener('click', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    resetFilter.addEventListener('click', ()=>{ statusFilter.value=''; search.value=''; ukpdFilter.value=''; tujuanFilter.value=''; page=1; loadData().catch(err=>alert(err.message)); });
+    [statusFilter, ukpdFilter, tujuanFilter, search].forEach(el=> el.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); }));
+    pageSize.addEventListener('change', ()=>{ currentLimit=parseInt(pageSize.value,10)||10; page=1; loadData().catch(err=>alert(err.message)); });
+    prevPage.addEventListener('click', ()=>{ if (page>1){ page--; loadData().catch(err=>alert(err.message)); } });
+    nextPage.addEventListener('click', ()=>{ if (page<totalPages){ page++; loadData().catch(err=>alert(err.message)); } });
+    btnAdd.addEventListener('click', ()=>{ editingId=null; form.reset(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; showModal(formModal); });
+    closeForm.addEventListener('click', ()=> hideModal(formModal));
+    closeView.addEventListener('click', ()=> hideModal(viewModal));
+    modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ hideModal(formModal); hideModal(viewModal); } });
+
+    function doLogout(){ localStorage.removeItem('authUser'); window.location.href = 'index.html'; }
+
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebarEl = document.querySelector('.sidebar');
+      if (!btn || !backdrop || !sidebarEl) return;
+      const close = ()=>{ sidebarEl.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebarEl.classList.contains('show');
+        sidebarEl.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebarEl.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1100) close(); });
+    }
+
+    loadData().catch(err=>alert(err.message));
+  </script>
+</body>
+</html>

@@ -8,39 +8,36 @@
   <style>
     :root {
       --bg: #f5f7fb;
-      --sidebar: #0f172a;
-      --sidebar-active: #e5edff;
-      --sidebar-text: #cbd5f5;
-      --sidebar-text-active: #1d4ed8;
       --card: #ffffff;
       --border: #e2e6eb;
       --muted: #6b7280;
-      --accent: #2563eb;
+      --accent: #7c3aed;
       --success: #16a34a;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Inter','Segoe UI',Arial,sans-serif; background: var(--bg); color: #0f172a; }
-    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
-    .sidebar { background: linear-gradient(180deg,#111827 0%,#0f172a 100%); color: var(--sidebar-text); padding: 18px 14px; display:flex; flex-direction:column; gap:18px; }
-    .logo { display:flex; align-items:center; gap:10px; color:#e5e7eb; font-weight:800; }
+    body { margin: 0; font-family: 'Inter','Segoe UI',Arial,sans-serif; background: linear-gradient(135deg, #f3f5fb 0%, #eef3ff 40%, #f8fff9 100%); color: #0f172a; }
+    .layout { min-height: 100vh; }
+    .content { margin-left: 260px; min-height: 100vh; display:flex; flex-direction:column; transition: margin .2s ease; }
+    .sidebar { position: fixed; inset: 0 auto 0 0; width: 260px; background: #ffffff; color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; min-height: 100vh; box-shadow: 8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0; }
+    .logo { display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
     .logo img { width:38px; height:38px; object-fit:contain; }
-    .logo-title { font-size:13px; }
+    .logo-title { font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
     .logo-sub { font-size:12px; color:#94a3b8; }
     nav { display:flex; flex-direction:column; gap:6px; }
     .nav-title { margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
-    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; color:var(--sidebar-text); text-decoration:none; transition:background .15s ease, color .15s ease; }
-    .nav-item:hover { background:rgba(255,255,255,0.06); }
-    .nav-item.active { background:var(--sidebar-active); color:var(--sidebar-text-active); font-weight:700; }
-    .icon { width:18px; height:18px; border-radius:6px; background:rgba(255,255,255,0.12); display:grid; place-items:center; font-size:12px; }
-    .topbar { background:#fff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .nav-item:hover { background:#f8fafc; }
+    .nav-item.active { background:#ede9fe; color:#6d28d9; font-weight:700; }
+    .icon-round { width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .topbar { background:#fff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow: 0 6px 24px rgba(15,23,42,0.06); }
     .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .badge { display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#0369a1; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; }
+    .badge { display:inline-flex; align-items:center; gap:8px; background:#ede9fe; color:#6d28d9; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; }
     .ghost-btn { padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#f8fafc; cursor:pointer; }
     .user { display:inline-flex; align-items:center; gap:10px; padding:8px 10px; background:#f8fafc; border-radius:999px; border:1px solid var(--border); }
     .user img { width:32px; height:32px; border-radius:10px; object-fit:cover; }
     .user-name { font-weight:800; }
     .user-role { font-size:12px; color:var(--muted); }
-    .danger-btn { background:#ef4444; color:#fff; border:none; border-radius:8px; padding:8px 10px; cursor:pointer; }
+    .danger-btn { background:#ef4444; color:#fff; border:none; border-radius:10px; padding:9px 14px; cursor:pointer; font-weight:700; box-shadow: 0 8px 18px rgba(239,68,68,0.24); }
     main { padding:18px; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
     .flex { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
@@ -50,16 +47,48 @@
     .info-label { color: var(--muted); font-weight:700; font-size:12px; letter-spacing:.3px; }
     .info-value { font-size:14px; margin-top:4px; }
     .pill { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; background:#e0f2fe; color:#0369a1; font-weight:700; }
+    .mobile-toggle{
+      position: fixed; top: 12px; left: 12px; z-index: 70;
+      background: #0f172a; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 9px 12px; display:none; align-items:center; gap:8px; font-weight:700;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    }
+    #sidebarBackdrop{
+      position: fixed; inset:0; background: rgba(0,0,0,0.45);
+      opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
+    }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    @media (max-width: 1100px){
+      .content { margin-left: 0; }
+      .sidebar{
+        position: fixed; inset: 0 auto 0 0; width: calc(100vw - 72px); max-width: 280px;
+        transform: translateX(-100%); transition: transform .2s ease; z-index: 60; min-height: 100vh;
+        box-shadow: 8px 0 30px -20px rgba(0,0,0,0.5);
+      }
+      .sidebar.show{ transform: translateX(0); }
+      .mobile-toggle{ display:inline-flex; }
+      main { padding: 14px; margin-top: 20px; }
+    }
+    @media (max-width: 640px){
+      .info-grid { grid-template-columns: 1fr; }
+      .avatar { width:88px; height:88px; }
+      .info-value { font-size:13px; }
+      .info-label { font-size:11px; }
+    }
   </style>
 </head>
 <body>
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle">
+    <span style="font-size:18px;">☰</span> Menu
+  </button>
   <div class="layout">
     <div id="sidebar-container"></div>
-    <div style="display:flex;flex-direction:column;min-height:100vh;">
+    <div class="content">
       <div id="header-container"></div>
       <main>
         <div class="card flex">
-          <img src="foto/Dinkes.png" alt="Avatar" class="avatar" id="avatar" />
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><circle cx='60' cy='60' r='60' fill='%23e2e8f0'/><circle cx='60' cy='46' r='24' fill='%2394a3b8'/><path d='M18 108c4-24 26-36 42-36s38 12 42 36' fill='%2394a3b8'/></svg>" alt="Avatar" class="avatar" id="avatar" />
           <div>
             <div class="pill" id="pillRole">-</div>
             <h2 id="namaPegawai" style="margin:6px 0 4px;">Nama Pegawai</h2>
@@ -125,16 +154,31 @@
           </div>
         </div>
       </main>
+      <div id="footer-container"></div>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'http://127.0.0.1:5002';
-    const sidebar = fetch('sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch('header.html').then(r=>r.text()).catch(()=>'');
-    Promise.all([sidebar, header]).then(([s,h])=>{ document.getElementById('sidebar-container').innerHTML = s; document.getElementById('header-container').innerHTML = h; const logoutBtn = document.getElementById('logoutBtn'); if (logoutBtn) logoutBtn.addEventListener('click', doLogout); updateHeaderUser(); setActiveNav(); });
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec';
+    const sidebar = fetch('sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch('header.html').then(r=>r.text()).catch(()=>''), footer = fetch('footer.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
+      document.getElementById('sidebar-container').innerHTML = s;
+      document.getElementById('header-container').innerHTML = h;
+      document.getElementById('footer-container').innerHTML = f;
+      const logoutBtn = document.getElementById('logoutBtn'); if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
+      const logoutNav = document.querySelector('[data-logout]');
+      if (logoutNav) logoutNav.addEventListener('click', doLogout);
+      updateHeaderUser(); setActiveNav(); initSidebarToggle();
+    });
 
     const authUser = (() => { try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
     if (!authUser) { window.location.href = 'index.html'; }
+    const norm = (v='') => String(v || '').toLowerCase().trim();
+    const roleLower = norm(authUser?.role);
+    const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
+    const isWilayahAdmin = roleLower.includes('wilayah');
+    const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
+    const loginWilayah = authUser?.wilayah || '';
 
     function updateHeaderUser() {
       if (!authUser) return;
@@ -144,6 +188,22 @@
       if (badge) badge.textContent = (authUser.role || '').toUpperCase() || 'USER';
       if (uname) uname.textContent = authUser.namaUkpd || authUser.username || 'User';
       if (urole) urole.textContent = authUser.role || '';
+    }
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebarEl = document.querySelector('.sidebar');
+      if (!btn || !backdrop || !sidebarEl) return;
+      const close = ()=>{ sidebarEl.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebarEl.classList.contains('show');
+        sidebarEl.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebarEl.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1100) close(); });
     }
     function setActiveNav() {
       document.querySelectorAll('.nav-item').forEach(a => {
@@ -164,7 +224,11 @@
     }
 
     function fillProfile(p){
-      document.getElementById('namaPegawai').textContent = p.nama_pegawai || p.nama || '-';
+      const gelarDepan = p.gelar_depan || '';
+      const gelarBelakang = p.gelar_belakang || '';
+      const namaInti = p.nama_pegawai || p.nama || '-';
+      const namaFull = `${gelarDepan ? gelarDepan + ' ' : ''}${namaInti}${gelarBelakang ? ', ' + gelarBelakang : ''}`;
+      document.getElementById('namaPegawai').textContent = namaFull.trim();
       document.getElementById('jabatanPegawai').textContent = p.nama_jabatan_orb || p.jabatan || '-';
       document.getElementById('unitPegawai').textContent = p.nama_ukpd || p.unit || p.ukpd || '-';
       document.getElementById('statusAktif').textContent = p.nama_status_aktif || p.aktif || '-';
@@ -207,14 +271,27 @@
       const selected = (()=>{ try { return JSON.parse(localStorage.getItem('selectedPegawai')||'null'); } catch { return null; } })();
       if (selected) { fillProfile(selected); return; }
       try {
-        const res = await fetch(API_BASE + '/pegawai');
+        const params = new URLSearchParams();
+        if (!isSuper) {
+          if (isWilayahAdmin && loginWilayah) params.set('wilayah', loginWilayah);
+          else if (loginUkpd) params.set('unit', loginUkpd);
+        }
+        const res = await fetch(`${API_BASE}/pegawai${params.toString() ? '?' + params.toString() : ''}`);
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
         let data = body.rows || [];
-        const role = (authUser?.role || '').toLowerCase();
-        if (!role.includes('super')) {
-          const ukpd = (authUser?.namaUkpd || authUser?.username || '').toLowerCase();
-          data = data.filter(d => (d.nama_ukpd || d.ukpd || d.unit || '').toLowerCase() === ukpd);
+        if (!isSuper) {
+          if (isWilayahAdmin && loginWilayah) {
+            const w = norm(loginWilayah);
+            data = data.filter(d => {
+              const wukpd = norm(d.wilayah_ukpd || '');
+              const unitName = norm(d.nama_ukpd || d.ukpd || d.unit || '');
+              return wukpd ? wukpd.includes(w) : unitName.includes(w);
+            });
+          } else {
+            const ukpd = norm(loginUkpd);
+            data = data.filter(d => norm(d.nama_ukpd || d.ukpd || d.unit || '') === ukpd);
+          }
         }
         if (data.length === 0) return;
         fillProfile(data[0]);

@@ -25,18 +25,18 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0" defer></script>
   <style>
     :root{
-      --sidebar-w: 18rem;
+      --sidebar-w: 16.5rem;
       --h-status: 320px;
       --h-ukpd: 520px;
       --h-rumpun: 440px;
       --tbl-font: 0.875rem;
       --tbl-pad-y: .5rem;
+      --brand: #7c3aed;
+      --brand-soft: #ede9fe;
+      --card-shadow: 0 10px 30px -12px rgba(15,23,42,.14);
     }
     body{
-      background:
-        radial-gradient(900px 480px at 0% 0%, rgba(14,165,233,.10), transparent 45%),
-        radial-gradient(900px 520px at 100% 0%, rgba(139,92,246,.08), transparent 46%),
-        #f8fafc;
+      background: linear-gradient(135deg, #f3f5fb 0%, #eef3ff 40%, #f8fff9 100%);
       font-family:'Plus Jakarta Sans','Inter','Segoe UI',sans-serif;
     }
     #mainWrap{ margin-left: var(--sidebar-w); transition: margin .2s ease; }
@@ -52,8 +52,8 @@
     .card{
       background: #fff;
       border: 1px solid rgba(226,232,240,.9);
-      border-radius: 16px;
-      box-shadow: var(--shadow, 0 10px 30px -12px rgba(15,23,42,.15));
+      border-radius: 18px;
+      box-shadow: var(--shadow, var(--card-shadow));
       padding: 16px;
     }
     table#ukpdTable th, table#ukpdTable td{
@@ -63,42 +63,61 @@
     }
     .sidebar{
       position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
-      background: linear-gradient(180deg,#111827 0%,#0f172a 100%);
-      color: #e5e7eb; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; box-shadow: 8px 0 30px -20px rgba(0,0,0,.5);
+      background: #ffffff;
+      color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; box-shadow: 8px 0 30px -20px rgba(0,0,0,.08); border-right:1px solid #e2e8f0;
     }
-    .sidebar .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#cbd5f5; text-decoration:none; transition:all .15s ease; }
-    .sidebar .nav-item:hover{ background:rgba(255,255,255,0.06); }
-    .sidebar .nav-item.active{ background:#e5edff; color:#1d4ed8; font-weight:700; }
+    .sidebar .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
+    .sidebar .logo img{ width:38px; height:38px; object-fit:contain; }
+    .sidebar .logo-title{ font-size:14px; text-transform:uppercase; letter-spacing:.2px; }
+    .sidebar .logo-sub{ font-size:12px; color:#94a3b8; }
+    .sidebar .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .sidebar .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .sidebar .nav-item:hover{ background:#f8fafc; }
+    .sidebar .nav-item.active{ background:var(--brand-soft); color:#6d28d9; font-weight:700; }
     [data-animate]{ opacity:0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
     [data-animate].in-view{ opacity:1; transform:none; }
+    .danger-btn { background:#ef4444; color:#fff; border:none; border-radius:10px; padding:9px 14px; cursor:pointer; font-weight:700; }
+    .mobile-toggle{
+      position: fixed; top: 12px; left: 12px; z-index: 70;
+      background: #0f172a; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 9px 12px; display:none; align-items:center; gap:8px; font-weight:700;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    }
+    #sidebarBackdrop{
+      position: fixed; inset:0; background: rgba(0,0,0,0.45);
+      opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
+    }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    @media (max-width: 1280px){
+      :root{ --h-ukpd: 460px; --h-rumpun: 380px; }
+    }
+    @media (max-width: 1023px){
+      :root{ --h-status: 260px; --h-ukpd: 380px; --h-rumpun: 320px; }
+      .mobile-toggle{ display:inline-flex; }
+      .sidebar{
+        transform: translateX(-100%);
+        transition: transform .2s ease;
+        z-index: 60;
+        width: calc(100vw - 72px);
+        max-width: 280px;
+      }
+      .sidebar.show{ transform: translateX(0); }
+    }
   </style>
 </head>
 <body class="text-slate-900">
   <div id="scrollProg"></div>
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle">
+    <span style="font-size:18px;">☰</span> Menu
+  </button>
   <div class="flex min-h-screen">
     <div id="sidebar-container"></div>
     <div class="flex-1" id="mainWrap">
-      <div class="px-4 sm:px-6 pt-4 flex items-center justify-between gap-3 flex-wrap">
-        <div class="flex items-center gap-3 flex-wrap">
-          <h1 class="text-xl font-semibold">Dashboard Dinas Kesehatan</h1>
-          <span id="roleBadge" class="text-xs px-3 py-1.5 rounded-full bg-sky-100 text-sky-700 font-semibold">-</span>
-          <button id="compactToggle" class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">
-            <span>Compact mode</span>
-            <span id="compactDot" class="inline-block h-2.5 w-2.5 rounded-full bg-slate-300"></span>
-          </button>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="text-right">
-            <div id="userName" class="font-semibold text-sm">Pengguna</div>
-            <div id="userRole" class="text-xs text-slate-500">-</div>
-          </div>
-          <button id="logoutBtn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">Logout</button>
-        </div>
-      </div>
+      <div id="header-container"></div>
+      <div id="statusBar" class="px-4 sm:px-6 text-sm text-slate-600 mt-2">Status: memuat...</div>
 
-      <div id="statusBar" class="px-4 sm:px-6 text-sm text-slate-600 mt-1">Status: memuat...</div>
-
-      <main class="px-4 sm:px-6 pb-10 space-y-4" id="contentRoot">
+      <main class="px-4 sm:px-6 pb-10 pt-2 space-y-4" id="contentRoot">
         <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4" data-animate>
           <div class="card text-white bg-gradient-to-br from-sky-600 to-brand shadow-soft" data-kpi="PNS">
             <div class="flex items-center gap-3">
@@ -216,20 +235,25 @@
       </main>
 
       <footer class="py-3 px-4 sm:px-6 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
-        <span>Dinas Kesehatan Provinsi DKI Jakarta</span>
-        <span>SUBKELOMPOK KEPEGAWAIAN</span>
+        <div id="footer-container"></div>
       </footer>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'http://127.0.0.1:5002';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec';
     const statusOrder = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP'];
     const statusLabels = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP' };
-    const statusColors = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
+const statusColors = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
 
-    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; } })();
-    if (!authUser) { window.location.href = 'index.html'; }
+const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; } })();
+if (!authUser) { window.location.href = 'index.html'; }
+const norm = (v='') => String(v || '').toLowerCase().trim();
+const roleLower = norm(authUser?.role);
+const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
+const isWilayahAdmin = roleLower.includes('wilayah');
+const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
+const loginWilayah = authUser?.wilayah || '';
 
     const charts = { status:null, ukpd:null, rumpun:null, pendidikan:null };
 
@@ -242,18 +266,40 @@
     const compactDot = document.getElementById('compactDot');
 
     const sidebarPromise = fetch('sidebar.html').then(r=>r.text()).catch(()=> '');
-    Promise.all([sidebarPromise]).then(([s])=>{
+    const headerPromise = fetch('header.html').then(r=>r.text()).catch(()=> '');
+    const footerPromise = fetch('footer.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebarPromise, headerPromise, footerPromise]).then(([s,h,f])=>{
       const wrap = document.getElementById('sidebar-container');
       wrap.innerHTML = s;
+      const hdr = document.getElementById('header-container');
+      if (hdr) hdr.innerHTML = h;
+      const ftr = document.getElementById('footer-container');
+      if (ftr) ftr.innerHTML = f;
       setActiveNav();
-      const logoutLink = wrap.querySelector('.nav-item[href="#"]');
+      const logoutLink = wrap.querySelector('[data-logout]');
       if (logoutLink) logoutLink.addEventListener('click', doLogout);
+      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+      syncHeaderUser();
+      initSidebarToggle();
     });
+
+    function syncHeaderUser(){
+      if (!authUser) return;
+      const headerRole = document.getElementById('rolePill');
+      const headerUkpd = document.getElementById('ukpdPill');
+      const headerName = document.getElementById('userName');
+      const headerRoleText = document.getElementById('userRole');
+      const roleText = (authUser.role || 'USER').toUpperCase();
+      const namaText = authUser.namaUkpd || authUser.username || 'User';
+      if (headerRole) headerRole.textContent = roleText;
+      if (headerUkpd) headerUkpd.textContent = namaText;
+      if (headerName) headerName.textContent = namaText;
+      if (headerRoleText) headerRoleText.textContent = authUser.role || '';
+    }
 
     if (roleBadge) roleBadge.textContent = (authUser?.role || 'USER').toUpperCase();
     if (userNameEl) userNameEl.textContent = authUser?.namaUkpd || authUser?.username || 'Pengguna';
     if (userRoleEl) userRoleEl.textContent = authUser?.role || '';
-    document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
 
     document.getElementById('compactToggle')?.addEventListener('click', ()=>{
       const now = !document.body.classList.contains('compact');
@@ -297,11 +343,18 @@
     function cleanLabel(v){ return (v || '').trim() || '(Tidak Tercatat)'; }
 
     function applyRoleFilter(data){
-      const role = (authUser?.role || '').toLowerCase();
-      if (role.includes('super')) return data;
-      const ukpd = (authUser?.namaUkpd || authUser?.username || '').toLowerCase().trim();
+      if (isSuper) return data;
+      if (isWilayahAdmin && loginWilayah){
+        const w = norm(loginWilayah);
+        return data.filter(d => {
+          const wukpd = norm(d.wilayah_ukpd || '');
+          const unitName = norm(d.nama_ukpd || d.unit || '');
+          return wukpd ? wukpd.includes(w) : unitName.includes(w);
+        });
+      }
+      const ukpd = norm(loginUkpd);
       if (!ukpd) return data;
-      return data.filter(d => (d.nama_ukpd || d.unit || '').toLowerCase().trim() === ukpd);
+      return data.filter(d => norm(d.nama_ukpd || d.unit || '') === ukpd);
     }
 
     async function init(){
@@ -319,10 +372,13 @@
     async function loadData(){
       try{
         const params = new URLSearchParams({ limit:'20000', offset:'0' });
-        const role = (authUser?.role || '').toLowerCase();
-        if (!role.includes('super')) {
-          const ukpd = (authUser?.namaUkpd || authUser?.username || '').trim();
-          if (ukpd) params.set('unit', ukpd);
+        if (!isSuper) {
+          if (isWilayahAdmin) {
+            if (loginWilayah) params.set('wilayah', loginWilayah);
+          } else {
+            const ukpd = loginUkpd.trim();
+            if (ukpd) params.set('unit', ukpd);
+          }
         }
         const res = await fetch(`${API_BASE}/pegawai?${params.toString()}`);
         const body = await res.json();
@@ -586,6 +642,23 @@
       entries.forEach(e=>{ if (e.isIntersecting){ e.target.classList.add('in-view'); io.unobserve(e.target); } });
     }, { threshold:.12, rootMargin:'0px 0px -40px 0px' });
     document.querySelectorAll('[data-animate]').forEach(el=>io.observe(el));
+
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebar = document.querySelector('.sidebar');
+      if (!btn || !sidebar || !backdrop) return;
+      const close = ()=>{ sidebar.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebar.classList.contains('show');
+        sidebar.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebar.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1024) close(); });
+    }
 
     init();
   </script>

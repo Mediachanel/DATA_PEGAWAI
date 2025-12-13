@@ -1,0 +1,30 @@
+// Cloudflare Worker proxy untuk Apps Script Web App
+// Set environment variable di Workers (Settings -> Variables):
+// WEB_APP_BASE = https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec
+
+export default {
+  async fetch(req, env) {
+    const base = env.WEB_APP_BASE;
+    if (!base) return new Response('WEB_APP_BASE not set', { status: 500 });
+    const url = new URL(req.url);
+    // Teruskan path/query ke Apps Script (opsional hapus prefix /api)
+    const target = base + url.pathname.replace(/^\/api/, '') + url.search;
+    const init = { method: req.method, headers: {} };
+    // Salin content-type saja; header lain optional
+    const ct = req.headers.get('content-type');
+    if (ct) init.headers['content-type'] = ct;
+    if (!['GET', 'HEAD'].includes(req.method)) {
+      init.body = await req.arrayBuffer();
+    }
+    const upstream = await fetch(target, init);
+    const text = await upstream.text();
+    return new Response(text, {
+      status: upstream.status,
+      headers: {
+        'content-type': upstream.headers.get('content-type') || 'application/json',
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': '*',
+      },
+    });
+  },
+};
