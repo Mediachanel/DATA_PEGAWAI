@@ -16,6 +16,19 @@ export default {
     if (!['GET', 'HEAD'].includes(req.method)) {
       init.body = await req.arrayBuffer();
     }
+
+    // Tangani preflight OPTIONS agar browser tidak blok
+    if (req.method === 'OPTIONS') {
+      return new Response('', {
+        status: 204,
+        headers: {
+          'access-control-allow-origin': '*',
+          'access-control-allow-headers': '*',
+          'access-control-allow-methods': 'GET,POST,PUT,DELETE,OPTIONS',
+        },
+      });
+    }
+
     const upstream = await fetch(target, init);
     const text = await upstream.text();
     return new Response(text, {
