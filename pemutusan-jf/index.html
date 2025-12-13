@@ -168,7 +168,10 @@
     fetch(BASE + 'sidebar.html').then(r=>r.text()).then(html=>{
       const wrap = document.querySelector('.sidebar');
       if (wrap) wrap.innerHTML = html;
-      document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
+      document.querySelectorAll('[data-path]').forEach(a=> {
+        a.href = BASE + a.dataset.path;
+        if (a.dataset.path === 'pemutusan-jf/') a.classList.add('active');
+      });
       document.querySelectorAll('[data-logo]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
     }).catch(()=>{});
 

@@ -25,6 +25,13 @@ const MUTASI_COLS = [
   'jenis_mutasi','alasan','tanggal_usulan','status','keterangan',
   'abk_j_lama','bezetting_j_lama','abk_j_baru','bezetting_j_baru','berkas_url'
 ];
+const PEMUTUSAN_RANGE = process.env.PEMUTUSAN_RANGE || 'USULAN_PEMUTUSAN_JF!A:S';
+const PEMUTUSAN_COLS = [
+  'id_usulan','status','nama_pegawai','nip','pangkat_gol','jabatan_lama','jabatan_baru','angka_kredit',
+  'ukpd','nomor_surat','tanggal_surat','alasan_usulan','link_dokumen',
+  'verifikasi_oleh','verifikasi_tanggal','verifikasi_catatan',
+  'dibuat_oleh','dibuat_pada','diupdate_pada'
+];
 
 const norm = (val = '') => (val || '').toString().trim().toLowerCase();
 
@@ -427,6 +434,39 @@ app.delete('/mutasi/:id', async (req, res) => {
   }
 });
 
+/* ==== Usulan Pemutusan JF (sheet USULAN_PEMUTUSAN_JF) ==== */
+app.get('/pemutusan-jf', async (req, res) => {
+  try {
+    const term = norm(req.query.search);
+    const status = norm(req.query.status);
+    const ukpd = norm(req.query.ukpd);
+
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
+    const values = result.data.values || [];
+    const [header, ...rows] = values;
+    let list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id_usulan);
+
+    list = list.filter(r => {
+      const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
+      const matchStatus = !status || norm(r.status) === status;
+      const matchUkpd = !ukpd || norm(r.ukpd) === ukpd;
+      return matchTerm && matchStatus && matchUkpd;
+    });
+
+    const summary = list.reduce((acc, r) => {
+      const k = (r.status || 'LAINNYA').toUpperCase();
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    const statuses = Array.from(new Set(list.map(r => r.status).filter(Boolean))).sort();
+    const ukpds = Array.from(new Set(list.map(r => r.ukpd).filter(Boolean))).sort();
+
+    res.json({ ok: true, rows: list, total: list.length, summary, statuses, ukpds });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 function toRecord(header, row) {
   const h = (header || []).map(x => (x || '').toLowerCase().trim());
   const get = (name, fallbackIdx) => {
@@ -514,6 +554,37 @@ function toMutasiRecord(header, row){
     abk_j_baru: get('abk_j_baru',14),
     bezetting_j_baru: get('bezetting_j_baru',15),
     berkas_url: get('berkas_url',16),
+  };
+}
+
+function toPemutusanRecord(header, row){
+  const h = (header || []).map(x => (x || '').toLowerCase().trim());
+  const get = (name, idxFallback) => {
+    const idx = h.indexOf(name);
+    if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
+    if (typeof idxFallback === 'number' && typeof row[idxFallback] !== 'undefined') return row[idxFallback] || '';
+    return '';
+  };
+  return {
+    id_usulan: get('id_usulan',0),
+    status: get('status',1),
+    nama_pegawai: get('nama_pegawai',2),
+    nip: get('nip',3),
+    pangkat_gol: get('pangkat_gol',4),
+    jabatan_lama: get('jabatan_lama',5),
+    jabatan_baru: get('jabatan_baru',6),
+    angka_kredit: get('angka_kredit',7),
+    ukpd: get('ukpd',8),
+    nomor_surat: get('nomor_surat',9),
+    tanggal_surat: get('tanggal_surat',10),
+    alasan_usulan: get('alasan_usulan',11),
+    link_dokumen: get('link_dokumen',12),
+    verifikasi_oleh: get('verifikasi_oleh',13),
+    verifikasi_tanggal: get('verifikasi_tanggal',14),
+    verifikasi_catatan: get('verifikasi_catatan',15),
+    dibuat_oleh: get('dibuat_oleh',16),
+    dibuat_pada: get('dibuat_pada',17),
+    diupdate_pada: get('diupdate_pada',18),
   };
 }
 
