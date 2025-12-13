@@ -430,6 +430,8 @@
     }
     function closeModal(){ document.getElementById('modalForm').classList.remove('show'); }
     async function saveModal(){
+      const btnSave = document.getElementById('saveModal');
+      if (btnSave) btnSave.disabled = true;
       const payload = {
         status: isSuperAdmin ? (document.getElementById('f_status').value || 'DIUSULKAN') : 'DIUSULKAN',
         nama_pegawai: document.getElementById('f_nama').value.trim(),
@@ -438,7 +440,7 @@
         jabatan_lama: document.getElementById('f_jab_lama').value.trim(),
         jabatan_baru: document.getElementById('f_jab_baru').value.trim(),
         angka_kredit: document.getElementById('f_ak').value.trim(),
-        ukpd: document.getElementById('f_ukpd').value.trim(),
+        ukpd: (document.getElementById('f_ukpd').value || '').trim() || (authUser?.namaUkpd || ''),
         nomor_surat: document.getElementById('f_no_surat').value.trim(),
         tanggal_surat: document.getElementById('f_tgl_surat').value,
         alasan_usulan: document.getElementById('f_alasan').value.trim(),
@@ -457,6 +459,8 @@
         await loadData();
       }catch(err){
         alert('Gagal simpan: '+err.message);
+      }finally{
+        if (btnSave) btnSave.disabled = false;
       }
     }
     function editRow(id){
