@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Peta Jabatan (Bezetting)</title>
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+  <style>
+    :root{
+      --bg: #f6f7fb; --card:#ffffff; --border:#e6ecf4; --muted:#6b7280;
+      --accent:#5e8bff; --accent-2:#ff9f68; --success:#16a34a; --danger:#dc2626;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:'Inter','Segoe UI',Arial,sans-serif; background:radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%), #f7f9fc; color:#1b2b3a; }
+    .layout{ min-height:100vh; }
+    .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
+    .sidebar{ position:fixed; inset:0 auto 0 0; width:260px; background:#ffffff; color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0; }
+    .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
+    .logo img{ width:38px; height:38px; object-fit:contain; }
+    .logo-title{ font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
+    .logo-sub{ font-size:12px; color:#94a3b8; }
+    nav{ display:flex; flex-direction:column; gap:6px; }
+    .nav-title{ margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
+    .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .nav-item:hover{ background:#f8fafc; }
+    .nav-item.active{ background:#eef3ff; color:#3b5ecc; font-weight:700; box-shadow:0 10px 22px rgba(94,139,255,0.18); }
+    .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .topbar{ background:linear-gradient(120deg, rgba(94,139,255,0.14), rgba(255,159,104,0.16)), #ffffff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 10px 28px rgba(24,39,75,0.12); backdrop-filter:blur(6px); }
+    .hero{ background:linear-gradient(135deg, rgba(94,139,255,0.2), rgba(255,159,104,0.18)), #0f1f3a; color:#e2e8f0; border-radius:16px; padding:18px; display:flex; justify-content:space-between; gap:12px; align-items:center; box-shadow:0 12px 30px rgba(24,39,75,0.2); }
+    .hero h2{ margin:6px 0 4px; color:#fff; }
+    .pill{ display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; background:#eef3ff; color:#3b5ecc; box-shadow:0 10px 20px rgba(94,139,255,0.2); }
+    .user{ display:none; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:0 10px 28px rgba(15,23,42,0.08); }
+    .filters{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:10px; align-items:end; }
+    label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:6px; }
+    input, select, textarea, button{ padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:'Inter','Segoe UI',Arial,sans-serif; }
+    input, select{ width:100%; }
+    button.primary{ background:linear-gradient(120deg,var(--accent) 0%, #7cb3ff 45%, var(--accent-2) 100%); color:#0b1f2c; border:none; font-weight:800; box-shadow:0 15px 35px rgba(94,139,255,0.32); cursor:pointer; }
+    button.secondary{ background:#f8fafc; color:#1b2b3a; border:1px solid var(--border); cursor:pointer; box-shadow:0 8px 18px rgba(24,39,75,0.06); }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; vertical-align:top; }
+    th{ background:#f8fafc; text-transform:uppercase; letter-spacing:.4px; font-size:12px; }
+    .table-wrap{ overflow-x:auto; }
+    .badge-chip{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:10px; background:#eef2ff; color:#4338ca; font-weight:700; font-size:12px; }
+    .mobile-toggle{ position:fixed; top:14px; left:14px; z-index:70; background:var(--accent); color:#f8fafc; border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:10px 14px; display:none; align-items:center; gap:8px; font-weight:800; box-shadow:0 12px 26px rgba(94,139,255,0.35); }
+    #sidebarBackdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.45); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:50; }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    @media (max-width:1100px){
+      .content{ margin-left:0; }
+      .sidebar{ position:fixed; inset:0 auto 0 0; width:calc(100vw - 72px); max-width:280px; transform:translateX(-100%); transition:transform .2s ease; z-index:60; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.5); }
+      .sidebar.show{ transform:translateX(0); }
+      .mobile-toggle{ display:inline-flex; }
+      main{ padding:14px; margin-top:20px; padding-top:62px; }
+    }
+    @media (max-width:640px){ th, td{ font-size:12px; } }
+  </style>
+</head>
+<body>
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle"><span style="font-size:18px;">=</span> Menu</button>
+  <div class="layout">
+    <div id="sidebar-container"></div>
+    <div class="content">
+      <div id="header-container"></div>
+      <main style="padding:18px;">
+        <div class="hero">
+          <div>
+            <div class="pill" id="roleBadge">-</div>
+            <h2>Peta Jabatan / Bezetting</h2>
+            <p style="margin:4px 0 0; color:#cbd5e1;">Pantau kebutuhan formasi vs eksisting, filter per UKPD/wilayah/jabatan.</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="primary" id="refreshBtn" style="min-width:140px;">Muat Ulang</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="filters">
+            <div class="full">
+              <label>Pencarian</label>
+              <input id="search" placeholder="Nama pegawai / NIP / Jabatan" />
+            </div>
+            <div>
+              <label>UKPD</label>
+              <select id="ukpdFilter"><option value="">Semua</option></select>
+            </div>
+            <div>
+              <label>Wilayah</label>
+              <select id="wilayahFilter"><option value="">Semua</option></select>
+            </div>
+            <div>
+              <label>Rumpun Jabatan</label>
+              <select id="rumpunFilter"><option value="">Semua</option></select>
+            </div>
+            <div>
+              <label>Nama Jabatan</label>
+              <select id="jabatanFilter"><option value="">Semua</option></select>
+            </div>
+            <div>
+              <label>Status Formasi</label>
+              <select id="statusFilter"><option value="">Semua</option></select>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+              <button id="applyFilter" class="primary" style="width:auto;">Terapkan</button>
+              <button id="resetFilter" class="secondary" style="width:auto;">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+            <div class="badge-chip">Total data: <span id="totalRows">0</span></div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <label>Per halaman</label>
+              <select id="pageSize" style="width:auto;">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Bidang/Bagian</th>
+                  <th>Subbag/Satpel</th>
+                  <th>Jabatan (Pergub)</th>
+                  <th>Jabatan (Permenpan)</th>
+                  <th>Rumpun</th>
+                  <th>Kode</th>
+                  <th>ABK</th>
+                  <th>Eksisting</th>
+                  <th>Selisih</th>
+                  <th>Nama Pegawai</th>
+                  <th>NIP</th>
+                  <th>NRK</th>
+                  <th>Status Formasi</th>
+                  <th>Pendidikan</th>
+                  <th>UKPD</th>
+                  <th>Wilayah</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:8px;">
+            <div id="pagerInfo" style="font-size:12px; color:var(--muted);">Halaman 1</div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button id="prevPage" class="secondary" type="button">Sebelumnya</button>
+              <button id="nextPage" class="secondary" type="button">Berikutnya</button>
+            </div>
+          </div>
+        </div>
+      </main>
+      <div id="footer-container"></div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+    })();
+    const API_BASE = 'http://127.0.0.1:5002';
+    const favicon = document.querySelector("link[rel='icon']");
+    if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
+
+    const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
+      document.getElementById('sidebar-container').innerHTML = s;
+      document.getElementById('header-container').innerHTML = h;
+      document.getElementById('footer-container').innerHTML = f;
+      document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
+      document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
+      document.querySelector('.nav-item.active')?.classList.remove('active');
+      const link = Array.from(document.querySelectorAll('.nav-item')).find(a=> (a.dataset.path||'').includes('bezetting'));
+      if (link) link.classList.add('active');
+      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+      const logoutNav = document.querySelector('[data-logout]');
+      if (logoutNav) logoutNav.addEventListener('click', doLogout);
+      initSidebarToggle();
+      syncHeaderUser();
+    });
+
+    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = BASE; }
+    const norm = (v='') => String(v || '').toLowerCase().trim();
+    const roleLower = norm(authUser?.role);
+    const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
+    const isWilayahAdmin = roleLower.includes('wilayah');
+    const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
+    const loginWilayah = authUser?.wilayah || '';
+
+    const statusEl = document.getElementById('pagerInfo');
+    const tableBody = document.getElementById('tableBody');
+    const searchInput = document.getElementById('search');
+    const ukpdFilter = document.getElementById('ukpdFilter');
+    const wilayahFilter = document.getElementById('wilayahFilter');
+    const rumpunFilter = document.getElementById('rumpunFilter');
+    const jabatanFilter = document.getElementById('jabatanFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const applyFilter = document.getElementById('applyFilter');
+    const resetFilter = document.getElementById('resetFilter');
+    const pageSize = document.getElementById('pageSize');
+    const totalRowsEl = document.getElementById('totalRows');
+    const pagerInfo = document.getElementById('pagerInfo');
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const roleBadge = document.getElementById('roleBadge');
+    const userNameEl = document.getElementById('userName');
+    const userRoleEl = document.getElementById('userRole');
+    const rolePill = document.getElementById('rolePill');
+    const ukpdPill = document.getElementById('ukpdPill');
+
+    let rows = [];
+    let filtered = [];
+    let page = 1;
+
+    function syncHeaderUser(){
+      if (!authUser) return;
+      const roleText = (authUser.role || 'USER').toUpperCase();
+      const nameText = authUser.namaUkpd || authUser.username || 'User';
+      if (roleBadge) roleBadge.textContent = roleText;
+      if (userNameEl) userNameEl.textContent = nameText;
+      if (userRoleEl) userRoleEl.textContent = authUser.role || '';
+      if (rolePill) rolePill.textContent = roleText;
+      if (ukpdPill) ukpdPill.textContent = nameText;
+    }
+
+    function doLogout(){ localStorage.removeItem('authUser'); window.location.href = BASE; }
+
+    function applyRoleFilter(data){
+      if (isSuper) return data;
+      if (isWilayahAdmin && loginWilayah){
+        const w = norm(loginWilayah);
+        return data.filter(d => norm(d.wilayah || '') === w);
+      }
+      const ukpd = norm(loginUkpd);
+      if (!ukpd) return data;
+      return data.filter(d => norm(d.ukpd || '') === ukpd);
+    }
+
+    async function loadData(){
+      const params = new URLSearchParams();
+      params.set('limit', pageSize.value || '10');
+      params.set('offset', ((page-1) * (parseInt(pageSize.value,10)||10)).toString());
+      if (searchInput.value) params.set('search', searchInput.value);
+      if (statusFilter.value) params.set('status_formasi', statusFilter.value);
+      if (rumpunFilter.value) params.set('rumpun', rumpunFilter.value);
+      if (jabatanFilter.value) params.set('jabatan', jabatanFilter.value);
+      if (isSuper){
+        if (ukpdFilter.value) params.set('ukpd', ukpdFilter.value);
+        if (wilayahFilter.value) params.set('wilayah', wilayahFilter.value);
+      } else if (isWilayahAdmin){
+        if (loginWilayah) params.set('wilayah', loginWilayah);
+        if (ukpdFilter.value) params.set('ukpd', ukpdFilter.value);
+      } else {
+        params.set('ukpd', loginUkpd);
+      }
+      const res = await fetch(`${API_BASE}/bezetting?${params.toString()}`);
+      const body = await res.json();
+      if (!res.ok || body.ok === false) throw new Error(body.error || 'Gagal ambil data');
+      rows = applyRoleFilter(body.rows || []);
+      totalRowsEl.textContent = body.total || rows.length;
+      buildFilters(body);
+      renderTable();
+    }
+
+    function buildFilters(body){
+      const prevUkpd = ukpdFilter.value;
+      const prevWil = wilayahFilter.value;
+      const prevRumpun = rumpunFilter.value;
+      const prevJab = jabatanFilter.value;
+      const prevStatus = statusFilter.value;
+      const uniqSort = (arr=[]) => Array.from(new Set(arr.filter(Boolean))).sort();
+      const setOpts = (el, list, placeholder) => {
+        const opts = ['<option value="">'+placeholder+'</option>', ...uniqSort(list).map(v=>`<option value="${v}">${v}</option>`)].join('');
+        el.innerHTML = opts;
+      };
+      setOpts(ukpdFilter, body.ukpds || rows.map(r=>r.ukpd), 'Semua');
+      setOpts(statusFilter, body.statuses || rows.map(r=>r.status_formasi), 'Semua');
+      setOpts(rumpunFilter, body.rumpuns || rows.map(r=>r.rumpun_jabatan), 'Semua');
+      setOpts(jabatanFilter, body.jabatans || rows.flatMap(r=>[r.nama_jabatan_pergub, r.nama_jabatan_permenpan]), 'Semua');
+      setOpts(wilayahFilter, (body.rows||rows).map(r=>r.wilayah), 'Semua');
+      const setBack = (el, val) => {
+        if (!val) { el.value = ''; return; }
+        const found = Array.from(el.options || []).some(o => o.value === val);
+        el.value = found ? val : '';
+      };
+      setBack(ukpdFilter, prevUkpd);
+      setBack(wilayahFilter, prevWil);
+      setBack(rumpunFilter, prevRumpun);
+      setBack(jabatanFilter, prevJab);
+      setBack(statusFilter, prevStatus);
+      if (!isSuper && !isWilayahAdmin){
+        ukpdFilter.value = loginUkpd;
+        ukpdFilter.disabled = true;
+        wilayahFilter.disabled = true;
+        rumpunFilter.disabled = false;
+        jabatanFilter.disabled = false;
+      } else {
+        ukpdFilter.disabled = false;
+        wilayahFilter.disabled = false;
+        rumpunFilter.disabled = false;
+        jabatanFilter.disabled = false;
+      }
+    }
+
+    function renderTable(){
+      const per = parseInt(pageSize.value,10) || 10;
+      const maxPage = Math.max(1, Math.ceil((rows.length || 0) / per));
+      if (page > maxPage) page = maxPage;
+      const start = (page-1)*per;
+      const slice = rows.slice(start, start+per);
+      if (!slice.length){
+        tableBody.innerHTML = '<tr><td colspan="17" style="text-align:center; color:var(--muted); padding:16px;">Tidak ada data</td></tr>';
+      } else {
+        tableBody.innerHTML = slice.map((r,idx)=>`
+          <tr>
+            <td>${start + idx + 1}</td>
+            <td>${r.bidang || '-'}</td>
+            <td>${r.subbidang || '-'}</td>
+            <td>${r.nama_jabatan_pergub || '-'}</td>
+            <td>${r.nama_jabatan_permenpan || '-'}</td>
+            <td>${r.rumpun_jabatan || '-'}</td>
+            <td>${r.kode || '-'}</td>
+            <td>${r.abk || '-'}</td>
+            <td>${r.eksisting || '-'}</td>
+            <td>${r.selisih || '-'}</td>
+            <td>${r.nama_pegawai || '-'}</td>
+            <td>${r.nip || '-'}</td>
+            <td>${r.nrk || '-'}</td>
+            <td>${r.status_formasi || '-'}</td>
+            <td>${r.pendidikan || '-'}</td>
+            <td>${r.ukpd || '-'}</td>
+            <td>${r.wilayah || '-'}</td>
+          </tr>
+        `).join('');
+      }
+      if (pagerInfo) pagerInfo.textContent = `Halaman ${page} / ${maxPage}`;
+    }
+
+    applyFilter.addEventListener('click', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    resetFilter.addEventListener('click', ()=>{
+      searchInput.value=''; statusFilter.value=''; ukpdFilter.value=''; wilayahFilter.value=''; rumpunFilter.value=''; jabatanFilter.value='';
+      page=1; loadData().catch(err=>alert(err.message));
+    });
+    pageSize.addEventListener('change', ()=>{ page=1; renderTable(); });
+    prevPage.addEventListener('click', ()=>{ if (page>1){ page--; renderTable(); } });
+    nextPage.addEventListener('click', ()=>{ const per = parseInt(pageSize.value,10)||10; const maxPage = Math.max(1, Math.ceil((rows.length||0)/per)); if (page < maxPage){ page++; renderTable(); } });
+    searchInput.addEventListener('input', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    ukpdFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    wilayahFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    rumpunFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    jabatanFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    statusFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    refreshBtn?.addEventListener('click', ()=> loadData().catch(err=>alert(err.message)));
+
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebarEl = document.querySelector('.sidebar');
+      if (!btn || !backdrop || !sidebarEl) return;
+      const close = ()=>{ sidebarEl.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebarEl.classList.contains('show');
+        sidebarEl.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebarEl.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1100) close(); });
+    }
+
+    syncHeaderUser();
+    loadData().catch(err=>alert(err.message));
+  </script>
+</body>
+</html>
+

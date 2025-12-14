@@ -1,26 +1,26 @@
 <style>
   .topbar {
     display:flex; align-items:center; justify-content:space-between;
-    padding:12px 16px; background:#ffffff; border-bottom:1px solid #e2e8f0;
-    position: sticky; top:0; z-index:60; width:100%; box-shadow: 0 6px 24px rgba(15,23,42,0.06);
+    padding:12px 16px; background:linear-gradient(120deg, rgba(94,139,255,0.14), rgba(255,159,104,0.16)), #ffffff;
+    border-bottom:1px solid #e6ecf4;
+    position: sticky; top:0; z-index:60; width:100%; box-shadow: 0 10px 28px rgba(24,39,75,0.12);
+    backdrop-filter: blur(6px);
   }
   .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; }
-  .pill.role { background:#ede9fe; color:#6d28d9; }
-  .pill.ukpd { background:#ecfdf3; color:#15803d; }
-  .brand-title { font-size:18px; font-weight:800; color:#0f172a; }
-  .user { display:flex; align-items:center; gap:10px; }
+  .pill.role { background:#eef3ff; color:#3b5ecc; }
+  .pill.ukpd { background:#e7f7ff; color:#0f5f82; }
+  .brand-title { font-size:18px; font-weight:800; color:#1b2b3a; }
+  .user { display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f8fafc; border:1px solid #e6ecf4; border-radius:12px; box-shadow:0 8px 18px rgba(24,39,75,0.08); }
   .user img { width:40px; height:40px; border-radius:12px; object-fit:cover; }
-  .user-name { font-weight:800; }
+  .user-name { font-weight:800; color:#1b2b3a; }
   .user-role { font-size:12px; color:#6b7280; }
-  .danger-btn { background:#ef4444; color:#fff; border:none; border-radius:10px; padding:9px 14px; cursor:pointer; font-weight:700; box-shadow: 0 8px 18px rgba(239,68,68,0.24); }
+  .danger-btn { background:linear-gradient(135deg, #ff6b6b, #ff9f68); color:#fff; border:none; border-radius:12px; padding:9px 14px; cursor:pointer; font-weight:800; box-shadow: 0 12px 26px rgba(255,107,107,0.28); }
 </style>
 
 <header class="topbar">
   <div class="toolbar">
-    <div class="pill role" id="rolePill">-</div>
     <div class="brand-title">Dashboard Dinas Kesehatan</div>
-    <div class="pill ukpd" id="ukpdPill">-</div>
   </div>
   <div class="user">
     <img src="foto/Dinkes.png" alt="user" data-logo-header />
@@ -46,5 +46,25 @@
     if (ukpdPill) ukpdPill.textContent = nama;
     if (userName) userName.textContent = nama;
     if (userRole) userRole.textContent = role;
+
+    // Idle auto-logout (15 menit)
+    const BASE = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+    })();
+    const IDLE_MS = 15 * 60 * 1000;
+    let idleTimer;
+    function doLogoutIdle(){
+      try{ localStorage.removeItem('authUser'); }catch(_){}
+      window.location.href = BASE;
+    }
+    function resetIdle(){
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(doLogoutIdle, IDLE_MS);
+    }
+    ['click','keydown','mousemove','scroll','touchstart','focus'].forEach(ev=>{
+      document.addEventListener(ev, resetIdle, { passive:true });
+    });
+    resetIdle();
   })();
 </script>

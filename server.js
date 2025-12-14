@@ -33,6 +33,13 @@ const PEMUTUSAN_COLS = [
   'verifikasi_oleh','verifikasi_tanggal','verifikasi_catatan',
   'dibuat_oleh','dibuat_pada','diupdate_pada'
 ];
+const BEZETTING_RANGE = process.env.BEZETTING_RANGE || 'bezetting!A:W';
+const BEZETTING_COLS = [
+  'no','bidang','subbidang','nama_jabatan_pergub','nama_jabatan_permenpan','rumpun_jabatan','kode',
+  'abk','eksisting','selisih','nama_pegawai','nip','nrk','status_formasi','pendidikan','keterangan',
+  'sisa_formasi_2026','kebutuhan_asn_2026','perencanaan_kebutuhan','program_studi','perencanaan_pendidikan_lanjutan',
+  'ukpd','wilayah'
+];
 
 const norm = (val = '') => (val || '').toString().trim().toLowerCase();
 
@@ -560,6 +567,120 @@ app.delete('/pemutusan-jf/:id', async (req, res) => {
   }
 });
 
+/* ==== Bezetting (sheet bezetting) ==== */
+app.get('/bezetting', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20000, 30000));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const term = norm(req.query.search);
+    const ukpdQuery = norm(req.query.ukpd);
+    const wilayahQuery = norm(req.query.wilayah);
+    const statusQuery = norm(req.query.status_formasi);
+    const rumpunQuery = norm(req.query.rumpun);
+    const jabatanQuery = norm(req.query.jabatan);
+
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: BEZETTING_RANGE });
+    const values = result.data.values || [];
+    const [header, ...rowsRaw] = values;
+    let list = rowsRaw.map(r => toBezettingRecord(header, r)).filter(r => r.kode || r.no);
+
+    // Role filter
+    list = list.filter(r => {
+      if (wilayahQuery && norm(r.wilayah) !== wilayahQuery) return false;
+      if (ukpdQuery && norm(r.ukpd) !== ukpdQuery) return false;
+      return true;
+    });
+
+    list = list.filter(r => {
+      const matchTerm = !term || [r.nama_pegawai, r.nip, r.nama_jabatan_pergub, r.nama_jabatan_permenpan].some(v => norm(v).includes(term));
+      const matchStatus = !statusQuery || norm(r.status_formasi) === statusQuery;
+      const matchRumpun = !rumpunQuery || norm(r.rumpun_jabatan) === rumpunQuery;
+      const jabNorm = jabatanQuery;
+      const matchJab = !jabNorm || norm(r.nama_jabatan_pergub) === jabNorm || norm(r.nama_jabatan_permenpan) === jabNorm;
+      return matchTerm && matchStatus && matchRumpun && matchJab;
+    });
+
+    const total = list.length;
+    const slice = list.slice(offset, offset + limit);
+    const ukpds = Array.from(new Set(list.map(r => r.ukpd).filter(Boolean))).sort();
+    const statuses = Array.from(new Set(list.map(r => r.status_formasi).filter(Boolean))).sort();
+    const rumpuns = Array.from(new Set(list.map(r => r.rumpun_jabatan).filter(Boolean))).sort();
+    const jabatans = Array.from(new Set(list.flatMap(r => [r.nama_jabatan_pergub, r.nama_jabatan_permenpan]).filter(Boolean))).sort();
+    res.json({ ok: true, rows: slice, total, ukpds, statuses, rumpuns, jabatans });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/bezetting', async (req, res) => {
+  try {
+    const d = req.body || {};
+    const kode = d.kode || `BZ-${Date.now()}`;
+    const payloadData = { ...d, kode };
+    const row = BEZETTING_COLS.map(k => payloadData[k] || '');
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: BEZETTING_RANGE,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [row] }
+    });
+    res.json({ ok: true, kode });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.put('/bezetting/:kode', async (req, res) => {
+  const kode = req.params.kode;
+  try {
+    const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: BEZETTING_RANGE });
+    const rows = values.data.values || [];
+    const [header, ...data] = rows;
+    const hNorm = (header || []).map(x => norm(x));
+    const idxKode = hNorm.indexOf('kode');
+    const idx = data.findIndex(r => norm(idxKode >= 0 ? r[idxKode] : r[6]) === norm(kode));
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'Kode tidak ditemukan' });
+    const rowNumber = idx + 2;
+    const payloadData = { ...(req.body || {}), kode };
+    const payload = BEZETTING_COLS.map(k => payloadData[k] || '');
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${BEZETTING_RANGE.split('!')[0]}!A${rowNumber}:W${rowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [payload] }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.delete('/bezetting/:kode', async (req, res) => {
+  const kode = req.params.kode;
+  try {
+    const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: BEZETTING_RANGE });
+    const rows = values.data.values || [];
+    const header = rows[0] || [];
+    const hNorm = (header || []).map(x => norm(x));
+    const idxKode = hNorm.indexOf('kode');
+    const idx = rows.findIndex(r => norm(idxKode >= 0 ? r[idxKode] : r[6]) === norm(kode));
+    if (idx < 1) return res.status(404).json({ ok: false, error: 'Kode tidak ditemukan' });
+    const sheetId = await getSheetIdByName(BEZETTING_RANGE.split('!')[0]);
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } }
+        }]
+      }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 function toRecord(header, row) {
   const h = (header || []).map(x => (x || '').toLowerCase().trim());
   const get = (name, fallbackIdx) => {
@@ -681,6 +802,41 @@ function toPemutusanRecord(header, row){
     dibuat_oleh: get('dibuat_oleh',17),
     dibuat_pada: get('dibuat_pada',18),
     diupdate_pada: get('diupdate_pada',19),
+  };
+}
+
+function toBezettingRecord(header, row){
+  const h = (header || []).map(x => (x || '').toLowerCase().trim());
+  const get = (name, idxFallback) => {
+    const idx = h.indexOf(name);
+    if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
+    if (typeof idxFallback === 'number' && typeof row[idxFallback] !== 'undefined') return row[idxFallback] || '';
+    return '';
+  };
+  return {
+    no: get('no',0),
+    bidang: get('bidang/bagian',1),
+    subbidang: get('subbidang/subbagian/satuan pelaksana',2),
+    nama_jabatan_pergub: get('nama jabatan (pergub 1)',3),
+    nama_jabatan_permenpan: get('nama jabatan (permenpan)',4),
+    rumpun_jabatan: get('rumpun jabatan (sesuai peta pergub 1)',5),
+    kode: get('kode',6),
+    abk: get('abk',7),
+    eksisting: get('eksisting',8),
+    selisih: get('selisih',9),
+    nama_pegawai: get('nama pegawai',10),
+    nip: get('nip',11),
+    nrk: get('nrk',12),
+    status_formasi: get('status formasi',13),
+    pendidikan: get('pendidikan',14),
+    keterangan: get('keterangan',15),
+    sisa_formasi_2026: get('sisa formasi proyeksi 2026',16),
+    kebutuhan_asn_2026: get('kebutuhan asn 2026',17),
+    perencanaan_kebutuhan: get('perencanaan kebutuhan',18),
+    program_studi: get('program studi',19),
+    perencanaan_pendidikan_lanjutan: get('perencanaan pendidikan lanjutan',20),
+    ukpd: get('ukpd',21),
+    wilayah: get('wilayah',22)
   };
 }
 

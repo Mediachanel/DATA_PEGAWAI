@@ -6,541 +6,764 @@
   <title>Usulan Pemutusan JF</title>
   <link rel="icon" type="image/png" href="foto/Dinkes.png" />
   <style>
-    :root {
-      --bg: #f5f7fb;
-      --card: #ffffff;
-      --border: #e5e7eb;
-      --muted: #6b7280;
-      --primary: #2563eb;
-      --success: #16a34a;
-      --warning: #f59e0b;
-      --danger: #dc2626;
-      --teal: #0d9488;
+    :root{
+      --bg:#f6f7fb;
+      --card:#fff;
+      --border:#e6ecf4;
+      --muted:#6b7280;
+      --ink:#1b2b3a;
+      --accent:#5e8bff;
+      --accent-2:#ff9f68;
+      --accent-soft:#eef3ff;
+      --shadow:0 18px 40px rgba(24,39,75,0.12);
     }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: 'Inter','Segoe UI',Arial,sans-serif; background: linear-gradient(135deg, #f3f6fb 0%, #eef2ff 45%, #f0fff4 100%); color:#0f172a; }
-    .layout { min-height:100vh; display:flex; }
-    .sidebar { width:260px; border-right:1px solid var(--border); background:#fff; padding:16px 14px; }
-    .logo { display:flex; align-items:center; gap:10px; margin-bottom:16px; color:#0f172a; font-weight:800; }
-    .logo img { width:48px; height:48px; object-fit:contain; }
-    .logo-title { font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
-    .logo-sub { font-size:12px; color:#94a3b8; }
-    nav { display:flex; flex-direction:column; gap:6px; }
-    .nav-title { margin:12px 8px 4px; font-size:11px; letter-spacing:0.4px; text-transform:uppercase; color:#94a3b8; }
-    .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
-    .nav-item:hover { background:#f8fafc; }
-    .nav-item.active { background:#e0f2fe; color:#1d4ed8; font-weight:700; }
-    .icon-round { width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
-    .content { flex:1; min-height:100vh; display:flex; flex-direction:column; }
-    header.topbar { background:#fff; border-bottom:1px solid var(--border); padding:12px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; box-shadow:0 6px 18px rgba(15,23,42,.05); }
-    .badge-role { display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#075985; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; }
-    .user-card { display:flex; align-items:center; gap:10px; background:#f8fafc; padding:8px 10px; border-radius:12px; border:1px solid var(--border); }
-    main { padding:20px; display:flex; flex-direction:column; gap:18px; }
-    .breadcrumbs { font-size:13px; color:var(--muted); }
-    .hero { background:#0f172a; color:#fff; border-radius:18px; padding:18px 20px; display:flex; justify-content:space-between; align-items:center; }
-    .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
-    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:0 12px 30px rgba(15,23,42,.05); }
-    .card h3 { margin:0; font-size:13px; color:var(--muted); font-weight:700; letter-spacing:0.2px; }
-    .card .num { font-size:28px; margin:6px 0 0; font-weight:800; }
-    .card.blue { background:linear-gradient(135deg,#dbeafe,#eff6ff); border-color:#bfdbfe; color:#1d4ed8; }
-    .card.orange { background:linear-gradient(135deg,#ffedd5,#fff7ed); border-color:#fed7aa; color:#c2410c; }
-    .card.green { background:linear-gradient(135deg,#dcfce7,#f0fdf4); border-color:#bbf7d0; color:#15803d; }
-    .card.red { background:linear-gradient(135deg,#fee2e2,#fef2f2); border-color:#fecdd3; color:#b91c1c; }
-    .filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px; box-shadow:0 8px 20px rgba(15,23,42,.04); }
-    .filters input, .filters select { padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff; min-width:200px; }
-    .btn { padding:10px 12px; border-radius:10px; border:1px solid transparent; font-weight:700; cursor:pointer; }
-    .btn.primary { background:var(--primary); color:#fff; }
-    .btn.ghost { background:#fff; border-color:var(--border); color:#0f172a; }
-    .btn.success { background:var(--success); color:#fff; }
-    .status-strip { display:flex; flex-wrap:wrap; gap:8px; }
-    .chip { padding:8px 10px; border-radius:12px; background:#f8fafc; border:1px solid var(--border); font-weight:700; color:#475569; cursor:pointer; }
-    .chip.active { background:#e0f2fe; border-color:#bfdbfe; color:#1d4ed8; }
-    .table-wrap { background:#fff; border:1px solid var(--border); border-radius:12px; overflow:visible; box-shadow:0 10px 24px rgba(15,23,42,.06); }
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:12px 10px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; }
-    th { background:#f8fafc; font-weight:700; color:#475569; }
-    tr:hover td { background:#f9fafb; }
-    .badge { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; font-weight:700; font-size:12px; }
-    .badge.s1 { background:#dbeafe; color:#1d4ed8; }
-    .badge.s2 { background:#fef3c7; color:#b45309; }
-    .badge.s3 { background:#dcfce7; color:#15803d; }
-    .badge.s4 { background:#fee2e2; color:#b91c1c; }
-    .actions { position:relative; }
-    .actions button { border:1px solid var(--border); background:#fff; padding:6px 8px; border-radius:8px; cursor:pointer; }
-    .dropdown { position:absolute; top:110%; right:0; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 12px 30px rgba(15,23,42,.1); min-width:140px; display:none; z-index:50; }
-    .dropdown a, .dropdown button { display:block; width:100%; text-align:left; padding:8px 10px; border:0; background:#fff; cursor:pointer; font-size:13px; }
-    .dropdown a:hover, .dropdown button:hover { background:#f8fafc; }
-    .empty { padding:20px; text-align:center; color:var(--muted); }
-    /* Modal */
-    .modal { position:fixed; inset:0; background:rgba(15,23,42,0.45); display:none; align-items:center; justify-content:center; z-index:40; }
-    .modal.show { display:flex; }
-    .modal-card { background:#fff; width:90%; max-width:720px; border-radius:14px; padding:18px 18px 14px; box-shadow:0 18px 46px rgba(15,23,42,.25); }
-    .modal-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
-    .modal-head h3 { margin:0; font-size:18px; }
-    .modal-body { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
-    .modal-body label { display:block; font-weight:700; font-size:12px; margin-bottom:4px; color:#475569; }
-    .modal-body input, .modal-body select, .modal-body textarea { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:13px; }
-    .modal-body textarea { min-height:80px; resize:vertical; grid-column:1/-1; }
-    .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:12px; }
-    @media (max-width: 1024px) {
-      .sidebar { display:none; }
-      .content { padding-left:0; }
-      .filters input, .filters select { min-width:160px; }
-      th:nth-child(1), td:nth-child(1) { width:40px; }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif;
+      background:radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%), #f7f9fc;
+      color:var(--ink);
     }
+    .layout{ min-height:100vh; }
+    .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
+    main{ padding:22px 14px 34px; }
+    .page{ width:min(1500px, calc(100vw - 24px)); margin:0 auto; display:flex; flex-direction:column; gap:12px; padding:0 12px; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:260px; background:var(--card); color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid var(--border); backdrop-filter:blur(8px);
+    }
+    .logo{ display:flex; align-items:center; gap:10px; color:var(--ink); font-weight:800; }
+    .logo img{ width:38px; height:38px; object-fit:contain; }
+    .logo-title{ font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
+    .logo-sub{ font-size:12px; color:#94a3b8; }
+    nav{ display:flex; flex-direction:column; gap:6px; }
+    .nav-title{ margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
+    .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .nav-item:hover{ background:#f8fafc; }
+    .nav-item.active{ background:var(--accent-soft); color:#3b5ecc; font-weight:700; box-shadow:0 10px 22px rgba(94,139,255,0.18); }
+    .icon-round{ width:26px; height:26px; border-radius:10px; background:#f3f4ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .hero{
+      background:linear-gradient(135deg, #1d2b50 0%, #273656 55%, #2f415f 100%);
+      border:1px solid #1f2a40;
+      border-radius:22px;
+      padding:20px;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      color:#e8efff;
+    }
+    .hero h2{ color:#f5f7ff; }
+    .hero p{ color:#d9e3ff; }
+    .hero .eyebrow{ color:#c3d3ff; }
+    .hero-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; position:relative; z-index:2; }
+    .eyebrow{ text-transform:uppercase; letter-spacing:.4px; color:#94a3b8; font-weight:800; font-size:11px; margin:0; }
+    .hero h2{ margin:6px 0 4px; font-size:26px; }
+    .hero p{ margin:0; color:var(--muted); max-width:680px; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; border:1px solid transparent; }
+    .pill.role{ background:#e0f2fe; color:#0369a1; box-shadow:0 8px 20px rgba(3,105,161,0.12); }
+    .hero-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .user{ display:none; }
+    .hero-meta{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; z-index:2; }
+    .meta-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .preview-shell{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:0 14px 32px rgba(15,23,42,0.06);
+      position:relative;
+      overflow:hidden;
+      z-index:2;
+    }
+    .preview-shell::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg,rgba(255,88,179,0.08),rgba(11,188,180,0.08));
+      pointer-events:none;
+    }
+    .preview-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:12px; border-bottom:1px dashed var(--border); }
+    .toolbar-left{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .brand-mark{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px; background:#eef2ff; color:#4338ca; font-weight:800; }
+    .preview-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .preview-pill{ padding:8px 10px; border-radius:10px; background:#f8fafc; border:1px solid var(--border); font-size:12px; font-weight:700; color:#475569; }
+    .preview-search{ display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:10px; border:1px solid var(--border); background:#f8fafc; color:#94a3b8; min-width:220px; }
+    .preview-search .dot{ width:10px; height:10px; border-radius:999px; background:var(--accent); display:inline-block; }
+    .toolbar-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .toolbar-pill{ padding:8px 10px; border-radius:10px; background:var(--accent-soft); color:#0f766e; border:1px solid #b9efe8; font-weight:700; }
+    .avatar-mock{ width:36px; height:36px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); }
+    .preview-body{ display:grid; grid-template-columns:2fr 1.05fr; gap:12px; margin-top:12px; }
+    .preview-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }
+    .preview-card{ background:#f9fafb; border:1px solid var(--border); border-radius:12px; padding:10px 12px; box-shadow:0 10px 18px rgba(15,23,42,0.05); }
+    .mini-title{ font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.2px; }
+    .bars{ display:grid; gap:6px; margin-top:8px; }
+    .bars span{ display:block; height:10px; border-radius:999px; background:linear-gradient(90deg,var(--accent),var(--accent-2)); opacity:.9; width:var(--w,70%); }
+    .donut{ width:120px; height:120px; border-radius:50%; background:conic-gradient(var(--accent) 0 120deg, #3b82f6 120deg 220deg, var(--accent-2) 220deg 360deg); margin:10px auto; position:relative; }
+    .donut::after{ content:''; position:absolute; inset:28px; border-radius:50%; background:#f9fafb; }
+    .list-soft{ display:grid; gap:6px; margin-top:8px; color:#475569; }
+    .list-soft span{ display:flex; justify-content:space-between; font-weight:700; }
+    .preview-side{ display:grid; gap:10px; }
+    .banner{ border-radius:14px; padding:14px; color:#fff; background:radial-gradient(circle at 10% 10%, rgba(255,255,255,0.35), transparent 35%), linear-gradient(135deg,#06b6d4,#4f46e5); box-shadow:0 12px 24px rgba(79,70,229,0.25); }
+    .banner h4{ margin:0 0 4px; }
+    .mini-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; }
+    .mini-grid .mini-card{ border-radius:12px; padding:10px; background:#f8fafc; border:1px solid var(--border); font-weight:800; color:#0f172a; box-shadow:0 8px 16px rgba(15,23,42,0.05); }
+    .mini-grid .muted{ color:var(--muted); font-weight:600; font-size:12px; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; box-shadow:0 12px 28px rgba(15,23,42,0.06); position:relative; z-index:1; }
+    .metric-grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+    .metric{ border-radius:14px; padding:14px; border:1px solid var(--border); box-shadow:0 10px 22px rgba(15,23,42,0.05); background:#f9fafb; }
+    .metric .label{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+    .metric .value{ font-size:24px; font-weight:800; margin-top:4px; }
+    .metric.blue{ background:var(--accent-soft); color:#0f766e; border-color:#b9efe8; }
+    .metric.orange{ background:#fff6e6; color:#b45309; }
+    .metric.green{ background:#e7fff5; color:#15803d; }
+    .metric.red{ background:#fff1f2; color:#b91c1c; }
+    .filters{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; align-items:end; }
+    label{ font-size:12px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:6px; }
+    input, select, textarea{ width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:12px; font-size:14px; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; background:#f9fafb; }
+    input:focus, select:focus, textarea:focus{ outline:2px solid #c7f3ed; border-color:#9de3dc; }
+    button{ font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; }
+    button.primary{
+      background:linear-gradient(120deg,var(--accent) 0%, #7cb3ff 45%, #ffb48a 100%);
+      color:#0b1f2c;
+      border:none;
+      font-weight:800;
+      box-shadow:0 15px 35px rgba(94,139,255,0.35);
+      cursor:pointer;
+      border-radius:12px;
+      padding:11px 14px;
+      transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+    }
+    button.primary:hover{ transform:translateY(-1px); box-shadow:0 18px 40px rgba(94,139,255,0.4); filter:saturate(1.05); }
+    button.ghost{ background:#f8fafc; color:var(--ink); border:1px solid var(--border); cursor:pointer; border-radius:12px; padding:11px 14px; box-shadow:0 10px 18px rgba(15,23,42,0.04); }
+    .status-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    .chip{ padding:9px 11px; border-radius:12px; border:1px solid var(--border); background:#f8fafc; cursor:pointer; font-weight:700; font-size:12px; color:#475569; }
+    .chip.active{ border-color:var(--accent); color:#0f766e; background:var(--accent-soft); box-shadow:0 10px 20px rgba(11,188,180,0.18); }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ padding:12px 10px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; vertical-align:top; }
+    th{ background:#f5f7fb; text-transform:uppercase; letter-spacing:.4px; font-size:12px; color:#475569; }
+    .table-wrap{ overflow-x:auto; }
+    .status-pill{ display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; font-weight:800; font-size:12px; border:1px solid transparent; }
+    .pill-info{ background:#e0f2fe; color:#0f5098; }
+    .pill-success{ background:#dcfce7; color:#166534; }
+    .pill-danger{ background:#fee2e2; color:#b91c1c; }
+    .pill-warn{ background:#fef9c3; color:#92400e; }
+    .pill-meta{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid var(--border); font-size:12px; }
+    .dropdown-menu{ position:absolute; top:110%; left:0; min-width:170px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 30px rgba(15,23,42,0.12); padding:6px 0; display:none; z-index:20; }
+    .dropdown-menu button, .dropdown-menu a{ width:100%; text-align:left; background:none; border:none; padding:10px 12px; font-size:13px; cursor:pointer; display:block; color:#0f172a; text-decoration:none; }
+    .dropdown-menu button:hover, .dropdown-menu a:hover{ background:#f8fafc; }
+    .pagination{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
+    .status-bar{ margin-top:10px; color:var(--muted); font-size:13px; }
+    .mobile-toggle{ position:fixed; top:14px; left:14px; z-index:70; background:var(--accent); color:#f8fafc; border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:10px 14px; display:none; align-items:center; gap:8px; font-weight:800; box-shadow:0 12px 26px rgba(94,139,255,0.35); }
+    #sidebarBackdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.45); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:50; }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(15,23,42,0.35); opacity:0; pointer-events:none; transition:opacity .15s ease; z-index:80; }
+    .modal-backdrop.show{ opacity:1; pointer-events:auto; }
+    .modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; z-index:90; transition:opacity .15s ease; padding:14px; }
+    .modal.show{ opacity:1; pointer-events:auto; }
+    .modal-dialog{ width:min(960px,100%); background:var(--card); border:1px solid var(--border); border-radius:18px; box-shadow:0 18px 48px rgba(15,23,42,0.18); max-height:90vh; overflow:auto; }
+    .modal-head{ padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .modal-body{ padding:16px 18px 20px; }
+    .close-btn{ background:none; border:1px solid var(--border); border-radius:10px; padding:8px 12px; cursor:pointer; font-weight:800; }
+    .form-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+    .form-grid textarea{ min-height:90px; resize:vertical; grid-column:1/-1; }
+    .detail-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+    .detail-card{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#f8fafc; }
+    .detail-label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+    .detail-value{ font-weight:700; margin-top:2px; }
+    .info-card{ line-height:1.6; color:#1f2937; }
+    .info-card h3{ margin:4px 0 8px; }
+    .tech-list{ margin:6px 0 0 16px; color:#1f2937; }
+    .tech-list li{ margin:4px 0; }
+    @media (max-width:1200px){ .preview-body{ grid-template-columns:1fr; } }
+    @media (max-width:1100px){
+      .content{ margin-left:0; }
+      .sidebar{ position:fixed; inset:0 auto 0 0; width:calc(100vw - 72px); max-width:280px; transform:translateX(-100%); transition:transform .2s ease; z-index:60; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.5); }
+      .sidebar.show{ transform:translateX(0); }
+      .mobile-toggle{ display:inline-flex; }
+      main{ padding:14px; margin-top:20px; padding-top:62px; }
+    }
+    @media (max-width:768px){
+      .hero{ padding:16px; }
+      .preview-search{ min-width:auto; width:100%; }
+      .hero-top{ flex-direction:column; }
+    }
+    @media (max-width:640px){ th, td{ font-size:12px; } .preview-tabs{ width:100%; } }
   </style>
 </head>
 <body>
-  <div class="layout">
-    <div class="sidebar"><!-- injected --></div>
-    <div class="content">
-      <header class="topbar">
-        <div>
-          <div class="breadcrumbs">Usulan &rsaquo; Pemutusan JF</div>
-          <h2 style="margin:4px 0 0;">Usulan Pemutusan Jabatan Fungsional</h2>
-        </div>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <span class="badge-role" id="roleBadge">-</span>
-          <div class="user-card">
-            <div>
-              <div class="user-name" id="userName">-</div>
-              <div class="user-role" id="userRole" style="color:var(--muted); font-size:12px;">-</div>
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle"><span style="font-size:18px;">☰</span> Menu</button>
+    <div class="layout">
+      <div id="sidebar-container"></div>
+      <div class="content">
+        <div id="header-container"></div>
+        <main>
+        <div class="page">
+        <section class="hero">
+          <div class="hero-top">
+            <div class="hero-copy">
+              <p class="eyebrow">Pemutusan JF</p>
+              <div class="pill role" id="roleBadge">-</div>
+              <h2>Usulan Pemutusan Jabatan Fungsional</h2>
+              <p>Pantau status usulan, lakukan verifikasi, dan kelola dokumen sesuai alur kerja (Diusulkan → Diproses → Selesai/Ditolak).</p>
             </div>
-            <button class="btn ghost" id="logoutBtn">Keluar</button>
+            <div class="hero-actions">
+              <button class="ghost" id="refreshBtn" type="button">Muat ulang</button>
+              <button class="primary" id="addBtn" style="min-width:150px;">+ Tambah Usulan</button>
+            </div>
           </div>
-        </div>
-      </header>
+        </section>
 
-      <main>
-        <div class="hero">
+        <div class="metric-grid">
+          <div class="metric blue"><div class="label">Total</div><div class="value" id="mTotal">0</div></div>
+          <div class="metric blue"><div class="label">Diusulkan</div><div class="value" id="mDiusulkan">0</div></div>
+          <div class="metric orange"><div class="label">Diproses</div><div class="value" id="mProses">0</div></div>
+          <div class="metric green"><div class="label">Selesai</div><div class="value" id="mSelesai">0</div></div>
+          <div class="metric red"><div class="label">Ditolak</div><div class="value" id="mDitolak">0</div></div>
+        </div>
+
+        <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
           <div>
-            <div style="font-size:13px; opacity:.9; font-weight:700;">Admin Dinkes</div>
-            <div style="font-size:20px; font-weight:800;">Ringkasan Usulan Pemutusan JF</div>
-            <div style="font-size:13px; opacity:.8; margin-top:6px;">Pantau status usulan, proses, dan dokumen pendukung.</div>
+            <h3 style="margin:0 0 4px;">Daftar Usulan Pemutusan JF</h3>
+            <div style="color:var(--muted); font-size:13px;">Total (sesuai filter): <span id="totalFiltered">0</span> data</div>
           </div>
-          <button class="btn success" id="addBtn">+ Tambah Usulan</button>
-        </div>
-
-        <div class="metrics" id="metricCards">
-          <div class="card blue"><h3>Total</h3><div class="num" data-metric="total">0</div></div>
-          <div class="card" style="background:linear-gradient(135deg,#dbeafe,#e0f2fe); border-color:#bfdbfe; color:#1d4ed8;"><h3>Diusulkan</h3><div class="num" data-metric="diusulkan">0</div></div>
-          <div class="card orange"><h3>Diproses</h3><div class="num" data-metric="diproses">0</div></div>
-          <div class="card green"><h3>Selesai</h3><div class="num" data-metric="selesai">0</div></div>
-          <div class="card red"><h3>Ditolak</h3><div class="num" data-metric="ditolak">0</div></div>
-        </div>
-
-        <div class="filters">
-          <input type="text" id="search" placeholder="Cari Nama / NIP" />
-          <select id="filterUkpd">
-            <option value="">Pilih UKPD</option>
-          </select>
-          <select id="perPage">
-            <option value="10">Per halaman: 10</option>
-            <option value="25">Per halaman: 25</option>
-            <option value="50">Per halaman: 50</option>
-          </select>
-          <div class="status-strip">
-            <div class="chip active" data-status="">Semua</div>
-            <div class="chip" data-status="DIUSULKAN">Diusulkan</div>
-            <div class="chip" data-status="DIPROSES">Diproses</div>
-            <div class="chip" data-status="SELESAI">Selesai</div>
-            <div class="chip" data-status="DITOLAK">Ditolak</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label style="margin:0;">Per halaman</label>
+            <select id="perPage" style="width:auto;">
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
           </div>
-          <button class="btn primary" id="applyBtn">Terapkan</button>
-          <button class="btn ghost" id="resetBtn">Reset</button>
         </div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:40px;">No</th>
-                <th>Status</th>
-                <th>Aksi</th>
-                <th>Nama + NIP + Pangkat/Gol</th>
-                <th>Jabatan</th>
-                <th>Jabatan Baru</th>
-                <th>Angka Kredit</th>
-                <th>UKPD</th>
-                <th>Nomor Surat</th>
-                <th>Tgl Surat</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody">
-              <tr><td colspan="10" class="empty">Memuat data...</td></tr>
-            </tbody>
-          </table>
+        <div class="card">
+          <div class="filters">
+            <div>
+              <label>Cari Nama / NIP</label>
+              <input id="search" placeholder="Ketik nama atau NIP">
+            </div>
+            <div>
+              <label>UKPD</label>
+              <select id="ukpdFilter"><option value="">Semua</option></select>
+            </div>
+            <div>
+              <label>Status</label>
+              <div class="status-chips" id="statusChips">
+                <div class="chip active" data-status="">Semua</div>
+                <div class="chip" data-status="DIUSULKAN">Diusulkan</div>
+                <div class="chip" data-status="DIPROSES">Diproses</div>
+                <div class="chip" data-status="SELESAI">Selesai</div>
+                <div class="chip" data-status="DITOLAK">Ditolak</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+              <button id="applyFilter" class="primary" style="width:auto;">Terapkan</button>
+              <button id="resetFilter" class="ghost" style="width:auto;">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama / NIP / Pangkat</th><th>Jabatan Lama</th><th>Jabatan Baru</th><th>Angka Kredit</th><th>UKPD</th><th>Nomor Surat</th><th>Tanggal Surat</th><th>Dokumen</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <button class="ghost" id="prevPage">Sebelumnya</button>
+            <div>Halaman <span id="pageNow">1</span> / <span id="pageTotal">1</span></div>
+            <button class="ghost" id="nextPage">Berikutnya</button>
+          </div>
+          <div class="status-bar" id="statusBar">Status: memuat...</div>
+        </div>
         </div>
       </main>
+      <div id="footer-container"></div>
     </div>
   </div>
 
-  <!-- Modal form -->
-  <div class="modal" id="modalForm">
-    <div class="modal-card">
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <div class="modal" id="formModal" aria-hidden="true">
+    <div class="modal-dialog">
       <div class="modal-head">
-        <h3 id="modalTitle">Tambah Usulan</h3>
-        <button class="btn ghost" id="closeModal">Tutup</button>
+        <h3 id="formTitle" style="margin:0;">Tambah Usulan Pemutusan JF</h3>
+        <button type="button" class="close-btn" id="closeForm" aria-label="Tutup">x</button>
       </div>
       <div class="modal-body">
-        <div>
-          <label>Status</label>
-          <select id="f_status" autocomplete="off">
-            <option value="DIUSULKAN">DIUSULKAN</option>
-            <option value="DIPROSES">DIPROSES</option>
-            <option value="SELESAI">SELESAI</option>
-            <option value="DITOLAK">DITOLAK</option>
-          </select>
-        </div>
-        <div>
-          <label>Nama Pegawai</label>
-          <input id="f_nama" placeholder="Nama pegawai" autocomplete="off" />
-        </div>
-        <div>
-          <label>NIP</label>
-          <input id="f_nip" placeholder="NIP" autocomplete="off" />
-        </div>
-        <div>
-          <label>Pangkat/Gol</label>
-          <input id="f_pangkat" placeholder="Mis. Penata Muda Tk I / III/b" autocomplete="off" />
-        </div>
-        <div>
-          <label>Jabatan Lama</label>
-          <input id="f_jab_lama" placeholder="Jabatan lama" autocomplete="off" />
-        </div>
-        <div>
-          <label>Jabatan Baru</label>
-          <input id="f_jab_baru" placeholder="Jabatan baru (opsional)" autocomplete="off" />
-        </div>
-        <div>
-          <label>Angka Kredit</label>
-          <input id="f_ak" placeholder="Angka kredit" autocomplete="off" />
-        </div>
-        <div>
-          <label>UKPD</label>
-          <input id="f_ukpd" placeholder="UKPD" autocomplete="off" />
-        </div>
-        <div>
-          <label>Wilayah</label>
-          <input id="f_wilayah" placeholder="Wilayah" autocomplete="off" />
-        </div>
-        <div>
-          <label>Nomor Surat</label>
-          <input id="f_no_surat" placeholder="Nomor surat" autocomplete="off" />
-        </div>
-        <div>
-          <label>Tanggal Surat</label>
-          <input id="f_tgl_surat" type="date" />
-        </div>
-        <div>
-          <label>Link Dokumen</label>
-          <input id="f_link" placeholder="https://..." autocomplete="off" />
-        </div>
-        <div>
-          <label>Alasan Usulan</label>
-          <textarea id="f_alasan" placeholder="Alasan usulan"></textarea>
-        </div>
+        <form id="pemutusanForm" class="form-grid">
+          <div>
+            <label>Status</label>
+            <select name="status" id="f_status">
+              <option value="DIUSULKAN">Diusulkan</option>
+              <option value="DIPROSES">Diproses</option>
+              <option value="SELESAI">Selesai</option>
+              <option value="DITOLAK">Ditolak</option>
+            </select>
+          </div>
+          <div><label>Nama Pegawai</label><input name="nama_pegawai" id="f_nama" placeholder="Nama pegawai" required></div>
+          <div><label>NIP</label><input name="nip" id="f_nip" placeholder="NIP" required></div>
+          <div><label>Pangkat / Gol</label><input name="pangkat_gol" id="f_pangkat" placeholder="Mis. Penata Muda Tk I / III/b"></div>
+          <div><label>Jabatan Lama</label><input name="jabatan_lama" id="f_jab_lama" placeholder="Jabatan lama" required></div>
+          <div><label>Jabatan Baru</label><input name="jabatan_baru" id="f_jab_baru" placeholder="Jabatan baru (opsional)"></div>
+          <div><label>Angka Kredit</label><input name="angka_kredit" id="f_ak" placeholder="Angka kredit"></div>
+          <div><label>UKPD</label><input name="ukpd" id="f_ukpd" placeholder="UKPD" required></div>
+          <div><label>Wilayah</label><input name="wilayah" id="f_wilayah" placeholder="Wilayah"></div>
+          <div><label>Nomor Surat</label><input name="nomor_surat" id="f_no_surat" placeholder="Nomor surat"></div>
+          <div><label>Tanggal Surat</label><input type="date" name="tanggal_surat" id="f_tgl_surat"></div>
+          <div><label>Link Dokumen</label><input name="link_dokumen" id="f_link" placeholder="https://..." inputmode="url"></div>
+          <textarea name="alasan_usulan" id="f_alasan" placeholder="Alasan usulan"></textarea>
+          <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
+            <button type="button" class="ghost" id="resetForm">Reset</button>
+            <button type="submit" class="primary" id="submitBtn">Simpan</button>
+          </div>
+        </form>
       </div>
-      <div class="modal-actions">
-        <button class="btn ghost" id="cancelModal">Batal</button>
-        <button class="btn primary" id="saveModal">Simpan</button>
+    </div>
+  </div>
+
+  <div class="modal" id="viewModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3 style="margin:0;">Detail Usulan</h3>
+        <button type="button" class="close-btn" id="closeView" aria-label="Tutup">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-grid" id="detailGrid"></div>
+        <div style="margin-top:12px;">
+          <label>Alasan Usulan</label>
+          <div id="detailAlasan" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+        </div>
+        <div style="margin-top:12px;">
+          <label>Catatan Verifikasi</label>
+          <div id="detailVerif" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Base path autodetect (GitHub Pages / lokal)
     const BASE = (() => {
       const parts = location.pathname.split('/').filter(Boolean);
-      return (parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI') ? '/' + parts[0] + '/' : '/';
+      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
     })();
     const API_BASE = 'http://127.0.0.1:5002';
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
 
-    // Inject sidebar/header/footer
-    fetch(BASE + 'sidebar.html').then(r=>r.text()).then(html=>{
-      const wrap = document.querySelector('.sidebar');
-      if (wrap) wrap.innerHTML = html;
-      document.querySelectorAll('[data-path]').forEach(a=> {
-        a.href = BASE + a.dataset.path;
-        if (a.dataset.path === 'pemutusan-jf/') a.classList.add('active');
-      });
-      document.querySelectorAll('[data-logo]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
-    }).catch(()=>{});
+    const sidebarPromise = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), headerPromise = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footerPromise = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebarPromise, headerPromise, footerPromise]).then(([s,h,f])=>{
+      const wrap = document.getElementById('sidebar-container');
+      wrap.innerHTML = s;
+      const hdr = document.getElementById('header-container');
+      if (hdr) hdr.innerHTML = h;
+      const ftr = document.getElementById('footer-container');
+      if (ftr) ftr.innerHTML = f;
+      document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
+      document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
+      const activeLink = Array.from(document.querySelectorAll('.nav-item')).find(a=> (a.dataset.path||'').includes('pemutusan-jf'));
+      if (activeLink) activeLink.classList.add('active');
+      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+      const logoutNav = document.querySelector('[data-logout]');
+      if (logoutNav) logoutNav.addEventListener('click', doLogout);
+      initSidebarToggle();
+      syncHeaderUser();
+    });
 
-    // Auth
     const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
     if (!authUser) { window.location.href = BASE; }
+    const norm = (v='') => String(v || '').toLowerCase().trim();
+    const roleLower = norm(authUser?.role);
+    const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
+    const isWilayahAdmin = roleLower.includes('wilayah');
+    const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
+    const loginWilayah = authUser?.wilayah || '';
 
-    // User info
+    const statusBar = document.getElementById('statusBar');
+    const tableBody = document.getElementById('tableBody');
+    const perPageSel = document.getElementById('perPage');
+    const pageNow = document.getElementById('pageNow');
+    const pageTotal = document.getElementById('pageTotal');
+    const searchInput = document.getElementById('search');
+    const ukpdFilter = document.getElementById('ukpdFilter');
+    const statusChips = document.getElementById('statusChips');
+    const totalFiltered = document.getElementById('totalFiltered');
+    const mTotal = document.getElementById('mTotal');
+    const mDiusulkan = document.getElementById('mDiusulkan');
+    const mProses = document.getElementById('mProses');
+    const mSelesai = document.getElementById('mSelesai');
+    const mDitolak = document.getElementById('mDitolak');
+
+    const form = document.getElementById('pemutusanForm');
+    const resetFormBtn = document.getElementById('resetForm');
+    const formModal = document.getElementById('formModal');
+    const viewModal = document.getElementById('viewModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const closeForm = document.getElementById('closeForm');
+    const closeView = document.getElementById('closeView');
+    const detailGrid = document.getElementById('detailGrid');
+    const detailAlasan = document.getElementById('detailAlasan');
+    const detailVerif = document.getElementById('detailVerif');
+
     const roleBadge = document.getElementById('roleBadge');
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
-    const roleLower = (authUser?.role || '').toLowerCase();
-    const isSuperAdmin = roleLower.includes('super');
-    const isWilayahAdmin = roleLower.includes('wilayah');
-    const norm = v => (v || '').toString().toLowerCase().trim();
-    const loginUkpdNorm = norm(authUser?.namaUkpd);
-    const loginWilayahNorm = norm(authUser?.wilayah);
-    if (roleBadge) roleBadge.textContent = (authUser?.role || '').toUpperCase() || 'USER';
-    if (userNameEl) userNameEl.textContent = authUser?.namaUkpd || authUser?.username || 'User';
-    if (userRoleEl) userRoleEl.textContent = authUser?.role || '';
-    document.getElementById('logoutBtn')?.addEventListener('click', ()=>{ localStorage.removeItem('authUser'); window.location.href = BASE; });
-    document.querySelector('[data-logout]')?.addEventListener('click', (e)=>{ e.preventDefault(); localStorage.removeItem('authUser'); window.location.href = BASE; });
 
-    // UI state
     let rows = [];
     let filtered = [];
     let page = 1;
     let editingId = null;
 
-    function badgeClass(status){
-      const s = (status||'').toUpperCase();
-      if (s === 'DIUSULKAN') return 'badge s1';
-      if (s === 'DIPROSES') return 'badge s2';
-      if (s === 'SELESAI') return 'badge s3';
-      if (s === 'DITOLAK') return 'badge s4';
-      return 'badge';
+    function syncHeaderUser(){
+      if (!authUser) return;
+      const roleText = (authUser.role || 'USER').toUpperCase();
+      const namaText = authUser.namaUkpd || authUser.username || 'User';
+      if (roleBadge) roleBadge.textContent = roleText;
+      if (userNameEl) userNameEl.textContent = namaText;
+      if (userRoleEl) userRoleEl.textContent = authUser.role || '';
+      const headerRole = document.getElementById('rolePill');
+      const headerUkpd = document.getElementById('ukpdPill');
+      const headerName = document.getElementById('userName');
+      const headerRoleText = document.getElementById('userRole');
+      if (headerRole) headerRole.textContent = roleText;
+      if (headerUkpd) headerUkpd.textContent = namaText;
+      if (headerName) headerName.textContent = namaText;
+      if (headerRoleText) headerRoleText.textContent = authUser.role || '';
     }
-    function fmtDate(raw){
-      if (!raw) return '-';
-      const d = new Date(raw);
-      return Number.isNaN(d.getTime()) ? raw : d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
-    }
-    function render(){
-      const tbody = document.getElementById('tableBody');
-      const per = parseInt(document.getElementById('perPage').value,10) || 10;
-      const start = (page-1)*per;
-      const slice = filtered.slice(start, start+per);
-      if (!slice.length) { tbody.innerHTML = '<tr><td colspan=\"10\" class=\"empty\">Tidak ada data</td></tr>'; return; }
-      tbody.innerHTML = slice.map((r,idx)=>`
-        <tr>
-          <td>${start+idx+1}</td>
-          <td><span class="${badgeClass(r.status)}">${r.status || '-'}</span></td>
-          <td class="actions">
-            <button aria-label="Aksi" onclick="toggleMenu(this)">⋮</button>
-            <div class="dropdown">
-              <button onclick="editRow('${r.id_usulan||''}')">Ubah</button>
-              <button onclick="printRow('${r.id_usulan||''}')">Cetak</button>
-              <a href="${r.link_dokumen||'#'}" target="_blank" rel="noopener">Lihat dokumen</a>
-              <button style="color:#b91c1c;" onclick="deleteRow('${r.id_usulan||''}')">Hapus</button>
-            </div>
-          </td>
-          <td>
-            <div style="font-weight:800;">${r.nama_pegawai||'-'}</div>
-            <div style="color:var(--muted); font-size:12px;">${r.nip||'-'} • ${r.pangkat_gol||'-'}</div>
-          </td>
-          <td>${r.jabatan_lama||'-'}</td>
-          <td>${r.jabatan_baru||'-'}</td>
-          <td>${r.angka_kredit||'-'}</td>
-          <td>${r.ukpd||'-'}</td>
-          <td>${r.nomor_surat||'-'}</td>
-          <td>${fmtDate(r.tanggal_surat)}</td>
-        </tr>
-      `).join('');
-      updateMetrics();
-    }
-    function updateMetrics(){
-      const total = filtered.length;
-      const c = s => filtered.filter(r=> (r.status||'').toUpperCase()===s).length;
-      const set = (k,v)=>{ const el=document.querySelector(`[data-metric=\"${k}\"]`); if(el) el.textContent=v; };
-      set('total', total);
-      set('diusulkan', c('DIUSULKAN'));
-      set('diproses', c('DIPROSES'));
-      set('selesai', c('SELESAI'));
-      set('ditolak', c('DITOLAK'));
-    }
-    function applyFilters(){
-      const q = (document.getElementById('search').value||'').toLowerCase().trim();
-      const uk = (document.getElementById('filterUkpd').value||'').toLowerCase().trim();
-      const status = document.querySelector('.chip.active')?.dataset.status || '';
-      // batasan data sesuai role
-      const scoped = rows.filter(r=>{
-        const ukVal = norm(r.ukpd);
-        if (isSuperAdmin) return true;
-        if (isWilayahAdmin) return loginWilayahNorm && ukVal.includes(loginWilayahNorm);
-        return loginUkpdNorm && ukVal === loginUkpdNorm;
-      });
 
-      filtered = scoped.filter(r=>{
-        const matchQ = !q || (r.nama_pegawai||'').toLowerCase().includes(q) || (r.nip||'').toLowerCase().includes(q);
-        const matchUk = !uk || (r.ukpd||'').toLowerCase()===uk;
-        const matchSt = !status || (r.status||'').toUpperCase()===status;
+    function setStatus(msg){ if (statusBar) statusBar.textContent = 'Status: ' + msg; }
+    function doLogout(){ localStorage.removeItem('authUser'); window.location.href = BASE; }
+
+    function showModal(el){
+      el.classList.add('show');
+      modalBackdrop.classList.add('show');
+      el.setAttribute('aria-hidden','false');
+    }
+    function hideModal(el){
+      el.classList.remove('show');
+      if (![formModal, viewModal].some(m=>m.classList.contains('show'))) modalBackdrop.classList.remove('show');
+      el.setAttribute('aria-hidden','true');
+    }
+
+    function badgeStatus(val){
+      const v = (val||'').toUpperCase();
+      if (v==='SELESAI') return '<span class="status-pill pill-success">Selesai</span>';
+      if (v==='DITOLAK') return '<span class="status-pill pill-danger">Ditolak</span>';
+      if (v==='DIPROSES') return '<span class="status-pill pill-warn">Diproses</span>';
+      return '<span class="status-pill pill-info">Diusulkan</span>';
+    }
+
+    function applyRoleFilter(data){
+      if (isSuper) return data;
+      if (isWilayahAdmin && loginWilayah){
+        const w = norm(loginWilayah);
+        return data.filter(d => norm(d.wilayah || '') === w || norm(d.ukpd || '').includes(w));
+      }
+      const ukpd = norm(loginUkpd);
+      if (!ukpd) return data;
+      return data.filter(d => norm(d.ukpd || '') === ukpd);
+    }
+
+    async function apiFetch(url, options={}){
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let body;
+      try { body = JSON.parse(text); } catch { throw new Error(text || 'Respon bukan JSON'); }
+      if (!res.ok || body.ok === false) throw new Error(body.error || 'Permintaan gagal');
+      return body;
+    }
+
+    function renderMetrics(){
+      const total = filtered.length;
+      const count = (status) => filtered.filter(r => (r.status||'').toUpperCase() === status).length;
+      mTotal.textContent = total;
+      mDiusulkan.textContent = count('DIUSULKAN');
+      mProses.textContent = count('DIPROSES');
+      mSelesai.textContent = count('SELESAI');
+      mDitolak.textContent = count('DITOLAK');
+      totalFiltered.textContent = total;
+    }
+
+    function buildUkpdFilter(list){
+      const opts = ['<option value="">Semua</option>', ...(list||[]).map(u=>`<option value="${u}">${u}</option>`)];
+      ukpdFilter.innerHTML = opts.join('');
+      if (!isSuper && !isWilayahAdmin){
+        ukpdFilter.value = loginUkpd;
+        ukpdFilter.disabled = true;
+      } else {
+        ukpdFilter.disabled = false;
+      }
+    }
+
+    function applyFilters(){
+      const q = norm(searchInput.value);
+      const uk = norm(ukpdFilter.value);
+      const statusActive = statusChips.querySelector('.chip.active')?.dataset.status || '';
+      filtered = applyRoleFilter(rows).filter(r=>{
+        const matchQ = !q || norm(r.nama_pegawai).includes(q) || norm(r.nip).includes(q);
+        const matchUk = !uk || norm(r.ukpd) === uk;
+        const matchSt = !statusActive || norm(r.status) === norm(statusActive);
         return matchQ && matchUk && matchSt;
       });
       page = 1;
       render();
     }
-    function resetFilters(){
-      document.getElementById('search').value='';
-      document.getElementById('filterUkpd').value='';
-      document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active', c.dataset.status===''));
-      page=1;
-      applyFilters();
-    }
-    function toggleMenu(btn){
-      const dd = btn.nextElementSibling;
-      const open = dd.style.display === 'block';
-      document.querySelectorAll('.dropdown').forEach(d=> d.style.display='none');
-      dd.style.display = open ? 'none' : 'block';
-    }
-    document.addEventListener('click',(e)=>{
-      if (!e.target.closest('.actions')) document.querySelectorAll('.dropdown').forEach(d=> d.style.display='none');
-    });
 
-    // Dummy handlers (integrasikan dengan API)
-    function clearForm(){
-      document.getElementById('f_status').value = 'DIUSULKAN';
-      document.getElementById('f_nama').value = '';
-      document.getElementById('f_nip').value = '';
-      document.getElementById('f_pangkat').value = '';
-      document.getElementById('f_jab_lama').value = '';
-      document.getElementById('f_jab_baru').value = '';
-      document.getElementById('f_ak').value = '';
-      document.getElementById('f_ukpd').value = '';
-      document.getElementById('f_no_surat').value = '';
-      document.getElementById('f_tgl_surat').value = '';
-      document.getElementById('f_link').value = '';
-      document.getElementById('f_alasan').value = '';
+    function render(){
+      const per = parseInt(perPageSel.value,10) || 10;
+      const maxPage = Math.max(1, Math.ceil((filtered.length || 0) / per));
+      if (page > maxPage) page = maxPage;
+      const start = (page-1)*per;
+      const slice = filtered.slice(start, start+per);
+      if (!slice.length){
+        tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--muted); padding:16px;">Tidak ada data</td></tr>';
+      } else {
+        tableBody.innerHTML = slice.map((r,idx)=>`
+          <tr>
+            <td>${start + idx + 1}</td>
+            <td>${badgeStatus(r.status)}</td>
+            <td class="actions">
+              <button class="ghost dropdown-toggle" data-id="${r.id_usulan||''}">Aksi v</button>
+              <div class="dropdown-menu">
+                <button data-action="view" data-id="${r.id_usulan||''}">Lihat</button>
+                <button data-action="edit" data-id="${r.id_usulan||''}">Ubah</button>
+                <button data-action="delete" data-id="${r.id_usulan||''}">Hapus</button>
+                ${r.link_dokumen ? `<a href="${r.link_dokumen}" target="_blank" rel="noopener">Buka Dokumen</a>` : ''}
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:800;">${r.nama_pegawai||'-'}</div>
+              <div style="color:var(--muted); font-size:12px;">NIP: ${r.nip||'-'}</div>
+              <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${r.pangkat_gol||'-'}</div>
+            </td>
+            <td>${r.jabatan_lama||'-'}</td>
+            <td>${r.jabatan_baru||'-'}</td>
+            <td>${r.angka_kredit||'-'}</td>
+            <td>
+              <div style="font-weight:700;">${r.ukpd||'-'}</div>
+              <div class="pill-meta">Wilayah: ${r.wilayah||'-'}</div>
+            </td>
+            <td>${r.nomor_surat||'-'}</td>
+            <td>${formatDate(r.tanggal_surat)}</td>
+            <td>${r.link_dokumen ? `<a href="${r.link_dokumen}" target="_blank" rel="noopener">Link</a>` : '-'}</td>
+          </tr>
+        `).join('');
+      }
+      pageNow.textContent = page;
+      pageTotal.textContent = Math.max(1, Math.ceil((filtered.length || 0) / per));
+      renderMetrics();
     }
 
-    function openModal(row){
-      editingId = row?.id_usulan || null;
-      document.getElementById('modalTitle').textContent = editingId ? 'Ubah Usulan' : 'Tambah Usulan';
-      const statusSel = document.getElementById('f_status');
-      statusSel.disabled = !isSuperAdmin;
-      if (!row) clearForm();
-      statusSel.value = isSuperAdmin ? (row?.status || 'DIUSULKAN') : 'DIUSULKAN';
-      document.getElementById('f_nama').value = row?.nama_pegawai || '';
-      document.getElementById('f_nip').value = row?.nip || '';
-      document.getElementById('f_pangkat').value = row?.pangkat_gol || '';
-      document.getElementById('f_jab_lama').value = row?.jabatan_lama || '';
-      document.getElementById('f_jab_baru').value = row?.jabatan_baru || '';
-      document.getElementById('f_ak').value = row?.angka_kredit || '';
-      const ukpdInput = document.getElementById('f_ukpd');
-      if (!isSuperAdmin) {
-        ukpdInput.value = authUser?.namaUkpd || '';
-        ukpdInput.disabled = true;
-      } else {
-        ukpdInput.disabled = false;
-        ukpdInput.value = row?.ukpd || '';
-      }
-      const wilInput = document.getElementById('f_wilayah');
-      if (!isSuperAdmin) {
-        wilInput.value = authUser?.wilayah || '';
-        wilInput.disabled = true;
-      } else {
-        wilInput.disabled = false;
-        wilInput.value = row?.wilayah || '';
-      }
-      document.getElementById('f_no_surat').value = row?.nomor_surat || '';
-      document.getElementById('f_tgl_surat').value = row?.tanggal_surat || '';
-      document.getElementById('f_link').value = row?.link_dokumen || '';
-      document.getElementById('f_alasan').value = row?.alasan_usulan || '';
-      document.getElementById('modalForm').classList.add('show');
-    }
-    function closeModal(){ document.getElementById('modalForm').classList.remove('show'); }
-    async function saveModal(){
-      const btnSave = document.getElementById('saveModal');
-      if (btnSave) btnSave.disabled = true;
-      const payload = {
-        status: isSuperAdmin ? (document.getElementById('f_status').value || 'DIUSULKAN') : 'DIUSULKAN',
-        nama_pegawai: document.getElementById('f_nama').value.trim(),
-        nip: document.getElementById('f_nip').value.trim(),
-        pangkat_gol: document.getElementById('f_pangkat').value.trim(),
-        jabatan_lama: document.getElementById('f_jab_lama').value.trim(),
-        jabatan_baru: document.getElementById('f_jab_baru').value.trim(),
-        angka_kredit: document.getElementById('f_ak').value.trim(),
-        ukpd: (document.getElementById('f_ukpd').value || '').trim() || (authUser?.namaUkpd || ''),
-        wilayah: (document.getElementById('f_wilayah').value || '').trim() || (authUser?.wilayah || ''),
-        nomor_surat: document.getElementById('f_no_surat').value.trim(),
-        tanggal_surat: document.getElementById('f_tgl_surat').value,
-        alasan_usulan: document.getElementById('f_alasan').value.trim(),
-        link_dokumen: document.getElementById('f_link').value.trim(),
-        diupdate_pada: new Date().toISOString(),
-      };
-      const method = editingId ? 'PUT' : 'POST';
-      const url = editingId ? `${API_BASE}/pemutusan-jf/${editingId}` : `${API_BASE}/pemutusan-jf`;
-      if (!editingId) payload.dibuat_pada = payload.diupdate_pada;
-      if (!editingId) payload.dibuat_oleh = authUser?.username || authUser?.namaUkpd || 'user';
-      try{
-        const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-        const txt = await res.text();
-        if (!res.ok) throw new Error(txt || 'Gagal simpan');
-        closeModal();
-        await loadData();
-      }catch(err){
-        alert('Gagal simpan: '+err.message);
-      }finally{
-        if (btnSave) btnSave.disabled = false;
-      }
-    }
-    function editRow(id){
-      const row = rows.find(r=>r.id_usulan===id);
-      if (!row) return;
-      openModal(row);
-    }
-    function printRow(id){
-      const row = rows.find(r=>r.id_usulan===id);
-      if (row?.link_dokumen) window.open(row.link_dokumen, '_blank');
-      else alert('Tidak ada dokumen. Silakan isi link_dokumen.');
-    }
-    async function deleteRow(id){
-      if (!confirm('Hapus usulan ini?')) return;
-      try{
-        const res = await fetch(`${API_BASE}/pemutusan-jf/${id}`, { method:'DELETE' });
-        if (!res.ok) throw new Error('Gagal hapus');
-        await loadData();
-      }catch(err){
-        alert('Gagal hapus: '+err.message);
-      }
+    function formatDate(raw){
+      if (!raw) return '-';
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return raw;
+      return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
     }
 
     async function loadData(){
       try{
+        setStatus('Memuat data...');
         const params = new URLSearchParams();
-        if (isWilayahAdmin && loginWilayahNorm) params.set('wilayah', loginWilayahNorm);
-        if (!isSuperAdmin && !isWilayahAdmin && loginUkpdNorm) params.set('ukpd', loginUkpdNorm);
-        const res = await fetch(`${API_BASE}/pemutusan-jf?${params.toString()}`);
-        if (!res.ok) throw new Error('Gagal fetch');
-        const body = await res.json();
-        rows = body.rows || body || [];
+        const statusActive = statusChips.querySelector('.chip.active')?.dataset.status || '';
+        if (statusActive) params.set('status', statusActive);
+        if (searchInput.value) params.set('search', searchInput.value);
+        if (isSuper){
+          if (ukpdFilter.value) params.set('ukpd', ukpdFilter.value);
+        } else if (isWilayahAdmin) {
+          if (loginWilayah) params.set('wilayah', loginWilayah);
+          if (ukpdFilter.value) params.set('ukpd', ukpdFilter.value);
+        } else {
+          params.set('ukpd', loginUkpd);
+        }
+        const res = await apiFetch(`${API_BASE}/pemutusan-jf?${params.toString()}`);
+        rows = res.rows || [];
+        buildUkpdFilter(res.ukpds || rows.map(r=>r.ukpd).filter(Boolean));
+        applyFilters();
+        setStatus('Data dimuat: ' + (rows.length||0) + ' baris');
       }catch(err){
         rows = [];
+        filtered = [];
+        render();
+        setStatus('Gagal ambil data: ' + err.message);
       }
-      buildUkpdOptions();
-      applyFilters();
-    }
-    function buildUkpdOptions(){
-      const sel = document.getElementById('filterUkpd');
-      const scopedUkpds = rows.filter(r=>{
-        const ukVal = norm(r.ukpd);
-        if (isSuperAdmin) return true;
-        if (isWilayahAdmin) return loginWilayahNorm && ukVal.includes(loginWilayahNorm);
-        return loginUkpdNorm && ukVal === loginUkpdNorm;
-      });
-      const ukpds = Array.from(new Set(scopedUkpds.map(r=>r.ukpd).filter(Boolean))).sort();
-      sel.innerHTML = '<option value=\"\">Pilih UKPD</option>' + ukpds.map(u=>`<option value=\"${u}\">${u}</option>`).join('');
-      if (!isSuperAdmin && loginUkpdNorm) sel.value = rows.find(r=> norm(r.ukpd) === loginUkpdNorm)?.ukpd || '';
     }
 
-    document.querySelectorAll('.chip').forEach(chip=>{
-      chip.addEventListener('click', ()=>{
-        document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-        chip.classList.add('active');
-        applyFilters();
-      });
+    function openForm(row){
+      editingId = row?.id_usulan || null;
+      formTitle.textContent = editingId ? 'Ubah Usulan Pemutusan JF' : 'Tambah Usulan Pemutusan JF';
+      submitBtn.textContent = editingId ? 'Update' : 'Simpan';
+      form.reset();
+      document.getElementById('f_status').disabled = !isSuper;
+      if (row){
+        Object.keys(row).forEach(k=>{ if (form.elements[k]) form.elements[k].value = row[k] || ''; });
+      }
+      if (!isSuper){
+        form.elements['status'].value = 'DIUSULKAN';
+        form.elements['ukpd'].value = loginUkpd;
+        form.elements['ukpd'].readOnly = true;
+        form.elements['wilayah'].value = loginWilayah;
+        form.elements['wilayah'].readOnly = true;
+      } else {
+        form.elements['ukpd'].readOnly = false;
+        form.elements['wilayah'].readOnly = false;
+      }
+      showModal(formModal);
+    }
+
+    function fillView(row){
+      const pairs = [
+        ['ID Usulan', row.id_usulan],
+        ['Status', row.status],
+        ['Nama Pegawai', row.nama_pegawai],
+        ['NIP', row.nip],
+        ['Pangkat/Gol', row.pangkat_gol],
+        ['Jabatan Lama', row.jabatan_lama],
+        ['Jabatan Baru', row.jabatan_baru],
+        ['Angka Kredit', row.angka_kredit],
+        ['UKPD', row.ukpd],
+        ['Wilayah', row.wilayah],
+        ['Nomor Surat', row.nomor_surat],
+        ['Tanggal Surat', formatDate(row.tanggal_surat)],
+        ['Link Dokumen', row.link_dokumen ? `<a href="${row.link_dokumen}" target="_blank" rel="noopener">Buka Dokumen</a>` : '-'],
+        ['Dibuat Oleh', row.dibuat_oleh],
+        ['Dibuat Pada', formatDate(row.dibuat_pada)],
+        ['Diupdate Pada', formatDate(row.diupdate_pada)],
+        ['Verifikasi Oleh', row.verifikasi_oleh],
+        ['Verifikasi Tanggal', formatDate(row.verifikasi_tanggal)],
+        ['Catatan Verifikasi', row.verifikasi_catatan]
+      ];
+      detailGrid.innerHTML = pairs.map(([l,v])=>`
+        <div class="detail-card"><div class="detail-label">${l}</div><div class="detail-value">${v || '-'}</div></div>
+      `).join('');
+      detailAlasan.textContent = row.alasan_usulan || '-';
+      detailVerif.textContent = row.verifikasi_catatan || '-';
+    }
+
+    async function savePemutusan(e){
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      if (!data.nama_pegawai || !data.nip || !data.jabatan_lama || !data.ukpd){
+        alert('Nama, NIP, Jabatan Lama, dan UKPD wajib diisi');
+        return;
+      }
+      const now = new Date().toISOString();
+      if (!editingId){
+        data.id_usulan = `PJ-${Date.now()}`;
+        data.dibuat_oleh = authUser?.username || authUser?.namaUkpd || 'user';
+        data.dibuat_pada = now;
+      }
+      data.diupdate_pada = now;
+      if (!isSuper){
+        data.status = 'DIUSULKAN';
+        data.ukpd = loginUkpd;
+        data.wilayah = loginWilayah;
+      }
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `${API_BASE}/pemutusan-jf/${editingId}` : `${API_BASE}/pemutusan-jf`;
+      submitBtn.disabled = true;
+      try{
+        await apiFetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        editingId = null;
+        form.reset();
+        hideModal(formModal);
+        await loadData();
+      }catch(err){
+        alert(err.message);
+      }finally{
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function deletePemutusan(id){
+      if (!confirm('Hapus usulan ini?')) return;
+      try{
+        await apiFetch(`${API_BASE}/pemutusan-jf/${id}`, { method:'DELETE' });
+        await loadData();
+      }catch(err){
+        alert(err.message);
+      }
+    }
+
+    tableBody.addEventListener('click', (e)=>{
+      const ddBtn = e.target.closest('.dropdown-toggle');
+      if (ddBtn){
+        const menu = ddBtn.nextElementSibling;
+        document.querySelectorAll('.dropdown-menu').forEach(m=>{ if (m!==menu) m.style.display='none'; });
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        e.stopPropagation();
+        return;
+      }
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      const row = rows.find(r=>r.id_usulan === id);
+      if (!row) return;
+      if (action === 'view'){ fillView(row); showModal(viewModal); }
+      if (action === 'edit'){ openForm(row); }
+      if (action === 'delete'){ deletePemutusan(id); }
     });
-    document.getElementById('applyBtn').addEventListener('click', applyFilters);
-    document.getElementById('resetBtn').addEventListener('click', resetFilters);
-    document.getElementById('search').addEventListener('input', ()=>{ page=1; applyFilters(); });
-    document.getElementById('filterUkpd').addEventListener('change', ()=>{ page=1; applyFilters(); });
-    document.getElementById('perPage').addEventListener('change', ()=>{ page=1; render(); });
-    document.getElementById('addBtn').addEventListener('click', ()=> openModal(null));
-    document.getElementById('closeModal').addEventListener('click', closeModal);
-    document.getElementById('cancelModal').addEventListener('click', closeModal);
-    document.getElementById('saveModal').addEventListener('click', saveModal);
+
+    document.addEventListener('click', (e)=>{ if (!e.target.closest('.actions')) document.querySelectorAll('.dropdown-menu').forEach(m=> m.style.display='none'); });
+
+    statusChips.addEventListener('click', (e)=>{
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      statusChips.querySelectorAll('.chip').forEach(c=> c.classList.remove('active'));
+      chip.classList.add('active');
+      applyFilters();
+    });
+
+    document.getElementById('applyFilter').addEventListener('click', ()=> applyFilters());
+    document.getElementById('resetFilter').addEventListener('click', ()=>{
+      searchInput.value='';
+      statusChips.querySelectorAll('.chip').forEach(c=> c.classList.toggle('active', c.dataset.status===''));
+      if (!isSuper && !isWilayahAdmin){ ukpdFilter.value = loginUkpd; } else { ukpdFilter.value = ''; }
+      applyFilters();
+    });
+
+    searchInput.addEventListener('input', ()=>{ page=1; applyFilters(); });
+    ukpdFilter.addEventListener('change', ()=>{ page=1; applyFilters(); });
+    perPageSel.addEventListener('change', ()=>{ page=1; render(); });
+    document.getElementById('prevPage').addEventListener('click', ()=>{ if (page>1){ page--; render(); } });
+    document.getElementById('nextPage').addEventListener('click', ()=>{ const per = parseInt(perPageSel.value,10)||10; const maxPage = Math.max(1, Math.ceil((filtered.length||0)/per)); if (page < maxPage){ page++; render(); } });
+    document.getElementById('refreshBtn')?.addEventListener('click', ()=> loadData());
+    document.getElementById('addBtn').addEventListener('click', ()=> openForm(null));
+
+    form.addEventListener('submit', (e)=>{ savePemutusan(e).catch(err=>alert(err.message)); });
+    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); if (!isSuper){ form.elements['status'].value='DIUSULKAN'; form.elements['ukpd'].value=loginUkpd; form.elements['wilayah'].value=loginWilayah; } submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Pemutusan JF'; });
+    closeForm.addEventListener('click', ()=> hideModal(formModal));
+    closeView.addEventListener('click', ()=> hideModal(viewModal));
+    modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ hideModal(formModal); hideModal(viewModal); } });
+
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebarEl = document.querySelector('.sidebar');
+      if (!btn || !backdrop || !sidebarEl) return;
+      const close = ()=>{ sidebarEl.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebarEl.classList.contains('show');
+        sidebarEl.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebarEl.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1100) close(); });
+    }
 
     loadData();
   </script>

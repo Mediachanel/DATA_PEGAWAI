@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -7,19 +7,20 @@
   <link rel="icon" type="image/png" href="foto/Dinkes.png" />
   <style>
     :root{
-      --bg: #f3f6fb;
+      --bg: #f6f7fb;
       --card: #ffffff;
-      --border: #e2e8f0;
+      --border: #e6ecf4;
       --muted: #6b7280;
-      --accent: #2563eb;
-      --accent-soft: #dbeafe;
+      --accent: #5e8bff;
+      --accent-2: #ff9f68;
+      --accent-soft: #eef3ff;
       --success: #16a34a;
       --warn: #f59e0b;
       --danger: #dc2626;
       --purple: #7c3aed;
     }
     *{ box-sizing:border-box; }
-    body{ margin:0; font-family:'Inter','Segoe UI',Arial,sans-serif; background:var(--bg); color:#0f172a; }
+    body{ margin:0; font-family:'Inter','Segoe UI',Arial,sans-serif; background:radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%), #f7f9fc; color:#1b2b3a; }
     .layout{ min-height:100vh; }
     .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
     .sidebar{ position:fixed; inset:0 auto 0 0; width:260px; background:#ffffff; color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0; }
@@ -31,11 +32,16 @@
     .nav-title{ margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
     .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
     .nav-item:hover{ background:#f8fafc; }
-    .nav-item.active{ background:var(--accent-soft); color:#1d4ed8; font-weight:700; }
+    .nav-item.active{ background:var(--accent-soft); color:#3b5ecc; font-weight:700; box-shadow:0 10px 22px rgba(94,139,255,0.18); }
     .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
-    .topbar{ background:#fff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 6px 24px rgba(15,23,42,0.06); }
+    .topbar{ background:linear-gradient(120deg, rgba(94,139,255,0.14), rgba(255,159,104,0.16)), #ffffff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 10px 28px rgba(24,39,75,0.12); backdrop-filter:blur(6px); }
     .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .badge{ display:inline-flex; align-items:center; gap:8px; background:#e0f2fe; color:#0ea5e9; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; }
+    .badge{ display:inline-flex; align-items:center; gap:8px; background:#eef3ff; color:#3b5ecc; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; box-shadow:0 10px 20px rgba(94,139,255,0.2); }
+    .hero{ background:linear-gradient(135deg, rgba(94,139,255,0.2), rgba(255,159,104,0.18)), #0f1f3a; color:#e2e8f0; border-radius:16px; padding:18px; display:flex; justify-content:space-between; gap:12px; align-items:center; box-shadow:0 12px 30px rgba(24,39,75,0.2); }
+    .hero h2{ margin:0; color:#fff; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; }
+    .pill.role{ background:#e0f2fe; color:#0369a1; }
+    .user{ display:none; }
     .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:0 10px 28px rgba(15,23,42,0.08); }
     .metric-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     .metric{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 8px 20px rgba(15,23,42,0.06); }
@@ -48,8 +54,8 @@
     label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:6px; }
     input, select, textarea, button{ padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:'Inter','Segoe UI',Arial,sans-serif; }
     input, select, textarea{ width:100%; }
-    button.primary{ background:var(--accent); color:white; border:none; font-weight:800; box-shadow:0 10px 24px rgba(37,99,235,0.25); cursor:pointer; }
-    button.ghost{ background:#f8fafc; color:#0f172a; border:1px solid var(--border); cursor:pointer; }
+    button.primary{ background:linear-gradient(120deg,var(--accent) 0%, #7cb3ff 45%, var(--accent-2) 100%); color:#0b1f2c; border:none; font-weight:800; box-shadow:0 15px 35px rgba(94,139,255,0.32); cursor:pointer; }
+    button.ghost{ background:#f8fafc; color:#1b2b3a; border:1px solid var(--border); cursor:pointer; box-shadow:0 8px 18px rgba(24,39,75,0.06); }
     .table-wrap{ overflow-x:auto; }
     table{ width:100%; border-collapse:collapse; }
     th, td{ padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; vertical-align:top; }
@@ -74,10 +80,10 @@
     .pagination{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:10px; flex-wrap:wrap; }
     .pill-abk{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid var(--border); font-size:12px; }
     .mobile-toggle{
-      position: fixed; top: 12px; left: 12px; z-index: 70;
-      background: #0f172a; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px; padding: 9px 12px; display:none; align-items:center; gap:8px; font-weight:700;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+      position: fixed; top: 14px; left: 14px; z-index: 70;
+      background: var(--accent); color: #f8fafc; border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
+      box-shadow: 0 12px 26px rgba(94,139,255,0.35);
     }
     #sidebarBackdrop{
       position: fixed; inset:0; background: rgba(0,0,0,0.45);
@@ -126,7 +132,7 @@
       }
       .sidebar.show{ transform: translateX(0); }
       .mobile-toggle{ display:inline-flex; }
-      main{ padding:14px; margin-top:20px; }
+      main{ padding:14px; margin-top:20px; padding-top:62px; }
     }
   </style>
 </head>
@@ -140,6 +146,17 @@
     <div class="content">
       <div id="header-container"></div>
       <main style="padding:18px;">
+        <div class="hero">
+          <div>
+            <div class="pill role" id="roleBadge">-</div>
+            <h2>Usulan Mutasi Pegawai</h2>
+            <p style="margin:4px 0 0; color:#cbd5e1;">Pantau status usulan mutasi, unggah berkas, dan tindak lanjuti verifikasi.</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button id="btnAdd" class="primary" style="min-width:150px;">+ Tambah Usulan</button>
+          </div>
+        </div>
+
         <div class="metric-grid">
           <div class="metric blue">
             <div class="label">Total</div>
@@ -174,7 +191,6 @@
               <option value="20">20</option>
               <option value="50">50</option>
             </select>
-            <button id="btnAdd" class="primary" style="min-width:150px;">+ Tambah Usulan</button>
           </div>
         </div>
 
@@ -214,7 +230,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama & NIP</th><th>UKPD Asal • Jabatan Lama</th><th>UKPD Tujuan • Jabatan Baru</th><th>Alasan</th><th>Berkas</th><th>Created By UKPD</th><th>Created At</th><th>Updated At</th><th>Keterangan/Verifikasi</th>
+                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama & NIP</th><th>UKPD Asal â€¢ Jabatan Lama</th><th>UKPD Tujuan â€¢ Jabatan Baru</th><th>Alasan</th><th>Berkas</th><th>Created By UKPD</th><th>Created At</th><th>Updated At</th><th>Keterangan/Verifikasi</th>
                 </tr>
               </thead>
               <tbody id="tableBody"></tbody>
@@ -237,7 +253,7 @@
     <div class="modal-dialog">
       <div class="modal-head">
         <h3 class="panel-title" id="formTitle" style="margin:0;">Tambah Usulan Mutasi</h3>
-        <button type="button" class="close-btn" id="closeForm" aria-label="Tutup">×</button>
+        <button type="button" class="close-btn" id="closeForm" aria-label="Tutup">Ã—</button>
       </div>
       <div class="modal-body">
         <form id="mutasiForm" class="detail-grid">
@@ -288,7 +304,7 @@
     <div class="modal-dialog">
       <div class="modal-head">
         <h3 class="panel-title" style="margin:0;">Detail Usulan</h3>
-        <button type="button" class="close-btn" id="closeView" aria-label="Tutup">×</button>
+        <button type="button" class="close-btn" id="closeView" aria-label="Tutup">Ã—</button>
       </div>
       <div class="modal-body">
         <div class="detail-grid" id="detailGrid"></div>
@@ -326,6 +342,7 @@
       const logoutNav = document.querySelector('[data-logout]');
       if (logoutNav) logoutNav.addEventListener('click', doLogout);
       initSidebarToggle();
+      syncHeaderUser();
     });
 
     const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
@@ -369,6 +386,9 @@
     const detailAlasan = document.getElementById('detailAlasan');
     const detailKet = document.getElementById('detailKet');
     const totalFiltered = document.getElementById('totalFiltered');
+    const roleBadge = document.getElementById('roleBadge');
+    const userNameEl = document.getElementById('userName');
+    const userRoleEl = document.getElementById('userRole');
 
     function showModal(el){
       el.classList.add('show');
@@ -419,6 +439,23 @@
       totalFiltered.textContent = total;
     }
 
+    function syncHeaderUser(){
+      if (!authUser) return;
+      const roleText = (authUser.role || 'USER').toUpperCase();
+      const namaText = authUser.namaUkpd || authUser.username || 'User';
+      if (roleBadge) roleBadge.textContent = roleText;
+      if (userNameEl) userNameEl.textContent = namaText;
+      if (userRoleEl) userRoleEl.textContent = authUser.role || '';
+      const headerRole = document.getElementById('rolePill');
+      const headerUkpd = document.getElementById('ukpdPill');
+      const headerName = document.getElementById('userName');
+      const headerRoleText = document.getElementById('userRole');
+      if (headerRole) headerRole.textContent = roleText;
+      if (headerUkpd) headerUkpd.textContent = namaText;
+      if (headerName) headerName.textContent = namaText;
+      if (headerRoleText) headerRoleText.textContent = authUser.role || '';
+    }
+
     function renderFilters(body){
       const setOptions = (el, list)=>{ el.innerHTML = '<option value="">Semua</option>' + (list||[]).map(v=>`<option>${v}</option>`).join(''); };
       setOptions(ukpdFilter, body.ukpds || []);
@@ -441,7 +478,7 @@
           <td>${badgeStatus(r.status)}</td>
           <td class="actions">
             <div class="dropdown">
-              <button class="ghost dropdown-toggle">Aksi ▾</button>
+              <button class="ghost dropdown-toggle">Aksi â–¾</button>
               <div class="dropdown-menu">
                 <button data-action="view" data-id="${r.id}">Lihat</button>
                 <button data-action="edit" data-id="${r.id}">Ubah</button>
@@ -453,12 +490,12 @@
           <td>
             <div style="font-weight:700;">${r.nama_ukpd_asal||'-'}</div>
             <div style="color:var(--muted); font-size:12px;">${r.jabatan_asal||'-'}</div>
-            <div class="pill-abk">ABK J: ${r.abk_j_lama||'-'} • Bezetting: ${r.bezetting_j_lama||'-'}</div>
+            <div class="pill-abk">ABK J: ${r.abk_j_lama||'-'} â€¢ Bezetting: ${r.bezetting_j_lama||'-'}</div>
           </td>
           <td>
             <div style="font-weight:700;">${r.nama_ukpd_tujuan||'-'}</div>
             <div style="color:var(--muted); font-size:12px;">${r.jabatan_baru||'-'}</div>
-            <div class="pill-abk">ABK J: ${r.abk_j_baru||'-'} • Bezetting: ${r.bezetting_j_baru||'-'}</div>
+            <div class="pill-abk">ABK J: ${r.abk_j_baru||'-'} â€¢ Bezetting: ${r.bezetting_j_baru||'-'}</div>
           </td>
           <td style="min-width:220px;">${alasan||'-'}</td>
           <td>${r.berkas_url ? `<a href="${r.berkas_url}" target="_blank" rel="noopener">Link</a>` : '-'}</td>
