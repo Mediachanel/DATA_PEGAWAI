@@ -209,7 +209,6 @@
               <thead class="sticky top-0 bg-white border-b border-slate-200">
                 <tr>
                   <th class="px-3 py-2 text-center w-16">NO</th>
-                  <th class="px-3 py-2 text-left">Wilayah</th>
                   <th class="px-3 py-2 text-left">Nama UKPD</th>
                   <th class="px-3 py-2 text-center">PNS</th>
                   <th class="px-3 py-2 text-center">CPNS</th>
@@ -222,7 +221,7 @@
               <tbody></tbody>
               <tfoot>
                 <tr class="bg-sky-50 font-semibold" id="tableTotalRow">
-                  <td class="px-3 py-2 text-right" colspan="3">Total Keseluruhan</td>
+                  <td class="px-3 py-2 text-right" colspan="2">Total Keseluruhan</td>
                   <td class="px-3 py-2 text-center">0</td>
                   <td class="px-3 py-2 text-center">0</td>
                   <td class="px-3 py-2 text-center">0</td>
@@ -611,7 +610,6 @@ const loginWilayah = authUser?.wilayah || '';
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PJLP||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
           `;
         } else {
@@ -620,13 +618,11 @@ const loginWilayah = authUser?.wilayah || '';
           tr.dataset.unit = (r.unit || '').toLowerCase();
           tr.innerHTML = `
             <td class="px-3 py-2 text-center">${r.no || idx + 1}</td>
-            <td class="px-3 py-2">${r.wilayah || '-'}</td>
             <td class="px-3 py-2">${r.unit || '-'}</td>
             <td class="px-3 py-2 text-center">${(r.PNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PJLP||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
           `;
         }
