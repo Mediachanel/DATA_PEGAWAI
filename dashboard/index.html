@@ -605,7 +605,7 @@ const loginWilayah = authUser?.wilayah || '';
           tr.className = 'bg-slate-50 font-semibold border-b border-slate-100';
           tr.innerHTML = `
             <td class="px-3 py-2 text-center text-slate-500">-</td>
-            <td class="px-3 py-2" colspan="2">Wilayah: ${r.wilayah || '-'}</td>
+            <td class="px-3 py-2">Wilayah: ${r.wilayah || '-'}</td>
             <td class="px-3 py-2 text-center">${(r.PNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
