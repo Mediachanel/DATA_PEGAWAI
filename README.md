@@ -2,9 +2,9 @@
 
 ## Front-end via backend (tanpa API key di browser)
 - File: `index.html`
-- Jalankan backend (lihat bawah), buka `index.html` di browser.
+- Default `API_BASE` disetel ke Web App Apps Script `https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec` agar bisa langsung dipakai di GitHub Pages.
+- Jika memakai backend Node (lihat bawah), jalankan server lalu ubah `API_BASE` di `index.html` ke URL backend (mis. `http://127.0.0.1:5002` atau URL Render/ngrok), kemudian buka `index.html` di browser.
 - Klik **Cek Koneksi Server**, isi form, kirim. Data dikirim ke endpoint backend `/pegawai`.
-- Pastikan `API_BASE` di `index.html` menunjuk ke backend (default `http://localhost:3000`).
 
 ## Backend Node (service account)
 - File: `server.js`
@@ -35,11 +35,11 @@
 
 ## Dashboard
 - File: `dashboard.html`
+- Default `API_BASE` mengarah ke Web App Apps Script di atas; jika memakai backend sendiri ubah ke URL backend (mis. `http://127.0.0.1:5002` atau Render/ngrok).
 - Gunakan backend (cek koneksi server, lalu login dengan username/password dari sheet `USERNAME`).
-- `API_BASE` di file default `http://localhost:3000`.
 
 ## Struktur sheet
-- Data: `DATA PEGAWAI` (A–M)
+- Data: `DATA PEGAWAI` (A-M)
   1. ID (rumus contoh: `="EMP-"&TEXT(ROW()-1,"0000")`)
   2. Nama
   3. NIK
@@ -57,5 +57,5 @@
 
 ## Troubleshooting
 - Gagal append/baca: cek share ke service account, path file key, Sheets API aktif.
-- Front-end tidak tersambung: pastikan backend jalan dan `API_BASE` sudah benar.
+- Front-end tidak tersambung: pastikan `API_BASE` sudah benar (Web App Apps Script atau backend yang Anda pakai) dan backend/Apps Script dapat diakses.
 - Range salah: sesuaikan konstanta `RANGE` atau `USER_RANGE` di `server.js`.

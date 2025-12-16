@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -139,7 +139,7 @@
 <body>
   <div id="sidebarBackdrop"></div>
   <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle">
-    <span style="font-size:18px;">☰</span> Menu
+    <span style="font-size:18px;">?</span> Menu
   </button>
   <div class="layout">
     <div id="sidebar-container"></div>
@@ -230,7 +230,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama & NIP</th><th>UKPD Asal â€¢ Jabatan Lama</th><th>UKPD Tujuan â€¢ Jabatan Baru</th><th>Alasan</th><th>Berkas</th><th>Created By UKPD</th><th>Created At</th><th>Updated At</th><th>Keterangan/Verifikasi</th>
+                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama & NIP</th><th>UKPD Asal • Jabatan Lama</th><th>UKPD Tujuan • Jabatan Baru</th><th>Alasan</th><th>Berkas</th><th>Created By UKPD</th><th>Created At</th><th>Updated At</th><th>Keterangan/Verifikasi</th>
                 </tr>
               </thead>
               <tbody id="tableBody"></tbody>
@@ -253,7 +253,7 @@
     <div class="modal-dialog">
       <div class="modal-head">
         <h3 class="panel-title" id="formTitle" style="margin:0;">Tambah Usulan Mutasi</h3>
-        <button type="button" class="close-btn" id="closeForm" aria-label="Tutup">Ã—</button>
+        <button type="button" class="close-btn" id="closeForm" aria-label="Tutup">×</button>
       </div>
       <div class="modal-body">
         <form id="mutasiForm" class="detail-grid">
@@ -304,7 +304,7 @@
     <div class="modal-dialog">
       <div class="modal-head">
         <h3 class="panel-title" style="margin:0;">Detail Usulan</h3>
-        <button type="button" class="close-btn" id="closeView" aria-label="Tutup">Ã—</button>
+        <button type="button" class="close-btn" id="closeView" aria-label="Tutup">×</button>
       </div>
       <div class="modal-body">
         <div class="detail-grid" id="detailGrid"></div>
@@ -327,7 +327,7 @@
     })();
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
-    const API_BASE = 'http://127.0.0.1:5002';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec';
     const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
     Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
       document.getElementById('sidebar-container').innerHTML = s;
@@ -478,7 +478,7 @@
           <td>${badgeStatus(r.status)}</td>
           <td class="actions">
             <div class="dropdown">
-              <button class="ghost dropdown-toggle">Aksi â–¾</button>
+              <button class="ghost dropdown-toggle">Aksi ▾</button>
               <div class="dropdown-menu">
                 <button data-action="view" data-id="${r.id}">Lihat</button>
                 <button data-action="edit" data-id="${r.id}">Ubah</button>
@@ -490,12 +490,12 @@
           <td>
             <div style="font-weight:700;">${r.nama_ukpd_asal||'-'}</div>
             <div style="color:var(--muted); font-size:12px;">${r.jabatan_asal||'-'}</div>
-            <div class="pill-abk">ABK J: ${r.abk_j_lama||'-'} â€¢ Bezetting: ${r.bezetting_j_lama||'-'}</div>
+            <div class="pill-abk">ABK J: ${r.abk_j_lama||'-'} • Bezetting: ${r.bezetting_j_lama||'-'}</div>
           </td>
           <td>
             <div style="font-weight:700;">${r.nama_ukpd_tujuan||'-'}</div>
             <div style="color:var(--muted); font-size:12px;">${r.jabatan_baru||'-'}</div>
-            <div class="pill-abk">ABK J: ${r.abk_j_baru||'-'} â€¢ Bezetting: ${r.bezetting_j_baru||'-'}</div>
+            <div class="pill-abk">ABK J: ${r.abk_j_baru||'-'} • Bezetting: ${r.bezetting_j_baru||'-'}</div>
           </td>
           <td style="min-width:220px;">${alasan||'-'}</td>
           <td>${r.berkas_url ? `<a href="${r.berkas_url}" target="_blank" rel="noopener">Link</a>` : '-'}</td>
@@ -657,3 +657,4 @@
   </script>
 </body>
 </html>
+

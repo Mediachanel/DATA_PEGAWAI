@@ -163,7 +163,7 @@
       const parts = location.pathname.split('/').filter(Boolean);
       return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
     })();
-    const API_BASE = 'http://127.0.0.1:5002';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec';
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
 
@@ -380,4 +380,5 @@
   </script>
 </body>
 </html>
+
 

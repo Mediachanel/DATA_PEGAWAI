@@ -2,7 +2,7 @@
 
 ## Backend (Node/Express + Google Sheets)
 - File: `server.js`
-- Port: 5002 (hardcode di front-end)
+- Port: 5002 (dipakai bila menjalankan backend Node; front-end default kini langsung ke Web App Apps Script)
 - Spreadsheet ID: `1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw`
 - Sheet data: `DATA PEGAWAI!A:AB` (28 kolom)
 - Sheet login: `username!A:D` (Nama UKPD, Username, Password, Hak akses, Wilayah)
@@ -106,7 +106,7 @@
 
 ## Front-end
 - File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`.
-- `API_BASE` default: `http://127.0.0.1:5002` (ubah jika port/host berbeda, mis. URL ngrok/host publik).
+- `API_BASE` default: `https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec` (Web App Apps Script). Ubah jika memakai backend sendiri (Render/ngrok/localhost).
 - Sidebar dan header diinject dari `sidebar.html` dan `header.html` (sticky). Footer dari `footer.html` dipakai di dashboard dan data-pegawai.
 - Auth disimpan di `localStorage` (`authUser`: username, role, namaUkpd) setelah login di `index.html`.
 - Role filter: non-super/dinkes otomatis hanya melihat data UKPD login; super admin/dinkes dapat melihat semua.
@@ -133,18 +133,18 @@
    $env:PORT=5002
    npm start
    ```
-3. Buka front-end (file:// atau server statis). `API_BASE` default ke `http://127.0.0.1:5002`.
+3. Jika ingin memakai backend lokal ini, ubah `API_BASE` di front-end menjadi `http://127.0.0.1:5002` (default repo mengarah ke Web App Apps Script), lalu buka front-end (file:// atau server statis).
 
 ## Catatan percobaan proxy (Des 2025)
 - Sudah dibuat fungsi proxy Vercel di `api/proxy.js` dan konfigurasi `vercel.json` untuk build route `/api/proxy` dengan env `WEB_APP_BASE` ke Apps Script. Deployment Vercel project `data` masih gagal (500) karena project terhubung ke repo lain yang belum memuat commit `api/proxy.js`/`vercel.json` atau belum redeploy dari commit terbaru.
 - Cloudflare Worker proxy (`cf-worker-proxy.js`) juga disiapkan, tetapi subdomain workers.dev belum aktif, sehingga tetap NXDOMAIN/1101.
-- Akhirnya `API_BASE` front-end dikembalikan ke server lokal `http://127.0.0.1:5002`. Jalankan backend lokal sebelum mengakses front-end.
-- Jika ingin pakai proxy publik lagi: pastikan deployment Vercel memakai repo commit terbaru (ada `api/proxy.js` + `vercel.json`), set env `WEB_APP_BASE`, redeploy, lalu set `API_BASE` ke `https://<domain-vercel>/api/proxy`.
+- API_BASE di repo sekarang diarahkan ke Web App Apps Script (`https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec`) agar langsung jalan di GitHub Pages tanpa backend Node.
+- Jika ingin pakai proxy/backend publik lagi: pastikan deployment Vercel memakai repo commit terbaru (ada `api/proxy.js` + `vercel.json`) atau backend Render/Fly, set env `WEB_APP_BASE`, redeploy, lalu set `API_BASE` sesuai URL backend/proxy (mis. `https://<domain-vercel>/api/proxy` atau `https://nama-app.onrender.com`).
 
 ## Menjalankan via ngrok (sementara)
 1. Backend di port 5002.
 2. Jalankan `ngrok http 5002`, catat URL https ngrok.
-3. Ubah `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL ngrok tersebut; hard refresh halaman.
+3. Ubah `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL ngrok tersebut; hard refresh halaman. (Hanya perlu jika memakai backend lokal; default repo sudah ke Web App Apps Script.)
 
 ## Catatan UI
 - Header sticky, logout merah, badge role/UKPD dari `authUser`.
@@ -162,7 +162,7 @@
   - `sidebar.html`: ikon huruf sederhana, item Keluar pakai `data-logout`.
   - `data-pegawai.html`: textarea form distyling, panel responsif.
   - `profil.html`: footer include, sidebar mobile toggle.
-- `usulan-mutasi.html`: halaman usulan mutasi (form tambah/ubah via modal, filter, tabel, metrik ringkas), `API_BASE` default ke `http://127.0.0.1:5002`, upload PDF ke Drive via `/upload` (link disimpan di `berkas_url`).
+- `usulan-mutasi.html`: halaman usulan mutasi (form tambah/ubah via modal, filter, tabel, metrik ringkas), `API_BASE` default ke Web App Apps Script, upload PDF ke Drive via `/upload` (link disimpan di `berkas_url`).
 - Tambahan file:
   - `DEPLOY.md`: panduan deploy backend (Render/Fly/Heroku), set `WEB_APP_BASE`, update `API_BASE` front-end.
   - `cf-worker-proxy.js`: Cloudflare Worker proxy ke Apps Script dengan CORS `*` (butuh var `WEB_APP_BASE` di Worker).
@@ -183,12 +183,12 @@
 ### Menjalankan lokal
 - Pastikan tidak ada proses lain di port 5002 (matikan server lama sebelum `npm start`).
 - Jalankan backend: `npm start` (PORT default 5002).
-- Cek `http://127.0.0.1:5002/health` harus `{ok:true}`, `http://127.0.0.1:5002/mutasi` untuk usulan mutasi.
-- Front-end lokal via `http-server` di port 5500/5501 (pastikan `API_BASE` bukan localhost:5002 jika pakai proxy publik).
+- Jika memakai backend lokal ini, set `API_BASE` di front-end ke `http://127.0.0.1:5002`, lalu cek `http://127.0.0.1:5002/health` harus `{ok:true}`, `http://127.0.0.1:5002/mutasi` untuk usulan mutasi.
+- Front-end lokal via `http-server` di port 5500/5501 (default repo `API_BASE` ke Web App Apps Script; ganti ke localhost/ngrok/backend publik sesuai kebutuhan).
 - Untuk upload berkas, set env `SERVICE_ACCOUNT_PATH` ke file JSON service account dan `DRIVE_FOLDER_ID` ke folder di Shared Drive yang sudah dibagikan Editor ke service account.
 
 ## Perubahan utama yang dilakukan
 - Menyesuaikan layout sesuai contoh Dinkes: dashboard dan data pegawai dengan sidebar/header konsisten, stat cards, filter bar, tabel.
 - Menambah pagination di front-end dan query filter di backend.
 - Memperbaiki mapping kolom (trim header + fallback index) agar `nama_ukpd`, NIP/NIK, dll. terbaca.
-- Hardcode API_BASE ke port 5002 di semua halaman.
+- API_BASE di repo saat ini diarahkan ke Web App Apps Script; ganti bila memakai backend lain (Render/ngrok/localhost).

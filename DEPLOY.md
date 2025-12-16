@@ -22,8 +22,9 @@ Backend: `server.js` (Node/Express) bertindak sebagai proxy ke Web App Apps Scri
 7. Deploy, catat URL publik, mis. `https://nama-app.onrender.com`.
 
 ## 3) Update front-end
-- Ubah `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL publik backend, mis.  
+- Ubah `API_BASE` di semua halaman utama (`index.html`, `dashboard/index.html`, `data-pegawai/index.html`, `profil/index.html`, `usulan-mutasi/index.html`, `pemutusan-jf/index.html`, `bezetting/index.html`) ke URL publik backend, mis.  
   `const API_BASE = 'https://nama-app.onrender.com';`
+- Default repo sekarang memakai Web App Apps Script `https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec`; ganti ke URL backend Anda jika mengikuti langkah ini.
 - Commit & push (untuk GitHub Pages).
 
 ## 4) Uji
