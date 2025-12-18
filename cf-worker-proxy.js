@@ -8,8 +8,10 @@ export default {
     if (!base) return new Response('WEB_APP_BASE not set', { status: 500 });
     const url = new URL(req.url);
     // Teruskan path/query ke Apps Script (opsional hapus prefix /api)
-    const target = base + url.pathname.replace(/^\/api/, '') + url.search;
-    const init = { method: req.method, headers: {} };
+    const baseClean = base.replace(/\/$/, '');
+    const path = url.pathname.replace(/^\/api/, '') || '/';
+    const target = baseClean + path + url.search;
+    const init = { method: req.method, headers: {}, redirect: 'follow' };
     // Salin content-type saja; header lain optional
     const ct = req.headers.get('content-type');
     if (ct) init.headers['content-type'] = ct;
