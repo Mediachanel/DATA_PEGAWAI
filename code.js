@@ -29,7 +29,7 @@ const BEZETTING_COLS = [
   'ukpd','wilayah'
 ];
 // API key untuk Apps Script (diteruskan proxy via query `key`).
-const API_KEY = 'ganti_api_key_aman';
+const API_KEY = 'api_6f9e3a1c8d4b2f7a9e5c1d6b8f3a2c7e';
 const DRIVE_FOLDER_ID = '';
 
 // Router utama
