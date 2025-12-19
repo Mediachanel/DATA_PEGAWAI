@@ -18,9 +18,9 @@ const MUTASI_COLS = [
   'abk_j_lama','bezetting_j_lama','abk_j_baru','bezetting_j_baru','berkas_url'
 ];
 const PEMUTUSAN_COLS = [
-  'id_usulan','status','nama_pegawai','nip','pangkat_gol','jabatan_lama','jabatan_baru','angka_kredit',
-  'ukpd','wilayah','nomor_surat','tanggal_surat','alasan_usulan','link_dokumen',
-  'verifikasi_oleh','verifikasi_tanggal','verifikasi_catatan','dibuat_oleh','dibuat_pada','diupdate_pada'
+  'id','nip','pangkat_golongan','nama_pegawai','jabatan','jabatan_baru','angka_kredit','alasan_pemutusan',
+  'nomor_surat','tanggal_surat','hal','pimpinan','asal_surat','nama_ukpd','tanggal_usulan','status',
+  'berkas_path','created_by_ukpd','created_at','updated_at','keterangan'
 ];
 const BEZETTING_COLS = [
   'no','bidang','subbidang','nama_jabatan_pergub','nama_jabatan_permenpan','rumpun_jabatan','kode',
@@ -371,22 +371,22 @@ function listPemutusan(e) {
     });
   }
   const [header, ...rows] = values;
-  const list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id_usulan);
+  const list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id);
   const map = wilayahQuery ? getUkpdWilayahMap() : {};
 
   const filtered = list.filter(r => {
     const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => norm(v).includes(term));
     const matchStatus = !status || norm(r.status) === status;
-    const ukVal = norm(r.ukpd);
+    const ukVal = norm(r.nama_ukpd);
     const matchUkpd = !ukpdQuery || ukVal === ukpdQuery;
-    const wilayahValue = norm(r.wilayah) || norm(map[ukVal]);
+    const wilayahValue = norm(map[ukVal]);
     const matchWilayah = !wilayahQuery || wilayahValue === wilayahQuery;
     return matchTerm && matchStatus && matchUkpd && matchWilayah;
   });
 
   const summary = countBy(filtered, 'status');
   const statuses = uniq(filtered.map(r => r.status));
-  const ukpds = uniq(filtered.map(r => r.ukpd));
+  const ukpds = uniq(filtered.map(r => r.nama_ukpd));
   return json({
     ok: true,
     data: { rows: filtered, total: filtered.length, summary, statuses, ukpds },
@@ -403,53 +403,52 @@ function createPemutusan(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
-  const id = body.id_usulan || `PJ-${Date.now()}`;
-  let wilayahVal = body.wilayah || '';
-  if (!wilayahVal && body.ukpd) {
-    const map = getUkpdWilayahMap();
-    wilayahVal = map[norm(body.ukpd)] || '';
-  }
-  const rowData = { ...body, id_usulan: id, wilayah: wilayahVal };
+  const id = body.id || `PJ-${Date.now()}`;
+  const nowIso = new Date().toISOString();
+  const rowData = {
+    ...body,
+    id,
+    tanggal_usulan: body.tanggal_usulan || nowIso,
+    created_at: body.created_at || nowIso,
+    updated_at: body.updated_at || nowIso,
+  };
   const row = PEMUTUSAN_COLS.map(k => rowData[k] || '');
   sheet.appendRow(row);
-  return json({ ok: true, data: { id_usulan: id }, id_usulan: id });
+  return json({ ok: true, data: { id }, id });
 }
 
 function updatePemutusan(e) {
   if (!checkToken(e)) return forbidden();
-  const id = getParam(e, 'id_usulan');
-  if (!id) return json({ ok: false, error: 'ID usulan wajib' });
+  const id = getParam(e, 'id');
+  if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
   const values = sheet.getDataRange().getValues();
-  const [, ...rows] = values;
+  const [header, ...rows] = values;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
-  if (idx < 0) return json({ ok: false, error: 'ID usulan tidak ditemukan' });
+  if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   const rowNumber = idx + 2;
-  let wilayahVal = body.wilayah || '';
-  if (!wilayahVal && body.ukpd) {
-    const map = getUkpdWilayahMap();
-    wilayahVal = map[norm(body.ukpd)] || '';
-  }
-  const rowData = { ...body, id_usulan: id, wilayah: wilayahVal };
+  const current = toPemutusanRecord(header, rows[idx]);
+  const rowData = { ...current, ...body, id };
+  if (!rowData.updated_at) rowData.updated_at = new Date().toISOString();
   const payload = PEMUTUSAN_COLS.map(k => rowData[k] || '');
   sheet.getRange(rowNumber, 1, 1, PEMUTUSAN_COLS.length).setValues([payload]);
-  return json({ ok: true, data: { id_usulan: id } });
+  return json({ ok: true, data: { id }, id });
 }
 
 function deletePemutusan(e) {
   if (!checkToken(e)) return forbidden();
-  const id = getParam(e, 'id_usulan');
-  if (!id) return json({ ok: false, error: 'ID usulan wajib' });
+  const id = getParam(e, 'id');
+  if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
   const values = sheet.getDataRange().getValues();
   const [, ...rows] = values;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
-  if (idx < 0) return json({ ok: false, error: 'ID usulan tidak ditemukan' });
+  if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   sheet.deleteRow(idx + 2);
-  return json({ ok: true, data: { id_usulan: id } });
+  return json({ ok: true, data: { id }, id });
 }
 
 // ==== Bezetting ====
@@ -603,6 +602,10 @@ function getUkpdWilayahMap() {
   return map;
 }
 
+function normalizeHeaderKey(name) {
+  return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
+}
+
 function normalizePegawaiHeader(name) {
   return String(name || '').toLowerCase().trim().replace(/\s+/g, '_');
 }
@@ -672,34 +675,47 @@ function toMutasiRecord(header, row) {
 }
 
 function toPemutusanRecord(header, row) {
-  const h = (header || []).map(x => (x || '').toLowerCase().trim());
+  const h = (header || []).map(normalizeHeaderKey);
+  const getByName = (name) => {
+    const idx = h.indexOf(normalizeHeaderKey(name));
+    if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
+    return '';
+  };
   const get = (name, fallbackIdx) => {
-    const idx = h.indexOf(name);
+    const idx = h.indexOf(normalizeHeaderKey(name));
     if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
     if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
     return '';
   };
+  const id = get('id', 0) || getByName('id_usulan');
+  const pangkat = get('pangkat_golongan', 2) || getByName('pangkat_gol');
+  const jabatan = get('jabatan', 4) || getByName('jabatan_lama');
+  const alasan = get('alasan_pemutusan', 7) || getByName('alasan_usulan');
+  const namaUkpd = get('nama_ukpd', 13) || getByName('ukpd');
+  const berkasPath = get('berkas_path', 16) || getByName('link_dokumen');
+
   return {
-    id_usulan: get('id_usulan', 0),
-    status: get('status', 1),
-    nama_pegawai: get('nama_pegawai', 2),
-    nip: get('nip', 3),
-    pangkat_gol: get('pangkat_gol', 4),
-    jabatan_lama: get('jabatan_lama', 5),
-    jabatan_baru: get('jabatan_baru', 6),
-    angka_kredit: get('angka_kredit', 7),
-    ukpd: get('ukpd', 8),
-    wilayah: get('wilayah', 9),
-    nomor_surat: get('nomor_surat', 10),
-    tanggal_surat: get('tanggal_surat', 11),
-    alasan_usulan: get('alasan_usulan', 12),
-    link_dokumen: get('link_dokumen', 13),
-    verifikasi_oleh: get('verifikasi_oleh', 14),
-    verifikasi_tanggal: get('verifikasi_tanggal', 15),
-    verifikasi_catatan: get('verifikasi_catatan', 16),
-    dibuat_oleh: get('dibuat_oleh', 17),
-    dibuat_pada: get('dibuat_pada', 18),
-    diupdate_pada: get('diupdate_pada', 19),
+    id,
+    nip: get('nip', 1),
+    pangkat_golongan: pangkat,
+    nama_pegawai: get('nama_pegawai', 3),
+    jabatan,
+    jabatan_baru: get('jabatan_baru', 5),
+    angka_kredit: get('angka_kredit', 6),
+    alasan_pemutusan: alasan,
+    nomor_surat: get('nomor_surat', 8),
+    tanggal_surat: get('tanggal_surat', 9),
+    hal: get('hal', 10),
+    pimpinan: get('pimpinan', 11),
+    asal_surat: get('asal_surat', 12),
+    nama_ukpd: namaUkpd,
+    tanggal_usulan: get('tanggal_usulan', 14),
+    status: get('status', 15),
+    berkas_path: berkasPath,
+    created_by_ukpd: get('created_by_ukpd', 17),
+    created_at: get('created_at', 18),
+    updated_at: get('updated_at', 19),
+    keterangan: get('keterangan', 20),
   };
 }
 

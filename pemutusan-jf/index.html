@@ -143,14 +143,15 @@
     table{ width:100%; border-collapse:collapse; }
     th, td{ padding:12px 10px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; vertical-align:top; }
     th{ background:#f5f7fb; text-transform:uppercase; letter-spacing:.4px; font-size:12px; color:#475569; }
-    .table-wrap{ overflow-x:auto; }
+    .table-wrap{ overflow-x:auto; overflow-y:visible; }
+    td.actions{ position:relative; }
     .status-pill{ display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; font-weight:800; font-size:12px; border:1px solid transparent; }
     .pill-info{ background:#e0f2fe; color:#0f5098; }
     .pill-success{ background:#dcfce7; color:#166534; }
     .pill-danger{ background:#fee2e2; color:#b91c1c; }
     .pill-warn{ background:#fef9c3; color:#92400e; }
     .pill-meta{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid var(--border); font-size:12px; }
-    .dropdown-menu{ position:absolute; top:110%; left:0; min-width:170px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 30px rgba(15,23,42,0.12); padding:6px 0; display:none; z-index:20; }
+    .dropdown-menu{ position:absolute; top:110%; left:0; min-width:170px; background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 30px rgba(15,23,42,0.12); padding:6px 0; display:none; z-index:60; }
     .dropdown-menu button, .dropdown-menu a{ width:100%; text-align:left; background:none; border:none; padding:10px 12px; font-size:13px; cursor:pointer; display:block; color:#0f172a; text-decoration:none; }
     .dropdown-menu button:hover, .dropdown-menu a:hover{ background:#f8fafc; }
     .pagination{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
@@ -271,7 +272,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama / NIP / Pangkat</th><th>Jabatan Lama</th><th>Jabatan Baru</th><th>Angka Kredit</th><th>UKPD</th><th>Nomor Surat</th><th>Tanggal Surat</th><th>Dokumen</th>
+                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama / NIP / Pangkat</th><th>Jabatan</th><th>Jabatan Baru</th><th>Angka Kredit</th><th>Nama UKPD</th><th>Nomor Surat</th><th>Tanggal Surat</th><th>Berkas</th>
                 </tr>
               </thead>
               <tbody id="tableBody"></tbody>
@@ -311,16 +312,20 @@
           </div>
           <div><label>Nama Pegawai</label><input name="nama_pegawai" id="f_nama" placeholder="Nama pegawai" required></div>
           <div><label>NIP</label><input name="nip" id="f_nip" placeholder="NIP" required></div>
-          <div><label>Pangkat / Gol</label><input name="pangkat_gol" id="f_pangkat" placeholder="Mis. Penata Muda Tk I / III/b"></div>
-          <div><label>Jabatan Lama</label><input name="jabatan_lama" id="f_jab_lama" placeholder="Jabatan lama" required></div>
+          <div><label>Pangkat / Golongan</label><input name="pangkat_golongan" id="f_pangkat" placeholder="Mis. Penata Muda Tk I / III/b"></div>
+          <div><label>Jabatan</label><input name="jabatan" id="f_jabatan" placeholder="Jabatan saat ini" required></div>
           <div><label>Jabatan Baru</label><input name="jabatan_baru" id="f_jab_baru" placeholder="Jabatan baru (opsional)"></div>
           <div><label>Angka Kredit</label><input name="angka_kredit" id="f_ak" placeholder="Angka kredit"></div>
-          <div><label>UKPD</label><input name="ukpd" id="f_ukpd" placeholder="UKPD" required></div>
-          <div><label>Wilayah</label><input name="wilayah" id="f_wilayah" placeholder="Wilayah"></div>
+          <div><label>Nama UKPD</label><input name="nama_ukpd" id="f_ukpd" placeholder="Nama UKPD" required></div>
+          <div><label>Tanggal Usulan</label><input type="date" name="tanggal_usulan" id="f_tgl_usulan"></div>
           <div><label>Nomor Surat</label><input name="nomor_surat" id="f_no_surat" placeholder="Nomor surat"></div>
           <div><label>Tanggal Surat</label><input type="date" name="tanggal_surat" id="f_tgl_surat"></div>
-          <div><label>Link Dokumen</label><input name="link_dokumen" id="f_link" placeholder="https://..." inputmode="url"></div>
-          <textarea name="alasan_usulan" id="f_alasan" placeholder="Alasan usulan"></textarea>
+          <div><label>Hal</label><input name="hal" id="f_hal" placeholder="Hal surat"></div>
+          <div><label>Pimpinan</label><input name="pimpinan" id="f_pimpinan" placeholder="Nama pimpinan"></div>
+          <div><label>Asal Surat</label><input name="asal_surat" id="f_asal_surat" placeholder="Asal surat"></div>
+          <div><label>Berkas (URL/Path)</label><input name="berkas_path" id="f_berkas" placeholder="https://... atau path"></div>
+          <textarea name="alasan_pemutusan" id="f_alasan" placeholder="Alasan pemutusan"></textarea>
+          <textarea name="keterangan" id="f_keterangan" placeholder="Keterangan tambahan"></textarea>
           <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
             <button type="button" class="ghost" id="resetForm">Reset</button>
             <button type="submit" class="primary" id="submitBtn">Simpan</button>
@@ -339,12 +344,12 @@
       <div class="modal-body">
         <div class="detail-grid" id="detailGrid"></div>
         <div style="margin-top:12px;">
-          <label>Alasan Usulan</label>
+          <label>Alasan Pemutusan</label>
           <div id="detailAlasan" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
         </div>
         <div style="margin-top:12px;">
-          <label>Catatan Verifikasi</label>
-          <div id="detailVerif" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+          <label>Keterangan</label>
+          <div id="detailKeterangan" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
         </div>
       </div>
     </div>
@@ -415,7 +420,7 @@
     const closeView = document.getElementById('closeView');
     const detailGrid = document.getElementById('detailGrid');
     const detailAlasan = document.getElementById('detailAlasan');
-    const detailVerif = document.getElementById('detailVerif');
+    const detailKeterangan = document.getElementById('detailKeterangan');
 
     const roleBadge = document.getElementById('roleBadge');
     const userNameEl = document.getElementById('userName');
@@ -457,6 +462,8 @@
       el.setAttribute('aria-hidden','true');
     }
 
+    const STATUS_ORDER = { DIUSULKAN: 0, DIPROSES: 1, SELESAI: 2, DITOLAK: 3 };
+
     function badgeStatus(val){
       const v = (val||'').toUpperCase();
       if (v==='SELESAI') return '<span class="status-pill pill-success">Selesai</span>';
@@ -465,15 +472,48 @@
       return '<span class="status-pill pill-info">Diusulkan</span>';
     }
 
+    function normalizeRow(row){
+      const next = { ...(row || {}) };
+      if (!next.id) next.id = next.id_usulan || '';
+      if (!next.nama_ukpd) next.nama_ukpd = next.ukpd || '';
+      if (!next.jabatan) next.jabatan = next.jabatan_lama || '';
+      if (!next.pangkat_golongan) next.pangkat_golongan = next.pangkat_gol || '';
+      if (!next.alasan_pemutusan) next.alasan_pemutusan = next.alasan_usulan || '';
+      if (!next.berkas_path) next.berkas_path = next.link_dokumen || '';
+      if (!next.tanggal_usulan) next.tanggal_usulan = next.created_at || next.updated_at || '';
+      return next;
+    }
+
+    function getNamaUkpd(row){ return row?.nama_ukpd || row?.ukpd || ''; }
+    function getJabatan(row){ return row?.jabatan || row?.jabatan_lama || ''; }
+    function getPangkat(row){ return row?.pangkat_golongan || row?.pangkat_gol || ''; }
+
+    function getStatusRank(val){
+      const key = (val || '').toUpperCase();
+      return Object.prototype.hasOwnProperty.call(STATUS_ORDER, key) ? STATUS_ORDER[key] : 99;
+    }
+
+    function getSortTime(row){
+      const raw = row?.created_at || row?.tanggal_usulan || row?.updated_at || row?.tanggal_surat || '';
+      const parsed = Date.parse(raw);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    function sortRows(list){
+      return list.sort((a,b)=>{
+        const ra = getStatusRank(a.status);
+        const rb = getStatusRank(b.status);
+        if (ra !== rb) return ra - rb;
+        return getSortTime(b) - getSortTime(a);
+      });
+    }
+
     function applyRoleFilter(data){
       if (isSuper) return data;
-      if (isWilayahAdmin && loginWilayah){
-        const w = norm(loginWilayah);
-        return data.filter(d => norm(d.wilayah || '') === w || norm(d.ukpd || '').includes(w));
-      }
+      if (isWilayahAdmin && loginWilayah) return data;
       const ukpd = norm(loginUkpd);
       if (!ukpd) return data;
-      return data.filter(d => norm(d.ukpd || '') === ukpd);
+      return data.filter(d => norm(getNamaUkpd(d)) === ukpd);
     }
 
     async function apiFetch(url, options={}){
@@ -516,10 +556,11 @@
       const statusActive = statusChips.querySelector('.chip.active')?.dataset.status || '';
       filtered = applyRoleFilter(rows).filter(r=>{
         const matchQ = !q || norm(r.nama_pegawai).includes(q) || norm(r.nip).includes(q);
-        const matchUk = !uk || norm(r.ukpd) === uk;
+        const matchUk = !uk || norm(getNamaUkpd(r)) === uk;
         const matchSt = !statusActive || norm(r.status) === norm(statusActive);
         return matchQ && matchUk && matchSt;
       });
+      filtered = sortRows(filtered);
       page = 1;
       render();
     }
@@ -538,29 +579,28 @@
             <td>${start + idx + 1}</td>
             <td>${badgeStatus(r.status)}</td>
             <td class="actions">
-              <button class="ghost dropdown-toggle" data-id="${r.id_usulan||''}">Aksi v</button>
+              <button class="ghost dropdown-toggle" data-id="${r.id||''}">Aksi v</button>
               <div class="dropdown-menu">
-                <button data-action="view" data-id="${r.id_usulan||''}">Lihat</button>
-                <button data-action="edit" data-id="${r.id_usulan||''}">Ubah</button>
-                <button data-action="delete" data-id="${r.id_usulan||''}">Hapus</button>
-                ${r.link_dokumen ? `<a href="${r.link_dokumen}" target="_blank" rel="noopener">Buka Dokumen</a>` : ''}
+                <button data-action="view" data-id="${r.id||''}">Lihat</button>
+                <button data-action="edit" data-id="${r.id||''}">Ubah</button>
+                <button data-action="delete" data-id="${r.id||''}">Hapus</button>
+                ${r.berkas_path ? `<a href="${r.berkas_path}" target="_blank" rel="noopener">Buka Berkas</a>` : ''}
               </div>
             </td>
             <td>
               <div style="font-weight:800;">${r.nama_pegawai||'-'}</div>
               <div style="color:var(--muted); font-size:12px;">NIP: ${r.nip||'-'}</div>
-              <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${r.pangkat_gol||'-'}</div>
+              <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${getPangkat(r) || '-'}</div>
             </td>
-            <td>${r.jabatan_lama||'-'}</td>
+            <td>${getJabatan(r) || '-'}</td>
             <td>${r.jabatan_baru||'-'}</td>
             <td>${r.angka_kredit||'-'}</td>
             <td>
-              <div style="font-weight:700;">${r.ukpd||'-'}</div>
-              <div class="pill-meta">Wilayah: ${r.wilayah||'-'}</div>
+              <div style="font-weight:700;">${getNamaUkpd(r) || '-'}</div>
             </td>
             <td>${r.nomor_surat||'-'}</td>
             <td>${formatDate(r.tanggal_surat)}</td>
-            <td>${r.link_dokumen ? `<a href="${r.link_dokumen}" target="_blank" rel="noopener">Link</a>` : '-'}</td>
+            <td>${r.berkas_path ? `<a href="${r.berkas_path}" target="_blank" rel="noopener">Berkas</a>` : '-'}</td>
           </tr>
         `).join('');
       }
@@ -592,8 +632,8 @@
           params.set('ukpd', loginUkpd);
         }
         const res = await apiFetch(`${API_BASE}?action=pemutusan_jf_list&${params.toString()}`);
-        rows = res.rows || [];
-        buildUkpdFilter(res.ukpds || rows.map(r=>r.ukpd).filter(Boolean));
+        rows = (res.rows || []).map(normalizeRow);
+        buildUkpdFilter(res.ukpds || rows.map(r=>getNamaUkpd(r)).filter(Boolean));
         applyFilters();
         setStatus('Data dimuat: ' + (rows.length||0) + ' baris');
       }catch(err){
@@ -605,7 +645,7 @@
     }
 
     function openForm(row){
-      editingId = row?.id_usulan || null;
+      editingId = row?.id || null;
       formTitle.textContent = editingId ? 'Ubah Usulan Pemutusan JF' : 'Tambah Usulan Pemutusan JF';
       submitBtn.textContent = editingId ? 'Update' : 'Simpan';
       form.reset();
@@ -615,68 +655,67 @@
       }
       if (!isSuper){
         form.elements['status'].value = 'DIUSULKAN';
-        form.elements['ukpd'].value = loginUkpd;
-        form.elements['ukpd'].readOnly = true;
-        form.elements['wilayah'].value = loginWilayah;
-        form.elements['wilayah'].readOnly = true;
+        form.elements['nama_ukpd'].value = loginUkpd;
+        form.elements['nama_ukpd'].readOnly = true;
       } else {
-        form.elements['ukpd'].readOnly = false;
-        form.elements['wilayah'].readOnly = false;
+        form.elements['nama_ukpd'].readOnly = false;
       }
       showModal(formModal);
     }
 
     function fillView(row){
       const pairs = [
-        ['ID Usulan', row.id_usulan],
+        ['ID', row.id],
         ['Status', row.status],
         ['Nama Pegawai', row.nama_pegawai],
         ['NIP', row.nip],
-        ['Pangkat/Gol', row.pangkat_gol],
-        ['Jabatan Lama', row.jabatan_lama],
+        ['Pangkat/Golongan', row.pangkat_golongan],
+        ['Jabatan', row.jabatan],
         ['Jabatan Baru', row.jabatan_baru],
         ['Angka Kredit', row.angka_kredit],
-        ['UKPD', row.ukpd],
-        ['Wilayah', row.wilayah],
+        ['Nama UKPD', row.nama_ukpd],
+        ['Tanggal Usulan', formatDate(row.tanggal_usulan)],
         ['Nomor Surat', row.nomor_surat],
         ['Tanggal Surat', formatDate(row.tanggal_surat)],
-        ['Link Dokumen', row.link_dokumen ? `<a href="${row.link_dokumen}" target="_blank" rel="noopener">Buka Dokumen</a>` : '-'],
-        ['Dibuat Oleh', row.dibuat_oleh],
-        ['Dibuat Pada', formatDate(row.dibuat_pada)],
-        ['Diupdate Pada', formatDate(row.diupdate_pada)],
-        ['Verifikasi Oleh', row.verifikasi_oleh],
-        ['Verifikasi Tanggal', formatDate(row.verifikasi_tanggal)],
-        ['Catatan Verifikasi', row.verifikasi_catatan]
+        ['Hal', row.hal],
+        ['Pimpinan', row.pimpinan],
+        ['Asal Surat', row.asal_surat],
+        ['Berkas', row.berkas_path ? `<a href="${row.berkas_path}" target="_blank" rel="noopener">Buka Berkas</a>` : '-'],
+        ['Dibuat Oleh', row.created_by_ukpd],
+        ['Dibuat Pada', formatDate(row.created_at)],
+        ['Diupdate Pada', formatDate(row.updated_at)]
       ];
       detailGrid.innerHTML = pairs.map(([l,v])=>`
         <div class="detail-card"><div class="detail-label">${l}</div><div class="detail-value">${v || '-'}</div></div>
       `).join('');
-      detailAlasan.textContent = row.alasan_usulan || '-';
-      detailVerif.textContent = row.verifikasi_catatan || '-';
+      detailAlasan.textContent = row.alasan_pemutusan || '-';
+      detailKeterangan.textContent = row.keterangan || '-';
     }
 
     async function savePemutusan(e){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
-      if (!data.nama_pegawai || !data.nip || !data.jabatan_lama || !data.ukpd){
-        alert('Nama, NIP, Jabatan Lama, dan UKPD wajib diisi');
+      if (!data.nama_pegawai || !data.nip || !data.jabatan || !data.nama_ukpd){
+        alert('Nama, NIP, Jabatan, dan Nama UKPD wajib diisi');
         return;
       }
-      const now = new Date().toISOString();
+      const now = new Date();
+      const nowIso = now.toISOString();
+      const today = nowIso.slice(0,10);
       if (!editingId){
-        data.id_usulan = `PJ-${Date.now()}`;
-        data.dibuat_oleh = authUser?.username || authUser?.namaUkpd || 'user';
-        data.dibuat_pada = now;
+        data.id = `PJ-${Date.now()}`;
+        data.created_by_ukpd = authUser?.namaUkpd || authUser?.username || 'user';
+        data.created_at = nowIso;
       }
-      data.diupdate_pada = now;
+      data.updated_at = nowIso;
+      if (!data.tanggal_usulan) data.tanggal_usulan = today;
       if (!isSuper){
         data.status = 'DIUSULKAN';
-        data.ukpd = loginUkpd;
-        data.wilayah = loginWilayah;
+        data.nama_ukpd = loginUkpd;
       }
       const action = editingId ? 'pemutusan_jf_update' : 'pemutusan_jf_create';
       const bodyPayload = { action, ...data };
-      if (editingId) bodyPayload.id_usulan = editingId;
+      if (editingId) bodyPayload.id = editingId;
       submitBtn.disabled = true;
       try{
         await apiFetch(API_BASE, { method: 'POST', body: JSON.stringify(bodyPayload) });
@@ -696,7 +735,7 @@
       try{
         await apiFetch(API_BASE, {
           method: 'POST',
-          body: JSON.stringify({ action: 'pemutusan_jf_delete', id_usulan: id })
+          body: JSON.stringify({ action: 'pemutusan_jf_delete', id })
         });
         await loadData();
       }catch(err){
@@ -717,7 +756,7 @@
       if (!btn) return;
       const id = btn.dataset.id;
       const action = btn.dataset.action;
-      const row = rows.find(r=>r.id_usulan === id);
+      const row = rows.find(r=>r.id === id);
       if (!row) return;
       if (action === 'view'){ fillView(row); showModal(viewModal); }
       if (action === 'edit'){ openForm(row); }
@@ -751,7 +790,7 @@
     document.getElementById('addBtn').addEventListener('click', ()=> openForm(null));
 
     form.addEventListener('submit', (e)=>{ savePemutusan(e).catch(err=>alert(err.message)); });
-    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); if (!isSuper){ form.elements['status'].value='DIUSULKAN'; form.elements['ukpd'].value=loginUkpd; form.elements['wilayah'].value=loginWilayah; } submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Pemutusan JF'; });
+    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); if (!isSuper){ form.elements['status'].value='DIUSULKAN'; form.elements['nama_ukpd'].value=loginUkpd; } submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Pemutusan JF'; });
     closeForm.addEventListener('click', ()=> hideModal(formModal));
     closeView.addEventListener('click', ()=> hideModal(viewModal));
     modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });

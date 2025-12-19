@@ -9,7 +9,7 @@
 - Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
 
 ## Frontend
-- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
+- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`, `/DATA_PEGAWAI/pemutusan-jf/`, `/DATA_PEGAWAI/bezetting/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
 - Header/sidebar/footer di-root (`header.html`, `sidebar.html`, `footer.html`) diambil dengan BASE dinamis; logo/favikon juga di-set ulang via BASE + `foto/Dinkes.png`.
 
 ### Kolom data (urutan A:AC)
@@ -64,34 +64,46 @@
 18. bezetting_j_baru
 19. berkas_url
 
-### Usulan Pemutusan JF (USULAN_PEMUTUSAN_JF!A:T, 20 kolom)
-1. id_usulan
-2. status
-3. nama_pegawai
-4. nip
-5. pangkat_gol
-6. jabatan_lama
-7. jabatan_baru
-8. angka_kredit
-9. ukpd
-10. wilayah
-11. nomor_surat
-12. tanggal_surat
-13. alasan_usulan
-14. link_dokumen
-15. verifikasi_oleh
-16. verifikasi_tanggal
-17. verifikasi_catatan
-18. dibuat_oleh
-19. dibuat_pada
-20. diupdate_pada
+### Usulan Pemutusan JF (USULAN_PEMUTUSAN_JF!A:U, 21 kolom)
+1. id
+2. nip
+3. pangkat_golongan
+4. nama_pegawai
+5. jabatan
+6. jabatan_baru
+7. angka_kredit
+8. alasan_pemutusan
+9. nomor_surat
+10. tanggal_surat
+11. hal
+12. pimpinan
+13. asal_surat
+14. nama_ukpd
+15. tanggal_usulan
+16. status
+17. berkas_path
+18. created_by_ukpd
+19. created_at
+20. updated_at
+21. keterangan
+
+Catatan pemutusan JF:
+- Backend dan front-end melakukan normalisasi header (lowercase + underscore). Jika sheet masih memakai nama lama, fallback dilakukan:
+  - `id_usulan` -> `id`
+  - `pangkat_gol` -> `pangkat_golongan`
+  - `jabatan_lama` -> `jabatan`
+  - `ukpd` -> `nama_ukpd`
+  - `alasan_usulan` -> `alasan_pemutusan`
+  - `link_dokumen` -> `berkas_path`
+- Urutan tampil di tabel: status `DIUSULKAN`, `DIPROSES`, `SELESAI`, `DITOLAK`; di dalam status disortir terbaru berdasarkan `created_at` -> `tanggal_usulan` -> `updated_at` -> `tanggal_surat`.
 
 ### Aturan Akses Wilayah/UKPD
 - Superadmin: lihat semua data.
 - Admin Wilayah: data dibatasi sesuai `wilayah` login.
 - Admin UKPD: data dibatasi UKPD login.
 - Frontend mengirim query `wilayah`/`ukpd` otomatis saat load; backend memfilter ulang sesuai query.
-- Penambahan data otomatis mengisi `wilayah` (pemutusan JF) atau `wilayah_asal/tujuan` (mutasi) dari sheet `username` jika kosong.
+- Penambahan data otomatis mengisi `tanggal_usulan`, `created_at`, `updated_at` (pemutusan JF) dan `wilayah_asal/tujuan` (mutasi) dari sheet `username` jika kosong.
+- Filter wilayah untuk pemutusan JF dihitung dari mapping `nama_ukpd` -> `wilayah` di sheet `username` (kolom wilayah tidak disimpan di sheet pemutusan).
 
 ### Endpoint utama (action-based)
 Semua request lewat Cloudflare Worker, gunakan query/body `action`.
@@ -116,10 +128,11 @@ Keamanan:
 
 ### Catatan backend
 - Header sheet di-normalisasi (trim + lowercase) dan ada fallback index, sehingga tetap terbaca meski ada spasi tersembunyi.
+- Untuk pemutusan JF, ada fallback nama kolom lama (id_usulan, pangkat_gol, jabatan_lama, ukpd, alasan_usulan, link_dokumen) agar data lama tetap terbaca.
 - Role filter di front-end juga normalisasi nama_ukpd (trim + lowercase).
 
 ## Front-end
-- File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`.
+- File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`, `pemutusan-jf/index.html`, `bezetting/index.html`.
 - `API_BASE` default: `https://sikepeg.seftianh23.workers.dev` (Cloudflare Worker). Frontend hanya memanggil Worker.
 - Sidebar dan header diinject dari `sidebar.html` dan `header.html` (sticky). Footer dari `footer.html` dipakai di dashboard dan data-pegawai.
 - Auth disimpan di `localStorage` (`authUser`: username, role, namaUkpd) setelah login di `index.html`.
@@ -136,8 +149,13 @@ Keamanan:
 - Tabel aksi dengan ikon (lihat profil → simpan ke `localStorage` dan buka `profil.html`, edit, hapus). Footer konsisten.
 
 ### Profil (`profil.html`)
-- Membaca `selectedPegawai` dari `localStorage` (klik “lihat profil”). Jika tidak ada, fallback fetch pertama sesuai role filter.
+- Membaca `selectedPegawai` dari `localStorage` (klik "lihat profil"). Jika tidak ada, fallback fetch pertama sesuai role filter.
 - Menampilkan profil lengkap: identitas, kepegawaian, pendidikan/gelar, kontak/alamat, catatan.
+
+### Pemutusan JF (`pemutusan-jf/index.html`)
+- List dan form mengikuti kolom baru (pangkat_golongan, jabatan, nama_ukpd, dll).
+- Filter status + UKPD, sorting status berurutan dan terbaru (lihat catatan pemutusan JF di atas).
+- Aksi per baris muncul via dropdown (Lihat/Ubah/Hapus + link berkas jika ada).
 
 ## Menjalankan (lokal)
 1. Pastikan file key service account JSON ada di folder; spreadsheet dibagikan ke service account (Editor).

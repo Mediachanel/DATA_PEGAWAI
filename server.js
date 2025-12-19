@@ -26,12 +26,11 @@ const MUTASI_COLS = [
   'jenis_mutasi','alasan','tanggal_usulan','status','keterangan',
   'abk_j_lama','bezetting_j_lama','abk_j_baru','bezetting_j_baru','berkas_url'
 ];
-const PEMUTUSAN_RANGE = process.env.PEMUTUSAN_RANGE || 'USULAN_PEMUTUSAN_JF!A:T';
+const PEMUTUSAN_RANGE = process.env.PEMUTUSAN_RANGE || 'USULAN_PEMUTUSAN_JF!A:U';
 const PEMUTUSAN_COLS = [
-  'id_usulan','status','nama_pegawai','nip','pangkat_gol','jabatan_lama','jabatan_baru','angka_kredit',
-  'ukpd','wilayah','nomor_surat','tanggal_surat','alasan_usulan','link_dokumen',
-  'verifikasi_oleh','verifikasi_tanggal','verifikasi_catatan',
-  'dibuat_oleh','dibuat_pada','diupdate_pada'
+  'id','nip','pangkat_golongan','nama_pegawai','jabatan','jabatan_baru','angka_kredit','alasan_pemutusan',
+  'nomor_surat','tanggal_surat','hal','pimpinan','asal_surat','nama_ukpd','tanggal_usulan','status',
+  'berkas_path','created_by_ukpd','created_at','updated_at','keterangan'
 ];
 const BEZETTING_RANGE = process.env.BEZETTING_RANGE || 'bezetting!A:W';
 const BEZETTING_COLS = [
@@ -42,6 +41,7 @@ const BEZETTING_COLS = [
 ];
 
 const norm = (val = '') => (val || '').toString().trim().toLowerCase();
+const normalizeHeaderKey = (val = '') => val.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
 
 async function getUkpdWilayahMap() {
   const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: USER_RANGE });
@@ -207,13 +207,13 @@ app.all('/', async (req, res) => {
       return forwardTo(`${baseUrl}/pemutusan-jf`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
     }
     case 'pemutusan_jf_update': {
-      const id = (req.query?.id_usulan || payload.id_usulan || '').toString().trim();
-      if (!id) return res.status(400).json({ ok: false, error: 'ID usulan wajib' });
+      const id = (req.query?.id || payload.id || payload.id_usulan || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
       return forwardTo(`${baseUrl}/pemutusan-jf/${encodeURIComponent(id)}`, { method: 'PUT', headers, body: JSON.stringify(payload) }, res);
     }
     case 'pemutusan_jf_delete': {
-      const id = (req.query?.id_usulan || payload.id_usulan || '').toString().trim();
-      if (!id) return res.status(400).json({ ok: false, error: 'ID usulan wajib' });
+      const id = (req.query?.id || payload.id || payload.id_usulan || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
       return forwardTo(`${baseUrl}/pemutusan-jf/${encodeURIComponent(id)}`, { method: 'DELETE', headers }, res);
     }
     case 'bezetting_list': {
@@ -622,7 +622,7 @@ app.get('/pemutusan-jf', async (req, res) => {
     const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
     const values = result.data.values || [];
     const [header, ...rows] = values;
-    let list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id_usulan);
+    let list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id);
 
     let mapWilayah = null;
     if (wilayahQuery) {
@@ -632,7 +632,7 @@ app.get('/pemutusan-jf', async (req, res) => {
     list = list.filter(r => {
       const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
       const matchStatus = !status || norm(r.status) === status;
-      const ukVal = norm(r.ukpd);
+      const ukVal = norm(r.nama_ukpd);
       const matchUkpd = !ukpdQuery || ukVal === ukpdQuery;
       const matchWilayah = !wilayahQuery || (mapWilayah && mapWilayah[ukVal] === wilayahQuery);
       return matchTerm && matchStatus && matchUkpd && matchWilayah;
@@ -644,7 +644,7 @@ app.get('/pemutusan-jf', async (req, res) => {
       return acc;
     }, {});
     const statuses = Array.from(new Set(list.map(r => r.status).filter(Boolean))).sort();
-    const ukpds = Array.from(new Set(list.map(r => r.ukpd).filter(Boolean))).sort();
+    const ukpds = Array.from(new Set(list.map(r => r.nama_ukpd).filter(Boolean))).sort();
 
     res.json({ ok: true, rows: list, total: list.length, summary, statuses, ukpds });
   } catch (err) {
@@ -655,14 +655,15 @@ app.get('/pemutusan-jf', async (req, res) => {
 app.post('/pemutusan-jf', async (req, res) => {
   try {
     const d = req.body || {};
-    const id = d.id_usulan || `PJ-${Date.now()}`;
-    // isi wilayah jika kosong berdasarkan user sheet
-    let wilayahVal = d.wilayah || '';
-    if (!wilayahVal && d.ukpd) {
-      const map = await getUkpdWilayahMap();
-      wilayahVal = map[norm(d.ukpd)] || '';
-    }
-    const rowData = { ...d, id_usulan: id, wilayah: wilayahVal };
+    const id = d.id || `PJ-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const rowData = {
+      ...d,
+      id,
+      tanggal_usulan: d.tanggal_usulan || nowIso,
+      created_at: d.created_at || nowIso,
+      updated_at: d.updated_at || nowIso
+    };
     const row = PEMUTUSAN_COLS.map(k => rowData[k] || '');
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
@@ -671,7 +672,7 @@ app.post('/pemutusan-jf', async (req, res) => {
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] }
     });
-    res.json({ ok: true, id_usulan: id });
+    res.json({ ok: true, id });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -684,18 +685,15 @@ app.put('/pemutusan-jf/:id', async (req, res) => {
     const rows = values.data.values || [];
     const [header, ...data] = rows;
     const idx = data.findIndex(r => (r[0] || '').toString() === id);
-    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID usulan tidak ditemukan' });
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
     const rowNumber = idx + 2; // +1 header
-    let wilayahVal = req.body?.wilayah || '';
-    if (!wilayahVal && req.body?.ukpd) {
-      const map = await getUkpdWilayahMap();
-      wilayahVal = map[norm(req.body.ukpd)] || '';
-    }
-    const dataPayload = { ...(req.body || {}), id_usulan: id, wilayah: wilayahVal };
+    const current = toPemutusanRecord(header, data[idx]);
+    const dataPayload = { ...current, ...(req.body || {}), id };
+    if (!dataPayload.updated_at) dataPayload.updated_at = new Date().toISOString();
     const payload = PEMUTUSAN_COLS.map(k => dataPayload[k] || '');
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${PEMUTUSAN_RANGE.split('!')[0]}!A${rowNumber}:T${rowNumber}`,
+      range: `${PEMUTUSAN_RANGE.split('!')[0]}!A${rowNumber}:U${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
@@ -711,7 +709,7 @@ app.delete('/pemutusan-jf/:id', async (req, res) => {
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
     const rows = values.data.values || [];
     const idx = rows.findIndex(r => (r[0] || '').toString() === id);
-    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID usulan tidak ditemukan' });
+    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
     const sheetId = await getSheetIdByName(PEMUTUSAN_RANGE.split('!')[0]);
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -934,34 +932,47 @@ function toMutasiRecord(header, row){
 }
 
 function toPemutusanRecord(header, row){
-  const h = (header || []).map(x => (x || '').toLowerCase().trim());
+  const h = (header || []).map(normalizeHeaderKey);
+  const getByName = (name) => {
+    const idx = h.indexOf(normalizeHeaderKey(name));
+    if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
+    return '';
+  };
   const get = (name, idxFallback) => {
-    const idx = h.indexOf(name);
+    const idx = h.indexOf(normalizeHeaderKey(name));
     if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
     if (typeof idxFallback === 'number' && typeof row[idxFallback] !== 'undefined') return row[idxFallback] || '';
     return '';
   };
+  const id = get('id',0) || getByName('id_usulan');
+  const pangkat = get('pangkat_golongan',2) || getByName('pangkat_gol');
+  const jabatan = get('jabatan',4) || getByName('jabatan_lama');
+  const alasan = get('alasan_pemutusan',7) || getByName('alasan_usulan');
+  const namaUkpd = get('nama_ukpd',13) || getByName('ukpd');
+  const berkasPath = get('berkas_path',16) || getByName('link_dokumen');
+
   return {
-    id_usulan: get('id_usulan',0),
-    status: get('status',1),
-    nama_pegawai: get('nama_pegawai',2),
-    nip: get('nip',3),
-    pangkat_gol: get('pangkat_gol',4),
-    jabatan_lama: get('jabatan_lama',5),
-    jabatan_baru: get('jabatan_baru',6),
-    angka_kredit: get('angka_kredit',7),
-    ukpd: get('ukpd',8),
-    wilayah: get('wilayah',9),
-    nomor_surat: get('nomor_surat',10),
-    tanggal_surat: get('tanggal_surat',11),
-    alasan_usulan: get('alasan_usulan',12),
-    link_dokumen: get('link_dokumen',13),
-    verifikasi_oleh: get('verifikasi_oleh',14),
-    verifikasi_tanggal: get('verifikasi_tanggal',15),
-    verifikasi_catatan: get('verifikasi_catatan',16),
-    dibuat_oleh: get('dibuat_oleh',17),
-    dibuat_pada: get('dibuat_pada',18),
-    diupdate_pada: get('diupdate_pada',19),
+    id,
+    nip: get('nip',1),
+    pangkat_golongan: pangkat,
+    nama_pegawai: get('nama_pegawai',3),
+    jabatan,
+    jabatan_baru: get('jabatan_baru',5),
+    angka_kredit: get('angka_kredit',6),
+    alasan_pemutusan: alasan,
+    nomor_surat: get('nomor_surat',8),
+    tanggal_surat: get('tanggal_surat',9),
+    hal: get('hal',10),
+    pimpinan: get('pimpinan',11),
+    asal_surat: get('asal_surat',12),
+    nama_ukpd: namaUkpd,
+    tanggal_usulan: get('tanggal_usulan',14),
+    status: get('status',15),
+    berkas_path: berkasPath,
+    created_by_ukpd: get('created_by_ukpd',17),
+    created_at: get('created_at',18),
+    updated_at: get('updated_at',19),
+    keterangan: get('keterangan',20),
   };
 }
 
