@@ -24,7 +24,7 @@ Backend: `server.js` (Node/Express) bertindak sebagai proxy ke Web App Apps Scri
 ## 3) Update front-end
 - Ubah `API_BASE` di semua halaman utama (`index.html`, `dashboard/index.html`, `data-pegawai/index.html`, `profil/index.html`, `usulan-mutasi/index.html`, `pemutusan-jf/index.html`, `bezetting/index.html`) ke URL publik backend, mis.  
   `const API_BASE = 'https://nama-app.onrender.com';`
-- Default repo sekarang memakai Web App Apps Script `https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec`; ganti ke URL backend Anda jika mengikuti langkah ini.
+- Default repo sekarang memakai Cloudflare Worker `https://sikepeg.seftianh23.workers.dev`; ganti ke URL backend Anda jika mengikuti langkah ini.
 - Commit & push (untuk GitHub Pages).
 
 ## 4) Uji

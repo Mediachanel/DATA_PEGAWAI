@@ -327,7 +327,9 @@
     })();
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
-    const API_BASE = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') ? 'http://127.0.0.1:5002' : 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
+    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const PROXY_KEY = 'ganti_proxy_key_aman';
+    const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
     Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
       document.getElementById('sidebar-container').innerHTML = s;
@@ -413,8 +415,8 @@
 
     async function apiFetch(url, options={}){
       const opts = { ...options };
-      // default to text/plain to avoid preflight on Apps Script
-      if (opts.method && !opts.headers) opts.headers = { 'Content-Type':'text/plain' };
+      opts.headers = { ...API_HEADERS, ...(opts.headers || {}) };
+      if (opts.body && !opts.headers['Content-Type']) opts.headers['Content-Type'] = 'application/json';
       const res = await fetch(url, opts);
       const text = await res.text();
       let body;
@@ -534,7 +536,7 @@
         params.set('ukpd', loginUkpd);
       }
       if (tujuanFilter.value) params.set('tujuan', tujuanFilter.value);
-      const body = await apiFetch(`${API_BASE}/mutasi?${params.toString()}`);
+      const body = await apiFetch(`${API_BASE}?action=mutasi_list&${params.toString()}`);
       cacheRows = body.rows || [];
       const total = typeof body.total === 'number' ? body.total : cacheRows.length;
       totalPages = Math.max(1, Math.ceil(total / currentLimit));
@@ -555,10 +557,10 @@
       // set wilayah default dari login bila kosong
       if (!data.wilayah_asal) data.wilayah_asal = loginWilayah;
       if (!data.wilayah_tujuan) data.wilayah_tujuan = loginWilayah;
-      const url = editingId ? `${API_BASE}/mutasi/${editingId}` : `${API_BASE}/mutasi`;
-      const bodyPayload = { ...data };
-      if (editingId) bodyPayload._method = 'PUT';
-      await apiFetch(url, { method: 'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(bodyPayload) });
+      const action = editingId ? 'mutasi_update' : 'mutasi_create';
+      const bodyPayload = { action, ...data };
+      if (editingId) bodyPayload.id = editingId;
+      await apiFetch(API_BASE, { method: 'POST', body: JSON.stringify(bodyPayload) });
       editingId = null;
       form.reset();
       await loadData();
@@ -568,10 +570,9 @@
 
     async function deleteMutasi(id){
       if (!confirm('Hapus usulan ini?')) return;
-      await apiFetch(`${API_BASE}/mutasi/${id}`, {
+      await apiFetch(API_BASE, {
         method: 'POST',
-        headers: { 'Content-Type':'text/plain' },
-        body: JSON.stringify({ _method: 'DELETE' })
+        body: JSON.stringify({ action: 'mutasi_delete', id })
       });
       await loadData();
     }

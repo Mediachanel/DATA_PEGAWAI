@@ -93,15 +93,26 @@
 - Frontend mengirim query `wilayah`/`ukpd` otomatis saat load; backend memfilter ulang sesuai query.
 - Penambahan data otomatis mengisi `wilayah` (pemutusan JF) atau `wilayah_asal/tujuan` (mutasi) dari sheet `username` jika kosong.
 
-### Endpoint utama
-- `GET /health` - cek status server.
-- `POST /login` - body {username,password}; respon {user: {username, role, namaUkpd}}.
-- `GET /pegawai` - dukung query: `offset`, `limit`, `search` (NIP/NIK/Nama), `unit` (nama_ukpd), `jabatan` (contains), `status` (comma). Respon: {rows, total, summary, units, jabs, statuses}.
-- `POST /pegawai` - tambah baris sesuai urutan kolom (29 field).
-- `PUT /pegawai/:id` - update berdasarkan NIP/NIK.
-- `DELETE /pegawai/:id` - hapus berdasarkan NIP/NIK.
-- Apps Script Web App hanya menerima GET/POST; untuk PUT/DELETE gunakan POST dengan `_method` di body.
-- Untuk proteksi sederhana, isi `API_TOKEN` di Apps Script dan kirim `token` di body atau header `x-api-key` untuk request write.
+### Endpoint utama (action-based)
+Semua request lewat Cloudflare Worker, gunakan query/body `action`.
+
+GET
+- `?action=health` - cek status.
+- `?action=list` - daftar pegawai (query: `offset`, `limit`, `search`, `unit`, `jabatan`, `status`).
+- `?action=get&id=...` - detail pegawai.
+- `?action=mutasi_list`, `?action=pemutusan_jf_list`, `?action=bezetting_list`.
+
+POST (JSON)
+- `action=login`
+- `action=create|update|delete` (pegawai)
+- `action=mutasi_create|mutasi_update|mutasi_delete`
+- `action=pemutusan_jf_create|pemutusan_jf_update|pemutusan_jf_delete`
+- `action=bezetting_create|bezetting_update|bezetting_delete`
+- `action=upload`
+
+Keamanan:
+- Frontend mengirim header `X-Proxy-Key` ke Worker.
+- Worker menambahkan query `key` untuk Apps Script (harus sama dengan `API_KEY` di `code.js`).
 
 ### Catatan backend
 - Header sheet di-normalisasi (trim + lowercase) dan ada fallback index, sehingga tetap terbaca meski ada spasi tersembunyi.
@@ -109,18 +120,18 @@
 
 ## Front-end
 - File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`.
-- `API_BASE` default: `https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec` (Web App Apps Script). Ubah jika memakai backend sendiri (Render/ngrok/localhost).
+- `API_BASE` default: `https://sikepeg.seftianh23.workers.dev` (Cloudflare Worker). Frontend hanya memanggil Worker.
 - Sidebar dan header diinject dari `sidebar.html` dan `header.html` (sticky). Footer dari `footer.html` dipakai di dashboard dan data-pegawai.
 - Auth disimpan di `localStorage` (`authUser`: username, role, namaUkpd) setelah login di `index.html`.
 - Role filter: non-super/dinkes otomatis hanya melihat data UKPD login; super admin/dinkes dapat melihat semua.
 
 ### Dashboard (`dashboard.html`)
 - Memuat header/footer/sidebar dinamis; menampilkan badge role/UKPD dari `authUser`.
-- Fetch `/pegawai` (limit default 20000, role non-superadmin otomatis filter `unit`), render KPI per status, chart status/UKPD/pendidikan/rumpun, tabel UKPD.
+- Fetch `?action=list` (limit default 20000, role non-superadmin otomatis filter `unit`), render KPI per status, chart status/UKPD/pendidikan/rumpun, tabel UKPD.
 - Compact mode, tombol unduh PNG chart, sticky header.
 
 ### Data Pegawai (`data-pegawai.html`)
-- Server-side pagination: query `/pegawai` dengan `limit`, `offset`, `search`, `unit`, `jabatan`, `status` (chips). Non-superadmin otomatis kirim `unit`.
+- Server-side pagination: query `?action=list` dengan `limit`, `offset`, `search`, `unit`, `jabatan`, `status` (chips). Non-superadmin otomatis kirim `unit`.
 - Form validasi: dropdown status rumpun, jenis kontrak, agama, status aktif, jenis kelamin, golongan darah, jenjang pendidikan, status pernikahan. Semua field wajib; tanggal pakai `type=date`; UKPD otomatis sesuai login (readonly untuk non-superadmin).
 - Tabel aksi dengan ikon (lihat profil → simpan ke `localStorage` dan buka `profil.html`, edit, hapus). Footer konsisten.
 
@@ -136,18 +147,18 @@
    $env:PORT=5002
    npm start
    ```
-3. Jika ingin memakai backend lokal ini, ubah `API_BASE` di front-end menjadi `http://127.0.0.1:5002` (default repo mengarah ke Web App Apps Script), lalu buka front-end (file:// atau server statis).
+3. Jika ingin memakai backend lokal ini, ubah `API_BASE` di front-end menjadi `http://127.0.0.1:5002` (default repo mengarah ke Cloudflare Worker), lalu buka front-end (file:// atau server statis).
 
 ## Catatan percobaan proxy (Des 2025)
 - Sudah dibuat fungsi proxy Vercel di `api/proxy.js` dan konfigurasi `vercel.json` untuk build route `/api/proxy` dengan env `WEB_APP_BASE` ke Apps Script. Deployment Vercel project `data` masih gagal (500) karena project terhubung ke repo lain yang belum memuat commit `api/proxy.js`/`vercel.json` atau belum redeploy dari commit terbaru.
-- Cloudflare Worker proxy (`cf-worker-proxy.js`) juga disiapkan, tetapi subdomain workers.dev belum aktif, sehingga tetap NXDOMAIN/1101.
-- API_BASE di repo sekarang diarahkan ke Web App Apps Script (`https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec`) agar langsung jalan di GitHub Pages tanpa backend Node.
+- Cloudflare Worker proxy (`cf-worker-proxy.js`) aktif; set env `WEB_APP_BASE`, `PROXY_KEY`, `APPS_SCRIPT_KEY`, lalu gunakan URL Worker (mis. `https://sikepeg.seftianh23.workers.dev`).
+- API_BASE di repo sekarang diarahkan ke Cloudflare Worker `https://sikepeg.seftianh23.workers.dev`.
 - Jika ingin pakai proxy/backend publik lagi: pastikan deployment Vercel memakai repo commit terbaru (ada `api/proxy.js` + `vercel.json`) atau backend Render/Fly, set env `WEB_APP_BASE`, redeploy, lalu set `API_BASE` sesuai URL backend/proxy (mis. `https://<domain-vercel>/api/proxy` atau `https://nama-app.onrender.com`).
 
 ## Menjalankan via ngrok (sementara)
 1. Backend di port 5002.
 2. Jalankan `ngrok http 5002`, catat URL https ngrok.
-3. Ubah `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL ngrok tersebut; hard refresh halaman. (Hanya perlu jika memakai backend lokal; default repo sudah ke Web App Apps Script.)
+3. Ubah `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL ngrok tersebut; hard refresh halaman. (Hanya perlu jika memakai backend lokal; default repo sudah ke Cloudflare Worker.)
 
 ## Catatan UI
 - Header sticky, logout merah, badge role/UKPD dari `authUser`.
@@ -165,7 +176,7 @@
   - `sidebar.html`: ikon huruf sederhana, item Keluar pakai `data-logout`.
   - `data-pegawai.html`: textarea form distyling, panel responsif.
   - `profil.html`: footer include, sidebar mobile toggle.
-- `usulan-mutasi.html`: halaman usulan mutasi (form tambah/ubah via modal, filter, tabel, metrik ringkas), `API_BASE` default ke Web App Apps Script, upload PDF ke Drive via `/upload` (link disimpan di `berkas_url`).
+- `usulan-mutasi.html`: halaman usulan mutasi (form tambah/ubah via modal, filter, tabel, metrik ringkas), `API_BASE` default ke Cloudflare Worker, upload PDF ke Drive via `/upload` (link disimpan di `berkas_url`).
 - Tambahan file:
   - `DEPLOY.md`: panduan deploy backend (Render/Fly/Heroku), set `WEB_APP_BASE`, update `API_BASE` front-end.
   - `cf-worker-proxy.js`: Cloudflare Worker proxy ke Apps Script dengan CORS `*` (butuh var `WEB_APP_BASE` di Worker).
@@ -187,11 +198,11 @@
 - Pastikan tidak ada proses lain di port 5002 (matikan server lama sebelum `npm start`).
 - Jalankan backend: `npm start` (PORT default 5002).
 - Jika memakai backend lokal ini, set `API_BASE` di front-end ke `http://127.0.0.1:5002`, lalu cek `http://127.0.0.1:5002/health` harus `{ok:true}`, `http://127.0.0.1:5002/mutasi` untuk usulan mutasi.
-- Front-end lokal via `http-server` di port 5500/5501 (default repo `API_BASE` ke Web App Apps Script; ganti ke localhost/ngrok/backend publik sesuai kebutuhan).
+- Front-end lokal via `http-server` di port 5500/5501 (default repo `API_BASE` ke Cloudflare Worker; ganti ke localhost/ngrok/backend publik sesuai kebutuhan).
 - Untuk upload berkas, set env `SERVICE_ACCOUNT_PATH` ke file JSON service account dan `DRIVE_FOLDER_ID` ke folder di Shared Drive yang sudah dibagikan Editor ke service account.
 
 ## Perubahan utama yang dilakukan
 - Menyesuaikan layout sesuai contoh Dinkes: dashboard dan data pegawai dengan sidebar/header konsisten, stat cards, filter bar, tabel.
 - Menambah pagination di front-end dan query filter di backend.
 - Memperbaiki mapping kolom (trim header + fallback index) agar `nama_ukpd`, NIP/NIK, dll. terbaca.
-- API_BASE di repo saat ini diarahkan ke Web App Apps Script; ganti bila memakai backend lain (Render/ngrok/localhost).
+- API_BASE di repo saat ini diarahkan ke Cloudflare Worker; ganti bila memakai backend lain (Render/ngrok/localhost).

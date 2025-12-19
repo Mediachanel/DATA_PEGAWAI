@@ -163,7 +163,9 @@
       const parts = location.pathname.split('/').filter(Boolean);
       return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
     })();
-    const API_BASE = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') ? 'http://127.0.0.1:5002' : 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
+    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const PROXY_KEY = 'ganti_proxy_key_aman';
+    const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
 
@@ -259,7 +261,7 @@
       } else {
         params.set('ukpd', loginUkpd);
       }
-      const res = await fetch(`${API_BASE}/bezetting?${params.toString()}`);
+      const res = await fetch(`${API_BASE}?action=bezetting_list&${params.toString()}`, { headers: API_HEADERS });
       const body = await res.json();
       if (!res.ok || body.ok === false) throw new Error(body.error || 'Gagal ambil data');
       rows = applyRoleFilter(body.rows || []);

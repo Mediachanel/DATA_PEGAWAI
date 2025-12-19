@@ -101,7 +101,9 @@
     })();
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
-    const API_BASE = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') ? 'http://127.0.0.1:5002' : 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
+    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const PROXY_KEY = 'ganti_proxy_key_aman';
+    const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     const statusEl = document.getElementById('status');
     const loginBtn = document.getElementById('loginBtn');
     const loginForm = document.getElementById('loginForm');
@@ -120,7 +122,7 @@
 
     async function checkServer() {
       try {
-        const res = await fetch(API_BASE + '/health');
+        const res = await fetch(API_BASE + '?action=health', { headers: API_HEADERS });
         const body = await res.json();
         if (res.ok && body.ok) {
           serverReady = true;
@@ -146,10 +148,10 @@
         password: data.get('password') || ''
       };
       try {
-        const res = await fetch(API_BASE + '/login', {
+        const res = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain' }, // hindari preflight di Apps Script
-          body: JSON.stringify(payload)
+          headers: { 'Content-Type': 'application/json', 'X-Proxy-Key': PROXY_KEY },
+          body: JSON.stringify({ action: 'login', ...payload })
         });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Login gagal');

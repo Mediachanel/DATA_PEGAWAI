@@ -1,10 +1,12 @@
 # Sistem Informasi Data Pegawai (Spreadsheet)
 
-## Front-end via backend (tanpa API key di browser)
+## Front-end via Cloudflare Worker proxy (recommended)
 - File: `index.html`
-- Default `API_BASE` disetel ke Web App Apps Script `https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec` agar bisa langsung dipakai di GitHub Pages.
-- Jika memakai backend Node (lihat bawah), jalankan server lalu ubah `API_BASE` di `index.html` ke URL backend (mis. `http://127.0.0.1:5002` atau URL Render/ngrok), kemudian buka `index.html` di browser.
-- Klik **Cek Koneksi Server**, isi form, kirim. Data dikirim ke endpoint backend `/pegawai`.
+- Default `API_BASE` disetel ke Cloudflare Worker `https://sikepeg.seftianh23.workers.dev`.
+- Set `PROXY_KEY` di semua halaman (header `X-Proxy-Key`) dan samakan dengan env `PROXY_KEY` di Worker.
+- Worker meneruskan `key` ke Apps Script (env `APPS_SCRIPT_KEY` harus sama dengan `API_KEY` di `code.js`).
+- Frontend hanya memanggil Worker (tidak langsung ke Apps Script).
+- Endpoint memakai `action`: `GET ?action=health|list|get`, `POST {action:create|update|delete|login|upload}`.
 
 ## Backend Node (service account)
 - File: `server.js`
@@ -22,8 +24,8 @@
 
 ## Dashboard
 - File: `dashboard.html`
-- Default `API_BASE` mengarah ke Web App Apps Script di atas; jika memakai backend sendiri ubah ke URL backend (mis. `http://127.0.0.1:5002` atau Render/ngrok).
-- Gunakan backend (cek koneksi server, lalu login dengan username/password dari sheet `username`).
+- `API_BASE` diarahkan ke Cloudflare Worker (lihat bagian atas).
+- Gunakan login dari sheet `username`.
 
 ## Struktur sheet
 - Data: `DATA PEGAWAI` (A:AC)
@@ -59,6 +61,6 @@
 - Login: `username` (A:E) kolom Nama UKPD, Username, Password, Hak akses, Wilayah.
 
 ## Troubleshooting
-- Gagal append/baca: cek share ke service account, path file key, Sheets API aktif.
-- Front-end tidak tersambung: pastikan `API_BASE` sudah benar (Web App Apps Script atau backend yang Anda pakai) dan backend/Apps Script dapat diakses.
-- Range salah: sesuaikan konstanta `RANGE` atau `USER_RANGE` di `server.js`.
+- Response `forbidden`: cek `PROXY_KEY` (frontend vs Worker) dan `APPS_SCRIPT_KEY` (Worker) harus sama dengan `API_KEY` di `code.js`.
+- Front-end tidak tersambung: pastikan `API_BASE` adalah URL Worker dan Worker sudah Deploy.
+- Range salah: sesuaikan konstanta `RANGE` atau `USER_RANGE` di `server.js` (jika memakai backend Node).

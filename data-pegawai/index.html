@@ -252,7 +252,9 @@
     })();
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
-    const API_BASE = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') ? 'http://127.0.0.1:5002' : 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
+    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const PROXY_KEY = 'ganti_proxy_key_aman';
+    const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=> ''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
     Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
       document.getElementById('sidebar-container').innerHTML = s;
@@ -372,7 +374,7 @@
     async function init(){
       try {
         setStatus('Cek koneksi server...');
-        const res = await fetch(API_BASE + '/health');
+        const res = await fetch(API_BASE + '?action=health', { headers: API_HEADERS });
         if (!res.ok) throw new Error('Server tidak siap');
         initialized = true;
         setStatus('Server siap. Memuat data...');
@@ -467,7 +469,7 @@
         const activeChips = Array.from(document.querySelectorAll('.chip.active')).map(c=>c.dataset.status);
         if (activeChips.length) params.set('status', activeChips.join(','));
 
-        const res = await fetch(`${API_BASE}/pegawai?${params.toString()}`);
+        const res = await fetch(`${API_BASE}?action=list&${params.toString()}`, { headers: API_HEADERS });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
         rows = applyRoleFilter(body.rows || []);
@@ -546,6 +548,7 @@
       tableBody.innerHTML = '';
       rows.forEach((r, idx)=>{
         const tr = document.createElement('tr');
+        const rowId = r.id || r.nip || r.nik || '';
         const missing = missingFields(r);
         const warnBadge = missing.length ? `<span class="warn-badge" title="Belum lengkap: ${missing.join(', ')}" data-missing="${missing.join('|')}">⚠ Lengkapi</span>` : '';
         tr.innerHTML = `
@@ -559,9 +562,9 @@
           <td>${r.nama_ukpd || '-'}</td>
           <td>${r.nama_status_aktif || '-'}</td>
           <td class="actions">
-            <button class="icon-btn icon-view" title="Lihat Profil" data-id="${r.nip || r.nik}" data-action="view">&#128065;</button>
-            <button class="icon-btn icon-edit" title="Edit" data-id="${r.nip || r.nik}" data-action="edit">&#9998;</button>
-            <button class="icon-btn icon-delete" title="Hapus" data-id="${r.nip || r.nik}" data-action="delete">&#128465;</button>
+            <button class="icon-btn icon-view" title="Lihat Profil" data-id="${rowId}" data-action="view">&#128065;</button>
+            <button class="icon-btn icon-edit" title="Edit" data-id="${rowId}" data-action="edit">&#9998;</button>
+            <button class="icon-btn icon-delete" title="Hapus" data-id="${rowId}" data-action="delete">&#128465;</button>
           </td>
         `;
         tableBody.appendChild(tr);
@@ -574,7 +577,7 @@
     function openModal(data){
       modalBackdrop.classList.add('show');
       pegawaiForm.reset();
-      editingId = data?.nip || data?.nik || null;
+      editingId = data?.id || data?.nip || data?.nik || null;
       modalTitle.textContent = editingId ? 'Edit Pegawai' : 'Tambah Pegawai';
       submitModal.textContent = editingId ? 'Simpan Perubahan' : 'Tambah';
       if (data){
@@ -589,16 +592,17 @@
     async function savePegawai(e){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(pegawaiForm).entries());
-      const idKey = editingId || data.nip || data.nik;
       if (!data.nip && !editingId){ setStatus('NIP wajib diisi'); return; }
       try {
         setStatus(editingId ? 'Menyimpan perubahan...' : 'Menambah pegawai...');
         const isEdit = Boolean(editingId);
-        const url = isEdit ? `${API_BASE}/pegawai/${idKey}` : `${API_BASE}/pegawai`;
-        const headers = { 'Content-Type': 'text/plain' }; // hindari preflight
-        const bodyPayload = { ...data };
-        if (isEdit) bodyPayload._method = 'PUT';
-        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(bodyPayload) });
+        const bodyPayload = { action: isEdit ? 'update' : 'create', ...data };
+        if (isEdit) bodyPayload.id = editingId;
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Proxy-Key': PROXY_KEY },
+          body: JSON.stringify(bodyPayload)
+        });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal simpan');
         closeModal();
@@ -613,10 +617,10 @@
       if (!confirm('Hapus data ini?')) return;
       try {
         setStatus('Menghapus...');
-        const res = await fetch(`${API_BASE}/pegawai/${id}`, {
+        const res = await fetch(API_BASE, {
           method:'POST',
-          headers: { 'Content-Type': 'text/plain' }, // hindari preflight
-          body: JSON.stringify({ _method: 'DELETE' })
+          headers: { 'Content-Type': 'application/json', 'X-Proxy-Key': PROXY_KEY },
+          body: JSON.stringify({ action: 'delete', id })
         });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal hapus');
@@ -683,7 +687,7 @@
       if(!btn) return; 
       const id = btn.dataset.id; 
       const action = btn.dataset.action; 
-      const row = rows.find(r => r.nip === id || r.nik === id); 
+      const row = rows.find(r => r.id === id || r.nip === id || r.nik === id); 
       if(action==='edit' && row) openModal(row); 
       if(action==='delete' && id) deletePegawai(id); 
       if(action==='view' && row){ 

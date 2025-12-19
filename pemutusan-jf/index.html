@@ -355,7 +355,9 @@
       const parts = location.pathname.split('/').filter(Boolean);
       return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
     })();
-    const API_BASE = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') ? 'http://127.0.0.1:5002' : 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
+    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const PROXY_KEY = 'ganti_proxy_key_aman';
+    const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
 
@@ -476,9 +478,8 @@
 
     async function apiFetch(url, options={}){
       const opts = { ...options };
-      if (opts.method && opts.method !== 'GET' && !opts.headers) {
-        opts.headers = { 'Content-Type':'text/plain' };
-      }
+      opts.headers = { ...API_HEADERS, ...(opts.headers || {}) };
+      if (opts.body && !opts.headers['Content-Type']) opts.headers['Content-Type'] = 'application/json';
       const res = await fetch(url, opts);
       const text = await res.text();
       let body;
@@ -590,7 +591,7 @@
         } else {
           params.set('ukpd', loginUkpd);
         }
-        const res = await apiFetch(`${API_BASE}/pemutusan-jf?${params.toString()}`);
+        const res = await apiFetch(`${API_BASE}?action=pemutusan_jf_list&${params.toString()}`);
         rows = res.rows || [];
         buildUkpdFilter(res.ukpds || rows.map(r=>r.ukpd).filter(Boolean));
         applyFilters();
@@ -673,12 +674,12 @@
         data.ukpd = loginUkpd;
         data.wilayah = loginWilayah;
       }
-      const url = editingId ? `${API_BASE}/pemutusan-jf/${editingId}` : `${API_BASE}/pemutusan-jf`;
-      const bodyPayload = { ...data };
-      if (editingId) bodyPayload._method = 'PUT';
+      const action = editingId ? 'pemutusan_jf_update' : 'pemutusan_jf_create';
+      const bodyPayload = { action, ...data };
+      if (editingId) bodyPayload.id_usulan = editingId;
       submitBtn.disabled = true;
       try{
-        await apiFetch(url, { method: 'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(bodyPayload) });
+        await apiFetch(API_BASE, { method: 'POST', body: JSON.stringify(bodyPayload) });
         editingId = null;
         form.reset();
         hideModal(formModal);
@@ -693,10 +694,9 @@
     async function deletePemutusan(id){
       if (!confirm('Hapus usulan ini?')) return;
       try{
-        await apiFetch(`${API_BASE}/pemutusan-jf/${id}`, {
+        await apiFetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type':'text/plain' },
-          body: JSON.stringify({ _method: 'DELETE' })
+          body: JSON.stringify({ action: 'pemutusan_jf_delete', id_usulan: id })
         });
         await loadData();
       }catch(err){

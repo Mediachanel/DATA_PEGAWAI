@@ -28,51 +28,48 @@ const BEZETTING_COLS = [
   'sisa_formasi_2026','kebutuhan_asn_2026','perencanaan_kebutuhan','program_studi','perencanaan_pendidikan_lanjutan',
   'ukpd','wilayah'
 ];
-// Opsional: pakai token sederhana di header x-api-key atau query ?token=
-const API_TOKEN = '';
+// API key untuk Apps Script (diteruskan proxy via query `key`).
+const API_KEY = 'ganti_api_key_aman';
 const DRIVE_FOLDER_ID = '';
 
 // Router utama
 function doGet(e) { return handleRequest(e, 'GET'); }
 function doPost(e) {
   const body = parseBody(e);
-  const override = (body._method || e?.parameter?._method || e?.parameter?.method || e?.parameter?._METHOD || '').toUpperCase();
-  const method = override || 'POST'; // untuk PUT/DELETE pakai override
-  return handleRequest({ ...e, body }, method);
+  return handleRequest({ ...e, body }, 'POST');
 }
 
 function handleRequest(e, method) {
-  const path = (e?.pathInfo || '').replace(/^\/+/, ''); // contoh: "pegawai/123"
-  const [root, id] = path ? path.split('/') : [''];
-  if (method === 'OPTIONS') return json({}); // preflight fallback
+  const action = getAction(e);
+  if (!action) return json({ ok: false, error: 'action wajib' });
+  if (!checkApiKey(e)) return forbidden();
 
-  if (method === 'GET' && root === 'health') return json({ ok: true });
-  if (method === 'POST' && root === 'login') return login(e);
-  if (method === 'POST' && root === 'upload') return uploadFile(e);
-  if (root === 'pegawai') {
-    if (method === 'GET') return listPegawai(e);
-    if (method === 'POST') return createPegawai(e);
-    if (method === 'PUT') return updatePegawai(e, id);
-    if (method === 'DELETE') return deletePegawai(e, id);
+  if (method === 'GET') {
+    if (action === 'health') return json({ ok: true, data: { time: new Date().toISOString() } });
+    if (action === 'list') return listPegawai(e);
+    if (action === 'get') return getPegawai(e);
+    if (action === 'mutasi_list') return listMutasi(e);
+    if (action === 'pemutusan_jf_list') return listPemutusan(e);
+    if (action === 'bezetting_list') return listBezetting(e);
   }
-  if (root === 'mutasi') {
-    if (method === 'GET') return listMutasi(e);
-    if (method === 'POST') return createMutasi(e);
-    if (method === 'PUT') return updateMutasi(e, id);
-    if (method === 'DELETE') return deleteMutasi(e, id);
+
+  if (method === 'POST') {
+    if (action === 'login') return login(e);
+    if (action === 'upload') return uploadFile(e);
+    if (action === 'create') return createPegawai(e);
+    if (action === 'update') return updatePegawai(e);
+    if (action === 'delete') return deletePegawai(e);
+    if (action === 'mutasi_create') return createMutasi(e);
+    if (action === 'mutasi_update') return updateMutasi(e);
+    if (action === 'mutasi_delete') return deleteMutasi(e);
+    if (action === 'pemutusan_jf_create') return createPemutusan(e);
+    if (action === 'pemutusan_jf_update') return updatePemutusan(e);
+    if (action === 'pemutusan_jf_delete') return deletePemutusan(e);
+    if (action === 'bezetting_create') return createBezetting(e);
+    if (action === 'bezetting_update') return updateBezetting(e);
+    if (action === 'bezetting_delete') return deleteBezetting(e);
   }
-  if (root === 'pemutusan-jf') {
-    if (method === 'GET') return listPemutusan(e);
-    if (method === 'POST') return createPemutusan(e);
-    if (method === 'PUT') return updatePemutusan(e, id);
-    if (method === 'DELETE') return deletePemutusan(e, id);
-  }
-  if (root === 'bezetting') {
-    if (method === 'GET') return listBezetting(e);
-    if (method === 'POST') return createBezetting(e);
-    if (method === 'PUT') return updateBezetting(e, id);
-    if (method === 'DELETE') return deleteBezetting(e, id);
-  }
+
   return json({ ok: false, error: 'route not found' });
 }
 
@@ -91,7 +88,18 @@ function listPegawai(e) {
   const statuses = (params.status || '').split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
 
   const values = sheet.getDataRange().getValues();
-  if (!values.length) return json({ ok: true, rows: [], total: 0, summary: {}, units: [], jabs: [], statuses: [] });
+  if (!values.length) {
+    return json({
+      ok: true,
+      data: { rows: [], total: 0, summary: {}, units: [], jabs: [], statuses: [] },
+      rows: [],
+      total: 0,
+      summary: {},
+      units: [],
+      jabs: [],
+      statuses: [],
+    });
+  }
 
   const [header, ...rowsRaw] = values;
   const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.id);
@@ -112,44 +120,78 @@ function listPegawai(e) {
   const jabs = uniq(filtered.map(r => r.nama_jabatan_orb));
   const statusList = uniq(filtered.map(r => r.nama_status_aktif));
 
-  return json({ ok: true, rows: slice, total, summary, units, jabs, statuses: statusList });
+  return json({
+    ok: true,
+    data: { rows: slice, total, summary, units, jabs, statuses: statusList },
+    rows: slice,
+    total,
+    summary,
+    units,
+    jabs,
+    statuses: statusList,
+  });
 }
 
-function createPegawai(e) {
-  if (!checkToken(e)) return forbidden();
+function getPegawai(e) {
+  const id = getIdParam(e);
+  if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
-  const body = e.body || parseBody(e) || {};
-  const row = COLS.map(k => body[k] || '');
-  sheet.appendRow(row);
-  return json({ ok: true });
-}
-
-function updatePegawai(e, id) {
-  if (!checkToken(e)) return forbidden();
-  if (!id) return json({ ok: false, error: 'ID (NIP/NIK) wajib' });
-  const body = e.body || parseBody(e) || {};
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
   const values = sheet.getDataRange().getValues();
+  if (!values.length) return json({ ok: false, error: 'Data kosong' });
   const [header, ...rows] = values;
   const idx = findRowIndexById(header, rows, id);
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
-  const rowNumber = idx + 2; // header di baris 1
-  const payload = COLS.map(k => body[k] || '');
-  sheet.getRange(rowNumber, 1, 1, COLS.length).setValues([payload]);
-  return json({ ok: true });
+  const record = toRecord(header, rows[idx]);
+  return json({ ok: true, data: record });
 }
 
-function deletePegawai(e, id) {
-  if (!checkToken(e)) return forbidden();
-  if (!id) return json({ ok: false, error: 'ID (NIP/NIK) wajib' });
+function createPegawai(e) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
+  if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
+  const body = e.body || parseBody(e) || {};
+  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] || [];
+  const keys = header.map(normalizePegawaiHeader);
+  const idIdx = keys.indexOf('id');
+  if (idIdx >= 0 && !body.id) body.id = Utilities.getUuid();
+  const row = keys.map((k) => {
+    if (!k) return '';
+    if (k === 'id') return body.id || '';
+    return body[k] !== undefined ? body[k] : '';
+  });
+  sheet.appendRow(row);
+  return json({ ok: true, data: { id: body.id || body.nip || body.nik || '' } });
+}
+
+function updatePegawai(e) {
+  const body = e.body || parseBody(e) || {};
+  const id = getIdParam(e);
+  if (!id) return json({ ok: false, error: 'ID wajib' });
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
+  const values = sheet.getDataRange().getValues();
+  const [header, ...rows] = values;
+  const keys = header.map(normalizePegawaiHeader);
+  const idx = findRowIndexById(header, rows, id);
+  if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
+  const rowNumber = idx + 2; // header di baris 1
+  const current = rowToObject(keys, rows[idx]);
+  const next = { ...current, ...body };
+  if (keys.includes('id') && !next.id) next.id = id;
+  const payload = keys.map((k) => (k ? (next[k] !== undefined ? next[k] : '') : ''));
+  sheet.getRange(rowNumber, 1, 1, keys.length).setValues([payload]);
+  return json({ ok: true, data: { id } });
+}
+
+function deletePegawai(e) {
+  const id = getIdParam(e);
+  if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
   const values = sheet.getDataRange().getValues();
   const [header, ...rows] = values;
   const idx = findRowIndexById(header, rows, id);
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   sheet.deleteRow(idx + 2);
-  return json({ ok: true });
+  return json({ ok: true, data: { id } });
 }
 
 function login(e) {
@@ -176,7 +218,8 @@ function login(e) {
   }));
   const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
   if (!found) return json({ ok: false, error: 'Username atau password salah' });
-  return json({ ok: true, user: { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah } });
+  const user = { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah };
+  return json({ ok: true, data: { user }, user });
 }
 
 // ==== Mutasi ====
@@ -195,7 +238,17 @@ function listMutasi(e) {
 
   const values = sheet.getDataRange().getValues();
   if (!values.length) {
-    return json({ ok: true, rows: [], total: 0, summary: {}, statuses: [], ukpds: [], tujuan: [], jenis: [] });
+    return json({
+      ok: true,
+      data: { rows: [], total: 0, summary: {}, statuses: [], ukpds: [], tujuan: [], jenis: [] },
+      rows: [],
+      total: 0,
+      summary: {},
+      statuses: [],
+      ukpds: [],
+      tujuan: [],
+      jenis: [],
+    });
   }
 
   const [header, ...rows] = values;
@@ -232,7 +285,17 @@ function listMutasi(e) {
   const jenisList = uniq(filtered.map(r => r.jenis_mutasi));
   const slice = filtered.slice(offset, offset + limit);
 
-  return json({ ok: true, rows: slice, total, summary, statuses, ukpds, tujuan: tujuanList, jenis: jenisList });
+  return json({
+    ok: true,
+    data: { rows: slice, total, summary, statuses, ukpds, tujuan: tujuanList, jenis: jenisList },
+    rows: slice,
+    total,
+    summary,
+    statuses,
+    ukpds,
+    tujuan: tujuanList,
+    jenis: jenisList,
+  });
 }
 
 function createMutasi(e) {
@@ -247,11 +310,12 @@ function createMutasi(e) {
   const rowData = { ...body, id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
   const row = MUTASI_COLS.map(k => (k === 'id' ? id : (rowData[k] || '')));
   sheet.appendRow(row);
-  return json({ ok: true, id });
+  return json({ ok: true, data: { id }, id });
 }
 
-function updateMutasi(e, id) {
+function updateMutasi(e) {
   if (!checkToken(e)) return forbidden();
+  const id = getParam(e, 'id');
   if (!id) return json({ ok: false, error: 'ID mutasi wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MUTASI_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
@@ -267,11 +331,12 @@ function updateMutasi(e, id) {
   const payloadData = { ...body, id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
   const payload = MUTASI_COLS.map(k => (k === 'id' ? id : (payloadData[k] || '')));
   sheet.getRange(rowNumber, 1, 1, MUTASI_COLS.length).setValues([payload]);
-  return json({ ok: true });
+  return json({ ok: true, data: { id } });
 }
 
-function deleteMutasi(e, id) {
+function deleteMutasi(e) {
   if (!checkToken(e)) return forbidden();
+  const id = getParam(e, 'id');
   if (!id) return json({ ok: false, error: 'ID mutasi wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MUTASI_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
@@ -280,7 +345,7 @@ function deleteMutasi(e, id) {
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID mutasi tidak ditemukan' });
   sheet.deleteRow(idx + 2);
-  return json({ ok: true });
+  return json({ ok: true, data: { id } });
 }
 
 // ==== Pemutusan JF ====
@@ -294,7 +359,17 @@ function listPemutusan(e) {
   const wilayahQuery = norm(params.wilayah);
 
   const values = sheet.getDataRange().getValues();
-  if (!values.length) return json({ ok: true, rows: [], total: 0, summary: {}, statuses: [], ukpds: [] });
+  if (!values.length) {
+    return json({
+      ok: true,
+      data: { rows: [], total: 0, summary: {}, statuses: [], ukpds: [] },
+      rows: [],
+      total: 0,
+      summary: {},
+      statuses: [],
+      ukpds: [],
+    });
+  }
   const [header, ...rows] = values;
   const list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id_usulan);
   const map = wilayahQuery ? getUkpdWilayahMap() : {};
@@ -312,7 +387,15 @@ function listPemutusan(e) {
   const summary = countBy(filtered, 'status');
   const statuses = uniq(filtered.map(r => r.status));
   const ukpds = uniq(filtered.map(r => r.ukpd));
-  return json({ ok: true, rows: filtered, total: filtered.length, summary, statuses, ukpds });
+  return json({
+    ok: true,
+    data: { rows: filtered, total: filtered.length, summary, statuses, ukpds },
+    rows: filtered,
+    total: filtered.length,
+    summary,
+    statuses,
+    ukpds,
+  });
 }
 
 function createPemutusan(e) {
@@ -329,11 +412,12 @@ function createPemutusan(e) {
   const rowData = { ...body, id_usulan: id, wilayah: wilayahVal };
   const row = PEMUTUSAN_COLS.map(k => rowData[k] || '');
   sheet.appendRow(row);
-  return json({ ok: true, id_usulan: id });
+  return json({ ok: true, data: { id_usulan: id }, id_usulan: id });
 }
 
-function updatePemutusan(e, id) {
+function updatePemutusan(e) {
   if (!checkToken(e)) return forbidden();
+  const id = getParam(e, 'id_usulan');
   if (!id) return json({ ok: false, error: 'ID usulan wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
@@ -351,11 +435,12 @@ function updatePemutusan(e, id) {
   const rowData = { ...body, id_usulan: id, wilayah: wilayahVal };
   const payload = PEMUTUSAN_COLS.map(k => rowData[k] || '');
   sheet.getRange(rowNumber, 1, 1, PEMUTUSAN_COLS.length).setValues([payload]);
-  return json({ ok: true });
+  return json({ ok: true, data: { id_usulan: id } });
 }
 
-function deletePemutusan(e, id) {
+function deletePemutusan(e) {
   if (!checkToken(e)) return forbidden();
+  const id = getParam(e, 'id_usulan');
   if (!id) return json({ ok: false, error: 'ID usulan wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
@@ -364,7 +449,7 @@ function deletePemutusan(e, id) {
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID usulan tidak ditemukan' });
   sheet.deleteRow(idx + 2);
-  return json({ ok: true });
+  return json({ ok: true, data: { id_usulan: id } });
 }
 
 // ==== Bezetting ====
@@ -382,7 +467,18 @@ function listBezetting(e) {
   const jabatanQuery = norm(params.jabatan);
 
   const values = sheet.getDataRange().getValues();
-  if (!values.length) return json({ ok: true, rows: [], total: 0, ukpds: [], statuses: [], rumpuns: [], jabatans: [] });
+  if (!values.length) {
+    return json({
+      ok: true,
+      data: { rows: [], total: 0, ukpds: [], statuses: [], rumpuns: [], jabatans: [] },
+      rows: [],
+      total: 0,
+      ukpds: [],
+      statuses: [],
+      rumpuns: [],
+      jabatans: [],
+    });
+  }
   const [header, ...rowsRaw] = values;
   let list = rowsRaw.map(r => toBezettingRecord(header, r)).filter(r => r.kode || r.no);
 
@@ -406,7 +502,16 @@ function listBezetting(e) {
   const statuses = uniq(list.map(r => r.status_formasi));
   const rumpuns = uniq(list.map(r => r.rumpun_jabatan));
   const jabatans = uniq(list.flatMap(r => [r.nama_jabatan_pergub, r.nama_jabatan_permenpan]));
-  return json({ ok: true, rows: slice, total, ukpds, statuses, rumpuns, jabatans });
+  return json({
+    ok: true,
+    data: { rows: slice, total, ukpds, statuses, rumpuns, jabatans },
+    rows: slice,
+    total,
+    ukpds,
+    statuses,
+    rumpuns,
+    jabatans,
+  });
 }
 
 function createBezetting(e) {
@@ -418,11 +523,12 @@ function createBezetting(e) {
   const rowData = { ...body, kode };
   const row = BEZETTING_COLS.map(k => rowData[k] || '');
   sheet.appendRow(row);
-  return json({ ok: true, kode });
+  return json({ ok: true, data: { kode }, kode });
 }
 
-function updateBezetting(e, kode) {
+function updateBezetting(e) {
   if (!checkToken(e)) return forbidden();
+  const kode = getParam(e, 'kode');
   if (!kode) return json({ ok: false, error: 'Kode wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet bezetting tidak ditemukan' });
@@ -435,11 +541,12 @@ function updateBezetting(e, kode) {
   const rowData = { ...body, kode };
   const payload = BEZETTING_COLS.map(k => rowData[k] || '');
   sheet.getRange(rowNumber, 1, 1, BEZETTING_COLS.length).setValues([payload]);
-  return json({ ok: true });
+  return json({ ok: true, data: { kode } });
 }
 
-function deleteBezetting(e, kode) {
+function deleteBezetting(e) {
   if (!checkToken(e)) return forbidden();
+  const kode = getParam(e, 'kode');
   if (!kode) return json({ ok: false, error: 'Kode wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet bezetting tidak ditemukan' });
@@ -448,7 +555,7 @@ function deleteBezetting(e, kode) {
   const idx = findRowIndexByHeader(header, rows, 'kode', 6, kode);
   if (idx < 0) return json({ ok: false, error: 'Kode tidak ditemukan' });
   sheet.deleteRow(idx + 2);
-  return json({ ok: true });
+  return json({ ok: true, data: { kode } });
 }
 
 // ==== Upload ====
@@ -469,7 +576,7 @@ function uploadFile(e) {
     file = DriveApp.createFile(blob);
   }
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return json({ ok: true, id: file.getId(), url: file.getUrl() });
+  return json({ ok: true, data: { id: file.getId(), url: file.getUrl() }, id: file.getId(), url: file.getUrl() });
 }
 
 // ==== Helpers ====
@@ -496,49 +603,40 @@ function getUkpdWilayahMap() {
   return map;
 }
 
+function normalizePegawaiHeader(name) {
+  return String(name || '').toLowerCase().trim().replace(/\s+/g, '_');
+}
+
+function rowToObject(keys, row) {
+  const obj = {};
+  keys.forEach((k, idx) => {
+    if (!k) return;
+    obj[k] = row[idx] !== undefined ? row[idx] : '';
+  });
+  return obj;
+}
+
+function getIdParam(e) {
+  const body = e.body || parseBody(e) || {};
+  return String(e?.parameter?.id || body.id || body.nip || body.nik || '').trim();
+}
+
+function getParam(e, name) {
+  const body = e.body || parseBody(e) || {};
+  return String(e?.parameter?.[name] || body[name] || '').trim();
+}
+
 function toRecord(header, row) {
-  const h = (header || []).map(x => (x || '').toLowerCase().trim());
-  const get = (name, fallbackIdx) => {
-    const idx = h.indexOf(name);
-    if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
-    if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
-    return '';
-  };
+  const keys = (header || []).map(normalizePegawaiHeader);
+  const obj = rowToObject(keys, row);
+  const idVal = obj.id || obj.nip || obj.nik || '';
   return {
-    id: get('nip', 8) || get('nik', 9) || '',
-    nama_pegawai: get('nama_pegawai', 0),
-    npwp: get('npwp', 1),
-    no_bpjs: get('no_bpjs', 2),
-    nama_jabatan_orb: get('nama_jabatan_orb', 3),
-    nama_jabatan_prb: get('nama_jabatan_prb', 4),
-    nama_status_aktif: get('nama_status_aktif', 5),
-    nama_status_rumpun: get('nama_status_rumpun', 6),
-    jenis_kontrak: get('jenis_kontrak', 7),
-    nip: get('nip', 8),
-    nik: get('nik', 9),
-    jenis_kelamin: get('jenis_kelamin', 10),
-    tmt_kerja_ukpd: get('tmt_kerja_ukpd', 11),
-    tempat_lahir: get('tempat_lahir', 12),
-    tanggal_lahir: get('tanggal_lahir', 13),
-    agama: get('agama', 14),
-    jenjang_pendidikan: get('jenjang_pendidikan', 15),
-    jurusan_pendidikan: get('jurusan_pendidikan', 16),
-    no_tlp: get('no_tlp', 17),
-    email: get('email', 18),
-    nama_ukpd: get('nama_ukpd', 19),
-    wilayah_ukpd: get('wilayah_ukpd', 20),
-    golongan_darah: get('golongan_darah', 21),
-    gelar_depan: get('gelar_depan', 22),
-    gelar_belakang: get('gelar_belakang', 23),
-    status_pernikahan: get('status_pernikahan', 24),
-    nama_jenis_pegawai: get('nama_jenis_pegawai', 25),
-    catatan_revisi_biodata: get('catatan_revisi_biodata', 26),
-    alamat_ktp: get('alamat_ktp', 27),
-    alamat_domisili: get('alamat_domisili', 28),
-    unit: get('nama_ukpd', 19),
-    jabatan: get('nama_jabatan_orb', 3),
-    statusKaryawan: get('nama_status_aktif', 5),
-    aktif: get('nama_status_aktif', 5),
+    ...obj,
+    id: idVal,
+    unit: obj.nama_ukpd || obj.unit || '',
+    jabatan: obj.nama_jabatan_orb || obj.jabatan || '',
+    statusKaryawan: obj.nama_status_aktif || obj.statusKaryawan || '',
+    aktif: obj.nama_status_aktif || obj.aktif || '',
   };
 }
 
@@ -641,13 +739,15 @@ function toBezettingRecord(header, row) {
 }
 
 function findRowIndexById(header, rows, id) {
-  const h = (header || []).map(x => (x || '').toLowerCase().trim());
+  const h = (header || []).map(normalizePegawaiHeader);
+  const idxId = h.indexOf('id');
   const idxNip = h.indexOf('nip');
   const idxNik = h.indexOf('nik');
   return rows.findIndex(r => {
-    const nipVal = (idxNip >= 0 ? r[idxNip] : r[8] || '').toString();
-    const nikVal = (idxNik >= 0 ? r[idxNik] : r[9] || '').toString();
-    return nipVal === id || nikVal === id;
+    const idVal = (idxId >= 0 ? r[idxId] : '')?.toString?.() || '';
+    const nipVal = (idxNip >= 0 ? r[idxNip] : '')?.toString?.() || '';
+    const nikVal = (idxNik >= 0 ? r[idxNik] : '')?.toString?.() || '';
+    return (idVal && idVal === id) || (nipVal && nipVal === id) || (nikVal && nikVal === id);
   });
 }
 
@@ -677,17 +777,27 @@ function uniq(arr) {
   return Array.from(new Set(arr.filter(Boolean))).sort();
 }
 
+function getAction(e) {
+  const params = e?.parameter || {};
+  const body = e?.body || parseBody(e) || {};
+  return String(params.action || body.action || '').toLowerCase().trim();
+}
+
 function parseBody(e) {
   if (!e?.postData?.contents) return {};
   try { return JSON.parse(e.postData.contents); }
   catch (err) { return {}; }
 }
 
+function checkApiKey(e) {
+  return checkToken(e);
+}
+
 function checkToken(e) {
-  if (!API_TOKEN) return true;
-  const maybeBody = (() => { try { return JSON.parse(e?.postData?.contents || '{}'); } catch (_) { return {}; } })();
-  const token = (e?.parameter?.token || e?.body?.token || maybeBody.token || e?.headers?.['x-api-key'] || '').trim();
-  return token && token === API_TOKEN;
+  if (!API_KEY) return false;
+  const body = e.body || parseBody(e) || {};
+  const key = (e?.parameter?.key || body.key || '').toString().trim();
+  return key && key === API_KEY;
 }
 
 function json(obj, _status) {
