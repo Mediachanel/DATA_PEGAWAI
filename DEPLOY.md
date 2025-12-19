@@ -7,7 +7,7 @@ Backend: `server.js` (Node/Express) bertindak sebagai proxy ke Web App Apps Scri
 - Env yang dipakai:
   - `PORT` (default 5002, akan dioverride platform).
   - `WEB_APP_BASE` (WAJIB): URL Web App Apps Script Anda, contoh  
-    `https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec`.
+    `https://script.google.com/macros/s/AKfycbzUwGHAdQGsTu7Lh0E1zxPeLAFl3t7lgMeSvv6uB4WfS8mYn_dCC45TGI72t9I74ol_sw/exec`.
   - Opsional: `SPREADSHEET_ID`, `RANGE`, `USER_RANGE` kalau mau override.
 
 ## 2) Deploy contoh di Render

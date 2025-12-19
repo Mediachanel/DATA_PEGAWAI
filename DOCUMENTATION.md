@@ -183,10 +183,13 @@ Keamanan:
 
 ### Cara pakai Cloudflare Worker (opsi tanpa backend Node)
 1) Cloudflare Dashboard → Workers & Pages → Create Worker → paste isi `cf-worker-proxy.js`.
-2) Settings → Variables: `WEB_APP_BASE=https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec`.
+2) Settings → Variables:
+   - `WEB_APP_BASE=https://script.google.com/macros/s/AKfycbzUwGHAdQGsTu7Lh0E1zxPeLAFl3t7lgMeSvv6uB4WfS8mYn_dCC45TGI72t9I74ol_sw/exec`
+   - `PROXY_KEY` sama dengan `PROXY_KEY` di front-end.
+   - `APPS_SCRIPT_KEY` sama dengan `API_KEY` di `code.js` Apps Script.
 3) Deploy, catat URL Worker, mis. `https://nama-worker.subdomain.workers.dev`.
 4) Set `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL Worker.
-5) Hard refresh dan uji `/health`/login.
+5) Hard refresh dan uji `action=health` dengan header `X-Proxy-Key`.
 
 ### Cara deploy backend Node (opsi Render)
 1) Repo punya `server.js` dan `package.json` (`npm start`).
