@@ -475,7 +475,11 @@
     }
 
     async function apiFetch(url, options={}){
-      const res = await fetch(url, options);
+      const opts = { ...options };
+      if (opts.method && opts.method !== 'GET' && !opts.headers) {
+        opts.headers = { 'Content-Type':'text/plain' };
+      }
+      const res = await fetch(url, opts);
       const text = await res.text();
       let body;
       try { body = JSON.parse(text); } catch { throw new Error(text || 'Respon bukan JSON'); }
@@ -669,11 +673,12 @@
         data.ukpd = loginUkpd;
         data.wilayah = loginWilayah;
       }
-      const method = editingId ? 'PUT' : 'POST';
       const url = editingId ? `${API_BASE}/pemutusan-jf/${editingId}` : `${API_BASE}/pemutusan-jf`;
+      const bodyPayload = { ...data };
+      if (editingId) bodyPayload._method = 'PUT';
       submitBtn.disabled = true;
       try{
-        await apiFetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        await apiFetch(url, { method: 'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(bodyPayload) });
         editingId = null;
         form.reset();
         hideModal(formModal);
@@ -688,7 +693,11 @@
     async function deletePemutusan(id){
       if (!confirm('Hapus usulan ini?')) return;
       try{
-        await apiFetch(`${API_BASE}/pemutusan-jf/${id}`, { method:'DELETE' });
+        await apiFetch(`${API_BASE}/pemutusan-jf/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type':'text/plain' },
+          body: JSON.stringify({ _method: 'DELETE' })
+        });
         await loadData();
       }catch(err){
         alert(err.message);

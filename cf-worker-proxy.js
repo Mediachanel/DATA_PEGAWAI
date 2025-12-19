@@ -1,6 +1,6 @@
 // Cloudflare Worker proxy untuk Apps Script Web App
 // Set environment variable di Workers (Settings -> Variables):
-// WEB_APP_BASE = https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec
+// WEB_APP_BASE = https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec
 
 export default {
   async fetch(req, env) {

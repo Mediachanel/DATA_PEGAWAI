@@ -424,19 +424,19 @@
       return body;
     }
 
-    function renderMetrics(summary){
-      const total = cacheRows.length;
+    function renderMetrics(summary, total){
+      const totalCount = typeof total === 'number' ? total : cacheRows.length;
       const disetujui = summary.DISETUJUI || 0;
       const ditolak = summary.DITOLAK || 0;
       const diusulkan = summary.DIUSULKAN || 0;
       const ditarik = summary.DITARIK || 0;
-      const proses = total - (disetujui + ditolak + ditarik);
-      document.getElementById('mTotal').textContent = total;
+      const proses = totalCount - (disetujui + ditolak + ditarik);
+      document.getElementById('mTotal').textContent = totalCount;
       document.getElementById('mDiusulkan').textContent = diusulkan;
       document.getElementById('mProses').textContent = proses < 0 ? 0 : proses;
       document.getElementById('mSelesai').textContent = disetujui;
       document.getElementById('mDitolak').textContent = ditolak;
-      totalFiltered.textContent = total;
+      totalFiltered.textContent = totalCount;
     }
 
     function syncHeaderUser(){
@@ -536,11 +536,11 @@
       if (tujuanFilter.value) params.set('tujuan', tujuanFilter.value);
       const body = await apiFetch(`${API_BASE}/mutasi?${params.toString()}`);
       cacheRows = body.rows || [];
-      const total = body.total || cacheRows.length;
+      const total = typeof body.total === 'number' ? body.total : cacheRows.length;
       totalPages = Math.max(1, Math.ceil(total / currentLimit));
       pageNow.textContent = page;
       pageTotal.textContent = totalPages;
-      renderMetrics(body.summary || {});
+      renderMetrics(body.summary || {}, total);
       renderFilters(body);
       renderTable();
     }
@@ -556,8 +556,9 @@
       if (!data.wilayah_asal) data.wilayah_asal = loginWilayah;
       if (!data.wilayah_tujuan) data.wilayah_tujuan = loginWilayah;
       const url = editingId ? `${API_BASE}/mutasi/${editingId}` : `${API_BASE}/mutasi`;
-      const method = editingId ? 'PUT' : 'POST';
-      await apiFetch(url, { method, headers:{'Content-Type':'text/plain'}, body: JSON.stringify(data) });
+      const bodyPayload = { ...data };
+      if (editingId) bodyPayload._method = 'PUT';
+      await apiFetch(url, { method: 'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(bodyPayload) });
       editingId = null;
       form.reset();
       await loadData();
@@ -567,7 +568,11 @@
 
     async function deleteMutasi(id){
       if (!confirm('Hapus usulan ini?')) return;
-      await apiFetch(`${API_BASE}/mutasi/${id}`, { method:'DELETE' });
+      await apiFetch(`${API_BASE}/mutasi/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type':'text/plain' },
+        body: JSON.stringify({ _method: 'DELETE' })
+      });
       await loadData();
     }
 

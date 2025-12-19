@@ -663,7 +663,7 @@
       searchInput.value='';
       quickSearch.value='';
       jabatanFilter.value='';
-      aktifFilter.value='';
+      if (aktifFilter) aktifFilter.value='';
       document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
       if (!isSuper && !isWilayahAdmin) {
         unitFilter.value = loginUkpd;

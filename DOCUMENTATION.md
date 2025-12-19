@@ -4,15 +4,15 @@
 - File: `server.js`
 - Port: 5002 (dipakai bila menjalankan backend Node; front-end default kini langsung ke Web App Apps Script)
 - Spreadsheet ID: `1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw`
-- Sheet data: `DATA PEGAWAI!A:AB` (28 kolom)
-- Sheet login: `username!A:D` (Nama UKPD, Username, Password, Hak akses, Wilayah)
+- Sheet data: `DATA PEGAWAI!A:AC` (29 kolom)
+- Sheet login: `username!A:E` (Nama UKPD, Username, Password, Hak akses, Wilayah)
 - Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
 
 ## Frontend
 - Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
 - Header/sidebar/footer di-root (`header.html`, `sidebar.html`, `footer.html`) diambil dengan BASE dinamis; logo/favikon juga di-set ulang via BASE + `foto/Dinkes.png`.
 
-### Kolom data (urutan A:AB)
+### Kolom data (urutan A:AC)
 1. nama_pegawai
 2. npwp
 3. no_bpjs
@@ -33,14 +33,15 @@
 18. no_tlp
 19. email
 20. nama_ukpd
-21. golongan_darah
-22. gelar_depan
-23. gelar_belakang
-24. status_pernikahan
-25. nama_jenis_pegawai
-26. catatan_revisi_biodata
-27. alamat_ktp
-28. alamat_domisili
+21. wilayah_ukpd
+22. golongan_darah
+23. gelar_depan
+24. gelar_belakang
+25. status_pernikahan
+26. nama_jenis_pegawai
+27. catatan_revisi_biodata
+28. alamat_ktp
+29. alamat_domisili
 
 ### Usulan Mutasi (USULAN_MUTASI!A:S, 19 kolom)
 1. id
@@ -96,9 +97,11 @@
 - `GET /health` - cek status server.
 - `POST /login` - body {username,password}; respon {user: {username, role, namaUkpd}}.
 - `GET /pegawai` - dukung query: `offset`, `limit`, `search` (NIP/NIK/Nama), `unit` (nama_ukpd), `jabatan` (contains), `status` (comma). Respon: {rows, total, summary, units, jabs, statuses}.
-- `POST /pegawai` - tambah baris sesuai urutan kolom (28 field).
+- `POST /pegawai` - tambah baris sesuai urutan kolom (29 field).
 - `PUT /pegawai/:id` - update berdasarkan NIP/NIK.
 - `DELETE /pegawai/:id` - hapus berdasarkan NIP/NIK.
+- Apps Script Web App hanya menerima GET/POST; untuk PUT/DELETE gunakan POST dengan `_method` di body.
+- Untuk proteksi sederhana, isi `API_TOKEN` di Apps Script dan kirim `token` di body atau header `x-api-key` untuk request write.
 
 ### Catatan backend
 - Header sheet di-normalisasi (trim + lowercase) dan ada fallback index, sehingga tetap terbaca meski ada spasi tersembunyi.
@@ -106,7 +109,7 @@
 
 ## Front-end
 - File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`.
-- `API_BASE` default: `https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec` (Web App Apps Script). Ubah jika memakai backend sendiri (Render/ngrok/localhost).
+- `API_BASE` default: `https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec` (Web App Apps Script). Ubah jika memakai backend sendiri (Render/ngrok/localhost).
 - Sidebar dan header diinject dari `sidebar.html` dan `header.html` (sticky). Footer dari `footer.html` dipakai di dashboard dan data-pegawai.
 - Auth disimpan di `localStorage` (`authUser`: username, role, namaUkpd) setelah login di `index.html`.
 - Role filter: non-super/dinkes otomatis hanya melihat data UKPD login; super admin/dinkes dapat melihat semua.
@@ -138,7 +141,7 @@
 ## Catatan percobaan proxy (Des 2025)
 - Sudah dibuat fungsi proxy Vercel di `api/proxy.js` dan konfigurasi `vercel.json` untuk build route `/api/proxy` dengan env `WEB_APP_BASE` ke Apps Script. Deployment Vercel project `data` masih gagal (500) karena project terhubung ke repo lain yang belum memuat commit `api/proxy.js`/`vercel.json` atau belum redeploy dari commit terbaru.
 - Cloudflare Worker proxy (`cf-worker-proxy.js`) juga disiapkan, tetapi subdomain workers.dev belum aktif, sehingga tetap NXDOMAIN/1101.
-- API_BASE di repo sekarang diarahkan ke Web App Apps Script (`https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec`) agar langsung jalan di GitHub Pages tanpa backend Node.
+- API_BASE di repo sekarang diarahkan ke Web App Apps Script (`https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec`) agar langsung jalan di GitHub Pages tanpa backend Node.
 - Jika ingin pakai proxy/backend publik lagi: pastikan deployment Vercel memakai repo commit terbaru (ada `api/proxy.js` + `vercel.json`) atau backend Render/Fly, set env `WEB_APP_BASE`, redeploy, lalu set `API_BASE` sesuai URL backend/proxy (mis. `https://<domain-vercel>/api/proxy` atau `https://nama-app.onrender.com`).
 
 ## Menjalankan via ngrok (sementara)
@@ -154,7 +157,7 @@
 ## Ringkasan Perubahan & Deployment
 - Backend proxy: `server.js` mendukung `WEB_APP_BASE` (URL Apps Script /exec), CORS `*`, port default 5002. Env lain: `SPREADSHEET_ID`, `RANGE`, `USER_RANGE`.
 - Endpoint baru usulan mutasi:
-  - Sheet: `USULAN_MUTASI!A:Q` (id, nip, nama_pegawai, jabatan_asal, jabatan_baru, nama_ukpd_asal, nama_ukpd_tujuan, jenis_mutasi, alasan, tanggal_usulan, status, keterangan, abk_j_lama, bezetting_j_lama, abk_j_baru, bezetting_j_baru, berkas_url).
+  - Sheet: `USULAN_MUTASI!A:S` (id, nip, nama_pegawai, jabatan_asal, jabatan_baru, nama_ukpd_asal, nama_ukpd_tujuan, jenis_mutasi, alasan, tanggal_usulan, status, keterangan, abk_j_lama, bezetting_j_lama, abk_j_baru, bezetting_j_baru, berkas_url).
   - API: `GET /mutasi` (filter: search, status, jenis_mutasi, ukpd, tujuan), `GET /mutasi/:id`, `POST /mutasi`, `PUT /mutasi/:id`, `DELETE /mutasi/:id`.
   - Upload berkas: `POST /upload` body `{filename,mimeType,dataBase64}`; simpan ke Google Drive (folder `DRIVE_FOLDER_ID` jika di-set), permission public reader; balikan `{url}` untuk diisi ke `berkas_url`.
 - Front-end:
@@ -169,7 +172,7 @@
 
 ### Cara pakai Cloudflare Worker (opsi tanpa backend Node)
 1) Cloudflare Dashboard → Workers & Pages → Create Worker → paste isi `cf-worker-proxy.js`.
-2) Settings → Variables: `WEB_APP_BASE=https://script.google.com/macros/s/AKfycbxFgN7dWixltKIgVGtURC8H8FtQamzym4Scmd4sjN7-oZMel4b0Gg5aVdKF6iz_XnI66g/exec`.
+2) Settings → Variables: `WEB_APP_BASE=https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec`.
 3) Deploy, catat URL Worker, mis. `https://nama-worker.subdomain.workers.dev`.
 4) Set `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL Worker.
 5) Hard refresh dan uji `/health`/login.
