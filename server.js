@@ -102,10 +102,143 @@ app.use((req, _res, next) => {
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Proxy-Key');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+
+// Action router for action-based frontend
+function buildQueryParams(query, omitKeys = []) {
+  const params = new URLSearchParams();
+  if (!query) return '';
+  Object.entries(query).forEach(([key, value]) => {
+    if (omitKeys.includes(key)) return;
+    if (value === undefined || value === null || value === '') return;
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null && item !== '') params.append(key, String(item));
+      });
+      return;
+    }
+    params.append(key, String(value));
+  });
+  return params.toString();
+}
+
+async function forwardTo(url, opts, res) {
+  try {
+    const upstream = await fetchFn(url, opts);
+    const text = await upstream.text();
+    const respCt = upstream.headers.get('content-type');
+    if (respCt) res.setHeader('Content-Type', respCt);
+    return res.status(upstream.status).send(text);
+  } catch (err) {
+    return res.status(502).json({ ok: false, error: 'proxy error: ' + err.message });
+  }
+}
+
+app.all('/', async (req, res) => {
+  const action = (req.query?.action || req.body?.action || '').toString().trim().toLowerCase();
+  if (!action) return res.status(400).json({ ok: false, error: 'action wajib' });
+
+  if (action === 'health') return res.json({ ok: true });
+
+  const payload = typeof req.body === 'object' && req.body ? { ...req.body } : {};
+  delete payload.action;
+
+  const baseUrl = `http://127.0.0.1:${PORT}`;
+  const headers = { 'Content-Type': 'application/json' };
+
+  switch (action) {
+    case 'list': {
+      const qs = buildQueryParams(req.query, ['action']);
+      const url = `${baseUrl}/pegawai${qs ? `?${qs}` : ''}`;
+      return forwardTo(url, { method: 'GET', headers }, res);
+    }
+    case 'get': {
+      const id = (req.query?.id || payload.id || payload.nip || payload.nik || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
+      return forwardTo(`${baseUrl}/pegawai/${encodeURIComponent(id)}`, { method: 'GET', headers }, res);
+    }
+    case 'create': {
+      return forwardTo(`${baseUrl}/pegawai`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'update': {
+      const id = (req.query?.id || payload.id || payload.nip || payload.nik || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
+      return forwardTo(`${baseUrl}/pegawai/${encodeURIComponent(id)}`, { method: 'PUT', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'delete': {
+      const id = (req.query?.id || payload.id || payload.nip || payload.nik || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
+      return forwardTo(`${baseUrl}/pegawai/${encodeURIComponent(id)}`, { method: 'DELETE', headers }, res);
+    }
+    case 'login': {
+      return forwardTo(`${baseUrl}/login`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'upload': {
+      return forwardTo(`${baseUrl}/upload`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'mutasi_list': {
+      const qs = buildQueryParams(req.query, ['action']);
+      const url = `${baseUrl}/mutasi${qs ? `?${qs}` : ''}`;
+      return forwardTo(url, { method: 'GET', headers }, res);
+    }
+    case 'mutasi_create': {
+      return forwardTo(`${baseUrl}/mutasi`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'mutasi_update': {
+      const id = (req.query?.id || payload.id || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID mutasi wajib' });
+      return forwardTo(`${baseUrl}/mutasi/${encodeURIComponent(id)}`, { method: 'PUT', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'mutasi_delete': {
+      const id = (req.query?.id || payload.id || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID mutasi wajib' });
+      return forwardTo(`${baseUrl}/mutasi/${encodeURIComponent(id)}`, { method: 'DELETE', headers }, res);
+    }
+    case 'pemutusan_jf_list': {
+      const qs = buildQueryParams(req.query, ['action']);
+      const url = `${baseUrl}/pemutusan-jf${qs ? `?${qs}` : ''}`;
+      return forwardTo(url, { method: 'GET', headers }, res);
+    }
+    case 'pemutusan_jf_create': {
+      return forwardTo(`${baseUrl}/pemutusan-jf`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'pemutusan_jf_update': {
+      const id = (req.query?.id_usulan || payload.id_usulan || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID usulan wajib' });
+      return forwardTo(`${baseUrl}/pemutusan-jf/${encodeURIComponent(id)}`, { method: 'PUT', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'pemutusan_jf_delete': {
+      const id = (req.query?.id_usulan || payload.id_usulan || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID usulan wajib' });
+      return forwardTo(`${baseUrl}/pemutusan-jf/${encodeURIComponent(id)}`, { method: 'DELETE', headers }, res);
+    }
+    case 'bezetting_list': {
+      const qs = buildQueryParams(req.query, ['action']);
+      const url = `${baseUrl}/bezetting${qs ? `?${qs}` : ''}`;
+      return forwardTo(url, { method: 'GET', headers }, res);
+    }
+    case 'bezetting_create': {
+      return forwardTo(`${baseUrl}/bezetting`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'bezetting_update': {
+      const kode = (req.query?.kode || payload.kode || '').toString().trim();
+      if (!kode) return res.status(400).json({ ok: false, error: 'Kode wajib' });
+      return forwardTo(`${baseUrl}/bezetting/${encodeURIComponent(kode)}`, { method: 'PUT', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'bezetting_delete': {
+      const kode = (req.query?.kode || payload.kode || '').toString().trim();
+      if (!kode) return res.status(400).json({ ok: false, error: 'Kode wajib' });
+      return forwardTo(`${baseUrl}/bezetting/${encodeURIComponent(kode)}`, { method: 'DELETE', headers }, res);
+    }
+    default:
+      return res.status(404).json({ ok: false, error: 'route not found' });
+  }
+});
+
 
 // Proxy ke Apps Script Web App untuk menghindari CORS di browser
 app.all('/api/*', async (req, res) => {
@@ -215,6 +348,33 @@ app.get('/pegawai', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+
+app.get('/pegawai/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: RANGE });
+    const values = result.data.values || [];
+    if (!values.length) return res.status(404).json({ ok: false, error: 'Data kosong' });
+    const [header, ...rows] = values;
+    const h = (header || []).map(x => (x || '').toLowerCase().trim());
+    const idxId = h.indexOf('id');
+    const idxNip = h.indexOf('nip');
+    const idxNik = h.indexOf('nik');
+    const idx = rows.findIndex(r => {
+      const idVal = (idxId >= 0 ? r[idxId] : '') || '';
+      const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
+      const nikVal = (idxNik >= 0 ? r[idxNik] : '') || '';
+      return idVal === id || nipVal === id || nikVal === id;
+    });
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
+    const record = toRecord(header, rows[idx]);
+    res.json({ ok: true, data: record });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 
 app.put('/pegawai/:id', async (req, res) => {
   const id = req.params.id;
