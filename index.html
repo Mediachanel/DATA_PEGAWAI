@@ -84,7 +84,7 @@
           </div>
           <button type="submit" class="btn" id="loginBtn" disabled>Masuk</button>
         </form>
-        <div class="muted">Lupa password? Hubungi admin TI.</div>
+        <div class="muted">Lupa password? Hubungi admin Kepegawaian</div>
         <div id="status" class="status">Status: menunggu koneksi server...</div>
       </div>
       <div class="bubble"></div>
@@ -92,7 +92,7 @@
     </section>
   </main>
 
-  <footer>(c) 2025 SI Data dan Layanan Keppegawaian. Sub Kelompok Kepegawaian Dinas Kesehatan Provinsi DKI Jakarta.</footer>
+  <footer>(c) 2025 SI Data Informasi dan Layanan Keppegawaian. Sub Kelompok Kepegawaian Dinas Kesehatan Provinsi DKI Jakarta.</footer>
 
   <script>
     const BASE = (() => {
@@ -127,7 +127,7 @@
         if (res.ok && body.ok) {
           serverReady = true;
           loginBtn.disabled = false;
-          setStatus('Server siap. Silakan login.');
+          setStatus('Server siap, Silahkan login.');
         } else {
           setStatus('Server tidak siap.');
         }

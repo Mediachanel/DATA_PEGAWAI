@@ -13,15 +13,70 @@ const COLS = [
   'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili'
 ];
 const MUTASI_COLS = [
-  'id','nip','nama_pegawai','jabatan_asal','jabatan_baru','nama_ukpd_asal','nama_ukpd_tujuan',
-  'wilayah_asal','wilayah_tujuan','jenis_mutasi','alasan','tanggal_usulan','status','keterangan',
-  'abk_j_lama','bezetting_j_lama','abk_j_baru','bezetting_j_baru','berkas_url'
+  'id','nip','nama_pegawai','gelar_depan','gelar_belakang','pangkat_golongan','jabatan','abk_j_lama',
+  'bezetting_j_lama','nonasn_bezetting_lama','nonasn_abk_lama','jabatan_baru','abk_j_baru','bezetting_j_baru',
+  'nonasn_bezetting_baru','nonasn_abk_baru','nama_ukpd','ukpd_tujuan','alasan','tanggal_usulan','status',
+  'berkas_path','created_by_ukpd','created_at','updated_at','keterangan','mutasi_id','jenis_mutasi','verif_checklist'
 ];
+const MUTASI_HEADER_MAP = {
+  id: ['id', 'id_usulan'],
+  nip: ['nip'],
+  nama_pegawai: ['nama_pegawai'],
+  gelar_depan: ['gelar_depan'],
+  gelar_belakang: ['gelar_belakang'],
+  pangkat_golongan: ['pangkat_golongan', 'pangkat_gol'],
+  jabatan: ['jabatan', 'jabatan_asal'],
+  abk_j_lama: ['abk_j_lama'],
+  bezetting_j_lama: ['bezetting_j_lama'],
+  nonasn_bezetting_lama: ['nonasn_bezetting_lama'],
+  nonasn_abk_lama: ['nonasn_abk_lama'],
+  jabatan_baru: ['jabatan_baru'],
+  abk_j_baru: ['abk_j_baru'],
+  bezetting_j_baru: ['bezetting_j_baru'],
+  nonasn_bezetting_baru: ['nonasn_bezetting_baru'],
+  nonasn_abk_baru: ['nonasn_abk_baru'],
+  nama_ukpd: ['nama_ukpd', 'nama_ukpd_asal', 'ukpd_asal', 'ukpd'],
+  ukpd_tujuan: ['ukpd_tujuan', 'nama_ukpd_tujuan'],
+  alasan: ['alasan'],
+  tanggal_usulan: ['tanggal_usulan'],
+  status: ['status'],
+  berkas_path: ['berkas_path', 'berkas_url', 'link_dokumen'],
+  created_by_ukpd: ['created_by_ukpd'],
+  created_at: ['created_at'],
+  updated_at: ['updated_at'],
+  keterangan: ['keterangan'],
+  mutasi_id: ['mutasi_id'],
+  jenis_mutasi: ['jenis_mutasi'],
+  verif_checklist: ['verif_checklist']
+};
 const PEMUTUSAN_COLS = [
   'id','nip','pangkat_golongan','nama_pegawai','jabatan','jabatan_baru','angka_kredit','alasan_pemutusan',
   'nomor_surat','tanggal_surat','hal','pimpinan','asal_surat','nama_ukpd','tanggal_usulan','status',
   'berkas_path','created_by_ukpd','created_at','updated_at','keterangan'
 ];
+const PEMUTUSAN_HEADER_MAP = {
+  id: ['id', 'id_usulan'],
+  nip: ['nip'],
+  pangkat_golongan: ['pangkat_golongan', 'pangkat_gol'],
+  nama_pegawai: ['nama_pegawai'],
+  jabatan: ['jabatan', 'jabatan_lama'],
+  jabatan_baru: ['jabatan_baru'],
+  angka_kredit: ['angka_kredit'],
+  alasan_pemutusan: ['alasan_pemutusan', 'alasan_usulan'],
+  nomor_surat: ['nomor_surat'],
+  tanggal_surat: ['tanggal_surat'],
+  hal: ['hal'],
+  pimpinan: ['pimpinan'],
+  asal_surat: ['asal_surat'],
+  nama_ukpd: ['nama_ukpd', 'ukpd'],
+  tanggal_usulan: ['tanggal_usulan'],
+  status: ['status'],
+  berkas_path: ['berkas_path', 'link_dokumen'],
+  created_by_ukpd: ['created_by_ukpd'],
+  created_at: ['created_at'],
+  updated_at: ['updated_at'],
+  keterangan: ['keterangan']
+};
 const BEZETTING_COLS = [
   'no','bidang','subbidang','nama_jabatan_pergub','nama_jabatan_permenpan','rumpun_jabatan','kode',
   'abk','eksisting','selisih','nama_pegawai','nip','nrk','status_formasi','pendidikan','keterangan',
@@ -255,16 +310,18 @@ function listMutasi(e) {
   const map = getUkpdWilayahMap();
   const list = rows.map(r => {
     const rec = toMutasiRecord(header, r);
-    if (!rec.wilayah_asal) rec.wilayah_asal = map[norm(rec.nama_ukpd_asal)] || '';
-    if (!rec.wilayah_tujuan) rec.wilayah_tujuan = map[norm(rec.nama_ukpd_tujuan)] || '';
+    const ukpdAsal = norm(rec.nama_ukpd);
+    const ukpdTujuan = norm(rec.ukpd_tujuan);
+    if (!rec.wilayah_asal) rec.wilayah_asal = map[ukpdAsal] || '';
+    if (!rec.wilayah_tujuan) rec.wilayah_tujuan = map[ukpdTujuan] || '';
     return rec;
   }).filter(r => r.id);
 
   let filtered = list.filter(r => {
     const matchTerm = !term || [r.nip, r.nama_pegawai].some(v => norm(v).includes(term));
     const matchStatus = !status || norm(r.status) === status;
-    const matchUkpd = !ukpd || norm(r.nama_ukpd_asal) === ukpd;
-    const matchTujuan = !tujuan || norm(r.nama_ukpd_tujuan) === tujuan;
+    const matchUkpd = !ukpd || norm(r.nama_ukpd) === ukpd;
+    const matchTujuan = !tujuan || norm(r.ukpd_tujuan) === tujuan;
     const matchJenis = !jenis || norm(r.jenis_mutasi) === jenis;
     return matchTerm && matchStatus && matchUkpd && matchTujuan && matchJenis;
   });
@@ -280,8 +337,8 @@ function listMutasi(e) {
   const total = filtered.length;
   const summary = countBy(filtered, 'status');
   const statuses = uniq(filtered.map(r => r.status));
-  const ukpds = uniq(filtered.map(r => r.nama_ukpd_asal));
-  const tujuanList = uniq(filtered.map(r => r.nama_ukpd_tujuan));
+  const ukpds = uniq(filtered.map(r => r.nama_ukpd));
+  const tujuanList = uniq(filtered.map(r => r.ukpd_tujuan));
   const jenisList = uniq(filtered.map(r => r.jenis_mutasi));
   const slice = filtered.slice(offset, offset + limit);
 
@@ -304,11 +361,17 @@ function createMutasi(e) {
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
   const id = body.id || `UM-${Date.now()}`;
-  const map = getUkpdWilayahMap();
-  const wilayahAsal = body.wilayah_asal || map[norm(body.nama_ukpd_asal)] || '';
-  const wilayahTujuan = body.wilayah_tujuan || map[norm(body.nama_ukpd_tujuan)] || '';
-  const rowData = { ...body, id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
-  const row = MUTASI_COLS.map(k => (k === 'id' ? id : (rowData[k] || '')));
+  const nowIso = new Date().toISOString();
+  const rowData = {
+    ...body,
+    id,
+    tanggal_usulan: body.tanggal_usulan || nowIso.slice(0, 10),
+    created_at: body.created_at || nowIso,
+    updated_at: body.updated_at || nowIso,
+  };
+  const values = sheet.getDataRange().getValues();
+  const header = values.length && values[0].length ? values[0] : MUTASI_COLS;
+  const row = buildMutasiRow(header, rowData);
   sheet.appendRow(row);
   return json({ ok: true, data: { id }, id });
 }
@@ -321,16 +384,19 @@ function updateMutasi(e) {
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
   const values = sheet.getDataRange().getValues();
-  const [, ...rows] = values;
+  const [header, ...rows] = values;
+  const safeHeader = header && header.length ? header : MUTASI_COLS;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID mutasi tidak ditemukan' });
   const rowNumber = idx + 2;
-  const map = getUkpdWilayahMap();
-  const wilayahAsal = body.wilayah_asal || map[norm(body.nama_ukpd_asal)] || '';
-  const wilayahTujuan = body.wilayah_tujuan || map[norm(body.nama_ukpd_tujuan)] || '';
-  const payloadData = { ...body, id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
-  const payload = MUTASI_COLS.map(k => (k === 'id' ? id : (payloadData[k] || '')));
-  sheet.getRange(rowNumber, 1, 1, MUTASI_COLS.length).setValues([payload]);
+  const currentRow = rows[idx] || [];
+  const current = toMutasiRecord(safeHeader, currentRow);
+  const rowData = { ...current, ...body, id };
+  if (!rowData.updated_at) rowData.updated_at = new Date().toISOString();
+  const baseRow = currentRow.slice();
+  while (baseRow.length < safeHeader.length) baseRow.push('');
+  const payload = applyMutasiRow(baseRow, safeHeader, rowData);
+  sheet.getRange(rowNumber, 1, 1, safeHeader.length).setValues([payload]);
   return json({ ok: true, data: { id } });
 }
 
@@ -412,7 +478,9 @@ function createPemutusan(e) {
     created_at: body.created_at || nowIso,
     updated_at: body.updated_at || nowIso,
   };
-  const row = PEMUTUSAN_COLS.map(k => rowData[k] || '');
+  const values = sheet.getDataRange().getValues();
+  const header = values.length && values[0].length ? values[0] : PEMUTUSAN_COLS;
+  const row = buildPemutusanRow(header, rowData);
   sheet.appendRow(row);
   return json({ ok: true, data: { id }, id });
 }
@@ -426,14 +494,18 @@ function updatePemutusan(e) {
   const body = e.body || parseBody(e) || {};
   const values = sheet.getDataRange().getValues();
   const [header, ...rows] = values;
+  const safeHeader = header && header.length ? header : PEMUTUSAN_COLS;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   const rowNumber = idx + 2;
-  const current = toPemutusanRecord(header, rows[idx]);
+  const currentRow = rows[idx] || [];
+  const current = toPemutusanRecord(safeHeader, currentRow);
   const rowData = { ...current, ...body, id };
   if (!rowData.updated_at) rowData.updated_at = new Date().toISOString();
-  const payload = PEMUTUSAN_COLS.map(k => rowData[k] || '');
-  sheet.getRange(rowNumber, 1, 1, PEMUTUSAN_COLS.length).setValues([payload]);
+  const baseRow = currentRow.slice();
+  while (baseRow.length < safeHeader.length) baseRow.push('');
+  const payload = applyPemutusanRow(baseRow, safeHeader, rowData);
+  sheet.getRange(rowNumber, 1, 1, safeHeader.length).setValues([payload]);
   return json({ ok: true, data: { id }, id });
 }
 
@@ -606,6 +678,82 @@ function normalizeHeaderKey(name) {
   return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
 }
 
+function buildHeaderIndex(header) {
+  const map = {};
+  (header || []).forEach((h, idx) => {
+    const key = normalizeHeaderKey(h);
+    if (!key) return;
+    if (map[key] === undefined) map[key] = idx;
+  });
+  return map;
+}
+
+function findHeaderIndex(headerIndex, names) {
+  for (const name of names) {
+    const key = normalizeHeaderKey(name);
+    if (key && Object.prototype.hasOwnProperty.call(headerIndex, key)) return headerIndex[key];
+  }
+  return -1;
+}
+
+function getMutasiValue(headerIndex, row, names, fallbackIdx) {
+  const idx = findHeaderIndex(headerIndex, names);
+  if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
+  if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
+  return '';
+}
+
+function buildMutasiRow(header, rowData) {
+  const safeHeader = (header && header.length) ? header : MUTASI_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const row = new Array(safeHeader.length).fill('');
+  Object.keys(MUTASI_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, MUTASI_HEADER_MAP[key]);
+    if (idx >= 0) row[idx] = rowData[key] || '';
+  });
+  return row;
+}
+
+function applyMutasiRow(row, header, rowData) {
+  const safeHeader = (header && header.length) ? header : MUTASI_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const next = row.slice();
+  Object.keys(MUTASI_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, MUTASI_HEADER_MAP[key]);
+    if (idx >= 0) next[idx] = rowData[key] || '';
+  });
+  return next;
+}
+
+function getPemutusanValue(headerIndex, row, names, fallbackIdx) {
+  const idx = findHeaderIndex(headerIndex, names);
+  if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
+  if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
+  return '';
+}
+
+function buildPemutusanRow(header, rowData) {
+  const safeHeader = (header && header.length) ? header : PEMUTUSAN_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const row = new Array(safeHeader.length).fill('');
+  Object.keys(PEMUTUSAN_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, PEMUTUSAN_HEADER_MAP[key]);
+    if (idx >= 0) row[idx] = rowData[key] || '';
+  });
+  return row;
+}
+
+function applyPemutusanRow(row, header, rowData) {
+  const safeHeader = (header && header.length) ? header : PEMUTUSAN_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const next = row.slice();
+  Object.keys(PEMUTUSAN_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, PEMUTUSAN_HEADER_MAP[key]);
+    if (idx >= 0) next[idx] = rowData[key] || '';
+  });
+  return next;
+}
+
 function normalizePegawaiHeader(name) {
   return String(name || '').toLowerCase().trim().replace(/\s+/g, '_');
 }
@@ -644,78 +792,73 @@ function toRecord(header, row) {
 }
 
 function toMutasiRecord(header, row) {
-  const h = (header || []).map(x => (x || '').toLowerCase().trim());
-  const get = (name, fallbackIdx) => {
-    const idx = h.indexOf(name);
-    if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
-    if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
-    return '';
+  const headerIndex = buildHeaderIndex(header);
+  const getVal = (key, fallbackIdx) => {
+    const names = MUTASI_HEADER_MAP[key] || [key];
+    return getMutasiValue(headerIndex, row, names, fallbackIdx);
   };
   return {
-    id: get('id', 0),
-    nip: get('nip', 1),
-    nama_pegawai: get('nama_pegawai', 2),
-    jabatan_asal: get('jabatan_asal', 3),
-    jabatan_baru: get('jabatan_baru', 4),
-    nama_ukpd_asal: get('nama_ukpd_asal', 5),
-    nama_ukpd_tujuan: get('nama_ukpd_tujuan', 6),
-    wilayah_asal: get('wilayah_asal', 7),
-    wilayah_tujuan: get('wilayah_tujuan', 8),
-    jenis_mutasi: get('jenis_mutasi', 9),
-    alasan: get('alasan', 10),
-    tanggal_usulan: get('tanggal_usulan', 11),
-    status: get('status', 12),
-    keterangan: get('keterangan', 13),
-    abk_j_lama: get('abk_j_lama', 14),
-    bezetting_j_lama: get('bezetting_j_lama', 15),
-    abk_j_baru: get('abk_j_baru', 16),
-    bezetting_j_baru: get('bezetting_j_baru', 17),
-    berkas_url: get('berkas_url', 18),
+    id: getVal('id', 0),
+    nip: getVal('nip', 1),
+    nama_pegawai: getVal('nama_pegawai', 2),
+    gelar_depan: getVal('gelar_depan', 3),
+    gelar_belakang: getVal('gelar_belakang', 4),
+    pangkat_golongan: getVal('pangkat_golongan', 5),
+    jabatan: getVal('jabatan', 6),
+    abk_j_lama: getVal('abk_j_lama', 7),
+    bezetting_j_lama: getVal('bezetting_j_lama', 8),
+    nonasn_bezetting_lama: getVal('nonasn_bezetting_lama', 9),
+    nonasn_abk_lama: getVal('nonasn_abk_lama', 10),
+    jabatan_baru: getVal('jabatan_baru', 11),
+    abk_j_baru: getVal('abk_j_baru', 12),
+    bezetting_j_baru: getVal('bezetting_j_baru', 13),
+    nonasn_bezetting_baru: getVal('nonasn_bezetting_baru', 14),
+    nonasn_abk_baru: getVal('nonasn_abk_baru', 15),
+    nama_ukpd: getVal('nama_ukpd', 16),
+    ukpd_tujuan: getVal('ukpd_tujuan', 17),
+    alasan: getVal('alasan', 18),
+    tanggal_usulan: getVal('tanggal_usulan', 19),
+    status: getVal('status', 20),
+    berkas_path: getVal('berkas_path', 21),
+    created_by_ukpd: getVal('created_by_ukpd', 22),
+    created_at: getVal('created_at', 23),
+    updated_at: getVal('updated_at', 24),
+    keterangan: getVal('keterangan', 25),
+    mutasi_id: getVal('mutasi_id', 26),
+    jenis_mutasi: getVal('jenis_mutasi', 27),
+    verif_checklist: getVal('verif_checklist', 28),
   };
 }
 
 function toPemutusanRecord(header, row) {
-  const h = (header || []).map(normalizeHeaderKey);
-  const getByName = (name) => {
-    const idx = h.indexOf(normalizeHeaderKey(name));
-    if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
-    return '';
+  const headerIndex = buildHeaderIndex(header);
+  const getVal = (key, fallbackIdx) => {
+    const names = PEMUTUSAN_HEADER_MAP[key] || [key];
+    return getPemutusanValue(headerIndex, row, names, fallbackIdx);
   };
-  const get = (name, fallbackIdx) => {
-    const idx = h.indexOf(normalizeHeaderKey(name));
-    if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
-    if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
-    return '';
-  };
-  const id = get('id', 0) || getByName('id_usulan');
-  const pangkat = get('pangkat_golongan', 2) || getByName('pangkat_gol');
-  const jabatan = get('jabatan', 4) || getByName('jabatan_lama');
-  const alasan = get('alasan_pemutusan', 7) || getByName('alasan_usulan');
-  const namaUkpd = get('nama_ukpd', 13) || getByName('ukpd');
-  const berkasPath = get('berkas_path', 16) || getByName('link_dokumen');
 
   return {
-    id,
-    nip: get('nip', 1),
-    pangkat_golongan: pangkat,
-    nama_pegawai: get('nama_pegawai', 3),
-    jabatan,
-    jabatan_baru: get('jabatan_baru', 5),
-    angka_kredit: get('angka_kredit', 6),
-    alasan_pemutusan: alasan,
-    nomor_surat: get('nomor_surat', 8),
-    tanggal_surat: get('tanggal_surat', 9),
-    hal: get('hal', 10),
-    pimpinan: get('pimpinan', 11),
-    asal_surat: get('asal_surat', 12),
-    nama_ukpd: namaUkpd,
-    tanggal_usulan: get('tanggal_usulan', 14),
-    status: get('status', 15),
-    berkas_path: berkasPath,
-    created_by_ukpd: get('created_by_ukpd', 17),
-    created_at: get('created_at', 18),
-    updated_at: get('updated_at', 19),
-    keterangan: get('keterangan', 20),
+    id: getVal('id', 0),
+    nip: getVal('nip', 1),
+    pangkat_golongan: getVal('pangkat_golongan', 2),
+    nama_pegawai: getVal('nama_pegawai', 3),
+    jabatan: getVal('jabatan', 4),
+    jabatan_baru: getVal('jabatan_baru', 5),
+    angka_kredit: getVal('angka_kredit', 6),
+    alasan_pemutusan: getVal('alasan_pemutusan', 7),
+    nomor_surat: getVal('nomor_surat', 8),
+    tanggal_surat: getVal('tanggal_surat', 9),
+    hal: getVal('hal', 10),
+    pimpinan: getVal('pimpinan', 11),
+    asal_surat: getVal('asal_surat', 12),
+    nama_ukpd: getVal('nama_ukpd', 13),
+    tanggal_usulan: getVal('tanggal_usulan', 14),
+    status: getVal('status', 15),
+    berkas_path: getVal('berkas_path', 16),
+    created_by_ukpd: getVal('created_by_ukpd', 17),
+    created_at: getVal('created_at', 18),
+    updated_at: getVal('updated_at', 19),
+    keterangan: getVal('keterangan', 20),
   };
 }
 

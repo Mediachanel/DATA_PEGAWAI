@@ -19,19 +19,73 @@ const COLS = [
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
   'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili'
 ];
-const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:S'; // 19 kolom (tambah wilayah asal/tujuan)
+const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:AC'; // 29 kolom (format baru)
 const MUTASI_COLS = [
-  'id','nip','nama_pegawai','jabatan_asal','jabatan_baru','nama_ukpd_asal','nama_ukpd_tujuan',
-  'wilayah_asal','wilayah_tujuan',
-  'jenis_mutasi','alasan','tanggal_usulan','status','keterangan',
-  'abk_j_lama','bezetting_j_lama','abk_j_baru','bezetting_j_baru','berkas_url'
+  'id','nip','nama_pegawai','gelar_depan','gelar_belakang','pangkat_golongan','jabatan','abk_j_lama',
+  'bezetting_j_lama','nonasn_bezetting_lama','nonasn_abk_lama','jabatan_baru','abk_j_baru','bezetting_j_baru',
+  'nonasn_bezetting_baru','nonasn_abk_baru','nama_ukpd','ukpd_tujuan','alasan','tanggal_usulan','status',
+  'berkas_path','created_by_ukpd','created_at','updated_at','keterangan','mutasi_id','jenis_mutasi','verif_checklist'
 ];
+const MUTASI_HEADER_MAP = {
+  id: ['id', 'id_usulan'],
+  nip: ['nip'],
+  nama_pegawai: ['nama_pegawai'],
+  gelar_depan: ['gelar_depan'],
+  gelar_belakang: ['gelar_belakang'],
+  pangkat_golongan: ['pangkat_golongan', 'pangkat_gol'],
+  jabatan: ['jabatan', 'jabatan_asal'],
+  abk_j_lama: ['abk_j_lama'],
+  bezetting_j_lama: ['bezetting_j_lama'],
+  nonasn_bezetting_lama: ['nonasn_bezetting_lama'],
+  nonasn_abk_lama: ['nonasn_abk_lama'],
+  jabatan_baru: ['jabatan_baru'],
+  abk_j_baru: ['abk_j_baru'],
+  bezetting_j_baru: ['bezetting_j_baru'],
+  nonasn_bezetting_baru: ['nonasn_bezetting_baru'],
+  nonasn_abk_baru: ['nonasn_abk_baru'],
+  nama_ukpd: ['nama_ukpd', 'nama_ukpd_asal', 'ukpd_asal', 'ukpd'],
+  ukpd_tujuan: ['ukpd_tujuan', 'nama_ukpd_tujuan'],
+  alasan: ['alasan'],
+  tanggal_usulan: ['tanggal_usulan'],
+  status: ['status'],
+  berkas_path: ['berkas_path', 'berkas_url', 'link_dokumen'],
+  created_by_ukpd: ['created_by_ukpd'],
+  created_at: ['created_at'],
+  updated_at: ['updated_at'],
+  keterangan: ['keterangan'],
+  mutasi_id: ['mutasi_id'],
+  jenis_mutasi: ['jenis_mutasi'],
+  verif_checklist: ['verif_checklist']
+};
 const PEMUTUSAN_RANGE = process.env.PEMUTUSAN_RANGE || 'USULAN_PEMUTUSAN_JF!A:U';
 const PEMUTUSAN_COLS = [
   'id','nip','pangkat_golongan','nama_pegawai','jabatan','jabatan_baru','angka_kredit','alasan_pemutusan',
   'nomor_surat','tanggal_surat','hal','pimpinan','asal_surat','nama_ukpd','tanggal_usulan','status',
   'berkas_path','created_by_ukpd','created_at','updated_at','keterangan'
 ];
+const PEMUTUSAN_HEADER_MAP = {
+  id: ['id', 'id_usulan'],
+  nip: ['nip'],
+  pangkat_golongan: ['pangkat_golongan', 'pangkat_gol'],
+  nama_pegawai: ['nama_pegawai'],
+  jabatan: ['jabatan', 'jabatan_lama'],
+  jabatan_baru: ['jabatan_baru'],
+  angka_kredit: ['angka_kredit'],
+  alasan_pemutusan: ['alasan_pemutusan', 'alasan_usulan'],
+  nomor_surat: ['nomor_surat'],
+  tanggal_surat: ['tanggal_surat'],
+  hal: ['hal'],
+  pimpinan: ['pimpinan'],
+  asal_surat: ['asal_surat'],
+  nama_ukpd: ['nama_ukpd', 'ukpd'],
+  tanggal_usulan: ['tanggal_usulan'],
+  status: ['status'],
+  berkas_path: ['berkas_path', 'link_dokumen'],
+  created_by_ukpd: ['created_by_ukpd'],
+  created_at: ['created_at'],
+  updated_at: ['updated_at'],
+  keterangan: ['keterangan']
+};
 const BEZETTING_RANGE = process.env.BEZETTING_RANGE || 'bezetting!A:W';
 const BEZETTING_COLS = [
   'no','bidang','subbidang','nama_jabatan_pergub','nama_jabatan_permenpan','rumpun_jabatan','kode',
@@ -42,6 +96,93 @@ const BEZETTING_COLS = [
 
 const norm = (val = '') => (val || '').toString().trim().toLowerCase();
 const normalizeHeaderKey = (val = '') => val.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+
+function buildHeaderIndex(header) {
+  const map = {};
+  (header || []).forEach((h, idx) => {
+    const key = normalizeHeaderKey(h);
+    if (!key) return;
+    if (map[key] === undefined) map[key] = idx;
+  });
+  return map;
+}
+
+function findHeaderIndex(headerIndex, names) {
+  for (const name of names) {
+    const key = normalizeHeaderKey(name);
+    if (key && Object.prototype.hasOwnProperty.call(headerIndex, key)) return headerIndex[key];
+  }
+  return -1;
+}
+
+function getMutasiValue(headerIndex, row, names, fallbackIdx) {
+  const idx = findHeaderIndex(headerIndex, names);
+  if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
+  if (typeof fallbackIdx === 'number' && typeof row[fallbackIdx] !== 'undefined') return row[fallbackIdx] || '';
+  return '';
+}
+
+function buildMutasiRow(header, rowData) {
+  const safeHeader = header && header.length ? header : MUTASI_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const row = new Array(safeHeader.length).fill('');
+  Object.keys(MUTASI_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, MUTASI_HEADER_MAP[key]);
+    if (idx >= 0) row[idx] = rowData[key] || '';
+  });
+  return row;
+}
+
+function applyMutasiRow(row, header, rowData) {
+  const safeHeader = header && header.length ? header : MUTASI_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const next = row.slice();
+  Object.keys(MUTASI_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, MUTASI_HEADER_MAP[key]);
+    if (idx >= 0) next[idx] = rowData[key] || '';
+  });
+  return next;
+}
+
+function getPemutusanValue(headerIndex, row, names, fallbackIdx) {
+  const idx = findHeaderIndex(headerIndex, names);
+  if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
+  if (typeof fallbackIdx === 'number' && typeof row[fallbackIdx] !== 'undefined') return row[fallbackIdx] || '';
+  return '';
+}
+
+function buildPemutusanRow(header, rowData) {
+  const safeHeader = header && header.length ? header : PEMUTUSAN_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const row = new Array(safeHeader.length).fill('');
+  Object.keys(PEMUTUSAN_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, PEMUTUSAN_HEADER_MAP[key]);
+    if (idx >= 0) row[idx] = rowData[key] || '';
+  });
+  return row;
+}
+
+function applyPemutusanRow(row, header, rowData) {
+  const safeHeader = header && header.length ? header : PEMUTUSAN_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const next = row.slice();
+  Object.keys(PEMUTUSAN_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, PEMUTUSAN_HEADER_MAP[key]);
+    if (idx >= 0) next[idx] = rowData[key] || '';
+  });
+  return next;
+}
+
+function columnIndexToLetter(col) {
+  let temp = col;
+  let letter = '';
+  while (temp > 0) {
+    const mod = (temp - 1) % 26;
+    letter = String.fromCharCode(65 + mod) + letter;
+    temp = Math.floor((temp - 1) / 26);
+  }
+  return letter;
+}
 
 async function getUkpdWilayahMap() {
   const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: USER_RANGE });
@@ -485,16 +626,18 @@ app.get('/mutasi', async (req, res) => {
     const ukpdWilayahMap = await getUkpdWilayahMap();
     const list = rows.map(r => {
       const rec = toMutasiRecord(header, r);
-      if (!rec.wilayah_asal) rec.wilayah_asal = ukpdWilayahMap[norm(rec.nama_ukpd_asal)] || '';
-      if (!rec.wilayah_tujuan) rec.wilayah_tujuan = ukpdWilayahMap[norm(rec.nama_ukpd_tujuan)] || '';
+      const ukpdAsal = norm(rec.nama_ukpd);
+      const ukpdTujuan = norm(rec.ukpd_tujuan);
+      if (!rec.wilayah_asal) rec.wilayah_asal = ukpdWilayahMap[ukpdAsal] || '';
+      if (!rec.wilayah_tujuan) rec.wilayah_tujuan = ukpdWilayahMap[ukpdTujuan] || '';
       return rec;
     }).filter(r => r.id);
 
     const baseFiltered = list.filter(r => {
       const matchTerm = !term || [r.nip, r.nama_pegawai].some(v => (v || '').toLowerCase().includes(term));
       const matchStatus = !status || (r.status || '').toLowerCase() === status;
-      const matchUkpd = !ukpd || (r.nama_ukpd_asal || '').toLowerCase() === ukpd;
-      const matchTujuan = !tujuan || (r.nama_ukpd_tujuan || '').toLowerCase() === tujuan;
+      const matchUkpd = !ukpd || (r.nama_ukpd || '').toLowerCase() === ukpd;
+      const matchTujuan = !tujuan || (r.ukpd_tujuan || '').toLowerCase() === tujuan;
       const matchJenis = !jenis || (r.jenis_mutasi || '').toLowerCase() === jenis;
       return matchTerm && matchStatus && matchUkpd && matchTujuan && matchJenis;
     });
@@ -514,8 +657,8 @@ app.get('/mutasi', async (req, res) => {
       return acc;
     }, {});
     const statuses = Array.from(new Set(filtered.map(r => r.status).filter(Boolean))).sort();
-    const ukpds = Array.from(new Set(filtered.map(r => r.nama_ukpd_asal).filter(Boolean))).sort();
-    const tujuanList = Array.from(new Set(filtered.map(r => r.nama_ukpd_tujuan).filter(Boolean))).sort();
+    const ukpds = Array.from(new Set(filtered.map(r => r.nama_ukpd).filter(Boolean))).sort();
+    const tujuanList = Array.from(new Set(filtered.map(r => r.ukpd_tujuan).filter(Boolean))).sort();
     const jenisList = Array.from(new Set(filtered.map(r => r.jenis_mutasi).filter(Boolean))).sort();
 
     res.json({ ok: true, rows: filtered, total: filtered.length, summary, statuses, ukpds, tujuan: tujuanList, jenis: jenisList });
@@ -543,14 +686,26 @@ app.post('/mutasi', async (req, res) => {
   try {
     const d = req.body || {};
     const id = d.id || `UM-${Date.now()}`;
-    const map = await getUkpdWilayahMap();
-    const wilayahAsal = d.wilayah_asal || map[norm(d.nama_ukpd_asal)] || '';
-    const wilayahTujuan = d.wilayah_tujuan || map[norm(d.nama_ukpd_tujuan)] || '';
-    const rowData = { ...d, id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
-    const row = MUTASI_COLS.map(k => k === 'id' ? id : (rowData[k] || ''));
+    const nowIso = new Date().toISOString();
+    const rowData = {
+      ...d,
+      id,
+      tanggal_usulan: d.tanggal_usulan || nowIso.slice(0, 10),
+      created_at: d.created_at || nowIso,
+      updated_at: d.updated_at || nowIso
+    };
+    const sheetName = MUTASI_RANGE.split('!')[0];
+    const headerRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!1:1`
+    });
+    const header = (headerRes.data.values && headerRes.data.values[0] && headerRes.data.values[0].length)
+      ? headerRes.data.values[0]
+      : MUTASI_COLS;
+    const row = buildMutasiRow(header, rowData);
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: MUTASI_RANGE,
+      range: sheetName,
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] }
@@ -567,17 +722,22 @@ app.put('/mutasi/:id', async (req, res) => {
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: MUTASI_RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
+    const safeHeader = header && header.length ? header : MUTASI_COLS;
     const idx = data.findIndex(r => (r[0] || '').toString() === id);
     if (idx < 0) return res.status(404).json({ ok: false, error: 'ID mutasi tidak ditemukan' });
     const rowNumber = idx + 2; // +1 header
-    const map = await getUkpdWilayahMap();
-    const wilayahAsal = req.body?.wilayah_asal || map[norm(req.body?.nama_ukpd_asal)] || '';
-    const wilayahTujuan = req.body?.wilayah_tujuan || map[norm(req.body?.nama_ukpd_tujuan)] || '';
-    const payloadData = { ...(req.body || {}), id, wilayah_asal: wilayahAsal, wilayah_tujuan: wilayahTujuan };
-    const payload = MUTASI_COLS.map(k => k === 'id' ? id : (payloadData[k] || ''));
+    const currentRow = data[idx] || [];
+    const current = toMutasiRecord(safeHeader, currentRow);
+    const payloadData = { ...current, ...(req.body || {}), id };
+    if (!payloadData.updated_at) payloadData.updated_at = new Date().toISOString();
+    const baseRow = currentRow.slice();
+    while (baseRow.length < safeHeader.length) baseRow.push('');
+    const payload = applyMutasiRow(baseRow, safeHeader, payloadData);
+    const sheetName = MUTASI_RANGE.split('!')[0];
+    const endCol = columnIndexToLetter(safeHeader.length);
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${MUTASI_RANGE.split('!')[0]}!A${rowNumber}:S${rowNumber}`,
+      range: `${sheetName}!A${rowNumber}:${endCol}${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
@@ -664,10 +824,18 @@ app.post('/pemutusan-jf', async (req, res) => {
       created_at: d.created_at || nowIso,
       updated_at: d.updated_at || nowIso
     };
-    const row = PEMUTUSAN_COLS.map(k => rowData[k] || '');
+    const sheetName = PEMUTUSAN_RANGE.split('!')[0];
+    const headerRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!1:1`
+    });
+    const header = (headerRes.data.values && headerRes.data.values[0] && headerRes.data.values[0].length)
+      ? headerRes.data.values[0]
+      : PEMUTUSAN_COLS;
+    const row = buildPemutusanRow(header, rowData);
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: PEMUTUSAN_RANGE,
+      range: sheetName,
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] }
@@ -684,16 +852,22 @@ app.put('/pemutusan-jf/:id', async (req, res) => {
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
+    const safeHeader = header && header.length ? header : PEMUTUSAN_COLS;
     const idx = data.findIndex(r => (r[0] || '').toString() === id);
     if (idx < 0) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
     const rowNumber = idx + 2; // +1 header
-    const current = toPemutusanRecord(header, data[idx]);
+    const currentRow = data[idx] || [];
+    const current = toPemutusanRecord(safeHeader, currentRow);
     const dataPayload = { ...current, ...(req.body || {}), id };
     if (!dataPayload.updated_at) dataPayload.updated_at = new Date().toISOString();
-    const payload = PEMUTUSAN_COLS.map(k => dataPayload[k] || '');
+    const baseRow = currentRow.slice();
+    while (baseRow.length < safeHeader.length) baseRow.push('');
+    const payload = applyPemutusanRow(baseRow, safeHeader, dataPayload);
+    const sheetName = PEMUTUSAN_RANGE.split('!')[0];
+    const endCol = columnIndexToLetter(safeHeader.length);
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${PEMUTUSAN_RANGE.split('!')[0]}!A${rowNumber}:U${rowNumber}`,
+      range: `${sheetName}!A${rowNumber}:${endCol}${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
@@ -901,78 +1075,73 @@ async function getSheetIdByName(name) {
 }
 
 function toMutasiRecord(header, row){
-  const h = (header || []).map(x => (x || '').toLowerCase().trim());
-  const get = (name, idxFallback) => {
-    const idx = h.indexOf(name);
-    if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
-    if (typeof idxFallback === 'number' && typeof row[idxFallback] !== 'undefined') return row[idxFallback] || '';
-    return '';
+  const headerIndex = buildHeaderIndex(header);
+  const getVal = (key, fallbackIdx) => {
+    const names = MUTASI_HEADER_MAP[key] || [key];
+    return getMutasiValue(headerIndex, row, names, fallbackIdx);
   };
   return {
-    id: get('id',0),
-    nip: get('nip',1),
-    nama_pegawai: get('nama_pegawai',2),
-    jabatan_asal: get('jabatan_asal',3),
-    jabatan_baru: get('jabatan_baru',4),
-    nama_ukpd_asal: get('nama_ukpd_asal',5),
-    nama_ukpd_tujuan: get('nama_ukpd_tujuan',6),
-    wilayah_asal: get('wilayah_asal',7),
-    wilayah_tujuan: get('wilayah_tujuan',8),
-    jenis_mutasi: get('jenis_mutasi',9),
-    alasan: get('alasan',10),
-    tanggal_usulan: get('tanggal_usulan',11),
-    status: get('status',12),
-    keterangan: get('keterangan',13),
-    abk_j_lama: get('abk_j_lama',14),
-    bezetting_j_lama: get('bezetting_j_lama',15),
-    abk_j_baru: get('abk_j_baru',16),
-    bezetting_j_baru: get('bezetting_j_baru',17),
-    berkas_url: get('berkas_url',18),
+    id: getVal('id', 0),
+    nip: getVal('nip', 1),
+    nama_pegawai: getVal('nama_pegawai', 2),
+    gelar_depan: getVal('gelar_depan', 3),
+    gelar_belakang: getVal('gelar_belakang', 4),
+    pangkat_golongan: getVal('pangkat_golongan', 5),
+    jabatan: getVal('jabatan', 6),
+    abk_j_lama: getVal('abk_j_lama', 7),
+    bezetting_j_lama: getVal('bezetting_j_lama', 8),
+    nonasn_bezetting_lama: getVal('nonasn_bezetting_lama', 9),
+    nonasn_abk_lama: getVal('nonasn_abk_lama', 10),
+    jabatan_baru: getVal('jabatan_baru', 11),
+    abk_j_baru: getVal('abk_j_baru', 12),
+    bezetting_j_baru: getVal('bezetting_j_baru', 13),
+    nonasn_bezetting_baru: getVal('nonasn_bezetting_baru', 14),
+    nonasn_abk_baru: getVal('nonasn_abk_baru', 15),
+    nama_ukpd: getVal('nama_ukpd', 16),
+    ukpd_tujuan: getVal('ukpd_tujuan', 17),
+    alasan: getVal('alasan', 18),
+    tanggal_usulan: getVal('tanggal_usulan', 19),
+    status: getVal('status', 20),
+    berkas_path: getVal('berkas_path', 21),
+    created_by_ukpd: getVal('created_by_ukpd', 22),
+    created_at: getVal('created_at', 23),
+    updated_at: getVal('updated_at', 24),
+    keterangan: getVal('keterangan', 25),
+    mutasi_id: getVal('mutasi_id', 26),
+    jenis_mutasi: getVal('jenis_mutasi', 27),
+    verif_checklist: getVal('verif_checklist', 28),
   };
 }
 
 function toPemutusanRecord(header, row){
-  const h = (header || []).map(normalizeHeaderKey);
-  const getByName = (name) => {
-    const idx = h.indexOf(normalizeHeaderKey(name));
-    if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
-    return '';
+  const headerIndex = buildHeaderIndex(header);
+  const getVal = (key, fallbackIdx) => {
+    const names = PEMUTUSAN_HEADER_MAP[key] || [key];
+    return getPemutusanValue(headerIndex, row, names, fallbackIdx);
   };
-  const get = (name, idxFallback) => {
-    const idx = h.indexOf(normalizeHeaderKey(name));
-    if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
-    if (typeof idxFallback === 'number' && typeof row[idxFallback] !== 'undefined') return row[idxFallback] || '';
-    return '';
-  };
-  const id = get('id',0) || getByName('id_usulan');
-  const pangkat = get('pangkat_golongan',2) || getByName('pangkat_gol');
-  const jabatan = get('jabatan',4) || getByName('jabatan_lama');
-  const alasan = get('alasan_pemutusan',7) || getByName('alasan_usulan');
-  const namaUkpd = get('nama_ukpd',13) || getByName('ukpd');
-  const berkasPath = get('berkas_path',16) || getByName('link_dokumen');
 
   return {
-    id,
-    nip: get('nip',1),
-    pangkat_golongan: pangkat,
-    nama_pegawai: get('nama_pegawai',3),
-    jabatan,
-    jabatan_baru: get('jabatan_baru',5),
-    angka_kredit: get('angka_kredit',6),
-    alasan_pemutusan: alasan,
-    nomor_surat: get('nomor_surat',8),
-    tanggal_surat: get('tanggal_surat',9),
-    hal: get('hal',10),
-    pimpinan: get('pimpinan',11),
-    asal_surat: get('asal_surat',12),
-    nama_ukpd: namaUkpd,
-    tanggal_usulan: get('tanggal_usulan',14),
-    status: get('status',15),
-    berkas_path: berkasPath,
-    created_by_ukpd: get('created_by_ukpd',17),
-    created_at: get('created_at',18),
-    updated_at: get('updated_at',19),
-    keterangan: get('keterangan',20),
+    id: getVal('id', 0),
+    nip: getVal('nip', 1),
+    pangkat_golongan: getVal('pangkat_golongan', 2),
+    nama_pegawai: getVal('nama_pegawai', 3),
+    jabatan: getVal('jabatan', 4),
+    jabatan_baru: getVal('jabatan_baru', 5),
+    angka_kredit: getVal('angka_kredit', 6),
+    alasan_pemutusan: getVal('alasan_pemutusan', 7),
+    nomor_surat: getVal('nomor_surat', 8),
+    tanggal_surat: getVal('tanggal_surat', 9),
+    hal: getVal('hal', 10),
+    pimpinan: getVal('pimpinan', 11),
+    asal_surat: getVal('asal_surat', 12),
+    nama_ukpd: getVal('nama_ukpd', 13),
+    tanggal_usulan: getVal('tanggal_usulan', 14),
+    status: getVal('status', 15),
+    berkas_path: getVal('berkas_path', 16),
+    created_by_ukpd: getVal('created_by_ukpd', 17),
+    created_at: getVal('created_at', 18),
+    updated_at: getVal('updated_at', 19),
+    keterangan: getVal('keterangan', 20),
   };
 }
 

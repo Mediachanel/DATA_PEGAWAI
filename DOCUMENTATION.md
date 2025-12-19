@@ -43,26 +43,36 @@
 28. alamat_ktp
 29. alamat_domisili
 
-### Usulan Mutasi (USULAN_MUTASI!A:S, 19 kolom)
+### Usulan Mutasi (USULAN_MUTASI!A:AC, 29 kolom)
 1. id
 2. nip
 3. nama_pegawai
-4. jabatan_asal
-5. jabatan_baru
-6. nama_ukpd_asal
-7. nama_ukpd_tujuan
-8. wilayah_asal
-9. wilayah_tujuan
-10. jenis_mutasi
-11. alasan
-12. tanggal_usulan
-13. status
-14. keterangan
-15. abk_j_lama
-16. bezetting_j_lama
-17. abk_j_baru
-18. bezetting_j_baru
-19. berkas_url
+4. gelar_depan
+5. gelar_belakang
+6. pangkat_golongan
+7. jabatan
+8. abk_j_lama
+9. bezetting_j_lama
+10. nonasn_bezetting_lama
+11. nonasn_abk_lama
+12. jabatan_baru
+13. abk_j_baru
+14. bezetting_j_baru
+15. nonasn_bezetting_baru
+16. nonasn_abk_baru
+17. nama_ukpd
+18. ukpd_tujuan
+19. alasan
+20. tanggal_usulan
+21. status
+22. berkas_path
+23. created_by_ukpd
+24. created_at
+25. updated_at
+26. keterangan
+27. mutasi_id
+28. jenis_mutasi
+29. verif_checklist
 
 ### Usulan Pemutusan JF (USULAN_PEMUTUSAN_JF!A:U, 21 kolom)
 1. id
@@ -102,7 +112,7 @@ Catatan pemutusan JF:
 - Admin Wilayah: data dibatasi sesuai `wilayah` login.
 - Admin UKPD: data dibatasi UKPD login.
 - Frontend mengirim query `wilayah`/`ukpd` otomatis saat load; backend memfilter ulang sesuai query.
-- Penambahan data otomatis mengisi `tanggal_usulan`, `created_at`, `updated_at` (pemutusan JF) dan `wilayah_asal/tujuan` (mutasi) dari sheet `username` jika kosong.
+- Penambahan data otomatis mengisi `tanggal_usulan`, `created_at`, `updated_at` (pemutusan JF). Untuk mutasi, filter wilayah dihitung dari mapping `nama_ukpd` -> `wilayah` di sheet `username` (kolom wilayah tidak disimpan di sheet mutasi).
 - Filter wilayah untuk pemutusan JF dihitung dari mapping `nama_ukpd` -> `wilayah` di sheet `username` (kolom wilayah tidak disimpan di sheet pemutusan).
 
 ### Endpoint utama (action-based)
@@ -186,7 +196,7 @@ Keamanan:
 ## Ringkasan Perubahan & Deployment
 - Backend proxy: `server.js` mendukung `WEB_APP_BASE` (URL Apps Script /exec), CORS `*`, port default 5002. Env lain: `SPREADSHEET_ID`, `RANGE`, `USER_RANGE`.
 - Endpoint baru usulan mutasi:
-  - Sheet: `USULAN_MUTASI!A:S` (id, nip, nama_pegawai, jabatan_asal, jabatan_baru, nama_ukpd_asal, nama_ukpd_tujuan, jenis_mutasi, alasan, tanggal_usulan, status, keterangan, abk_j_lama, bezetting_j_lama, abk_j_baru, bezetting_j_baru, berkas_url).
+  - Sheet: `USULAN_MUTASI!A:AC` (id, nip, nama_pegawai, gelar_depan, gelar_belakang, pangkat_golongan, jabatan, abk_j_lama, bezetting_j_lama, nonasn_bezetting_lama, nonasn_abk_lama, jabatan_baru, abk_j_baru, bezetting_j_baru, nonasn_bezetting_baru, nonasn_abk_baru, nama_ukpd, ukpd_tujuan, alasan, tanggal_usulan, status, berkas_path, created_by_ukpd, created_at, updated_at, keterangan, mutasi_id, jenis_mutasi, verif_checklist).
   - API: `GET /mutasi` (filter: search, status, jenis_mutasi, ukpd, tujuan), `GET /mutasi/:id`, `POST /mutasi`, `PUT /mutasi/:id`, `DELETE /mutasi/:id`.
   - Upload berkas: `POST /upload` body `{filename,mimeType,dataBase64}`; simpan ke Google Drive (folder `DRIVE_FOLDER_ID` jika di-set), permission public reader; balikan `{url}` untuk diisi ke `berkas_url`.
 - Front-end:
@@ -194,7 +204,7 @@ Keamanan:
   - `sidebar.html`: ikon huruf sederhana, item Keluar pakai `data-logout`.
   - `data-pegawai.html`: textarea form distyling, panel responsif.
   - `profil.html`: footer include, sidebar mobile toggle.
-- `usulan-mutasi.html`: halaman usulan mutasi (form tambah/ubah via modal, filter, tabel, metrik ringkas), `API_BASE` default ke Cloudflare Worker, upload PDF ke Drive via `/upload` (link disimpan di `berkas_url`).
+- `usulan-mutasi.html`: halaman usulan mutasi (form tambah/ubah via modal, filter, tabel, metrik ringkas), `API_BASE` default ke Cloudflare Worker, upload PDF ke Drive via `/upload` (link disimpan di `berkas_path`).
 - Tambahan file:
   - `DEPLOY.md`: panduan deploy backend (Render/Fly/Heroku), set `WEB_APP_BASE`, update `API_BASE` front-end.
   - `cf-worker-proxy.js`: Cloudflare Worker proxy ke Apps Script dengan CORS `*` (butuh var `WEB_APP_BASE` di Worker).

@@ -207,8 +207,8 @@
               </select>
             </div>
             <div>
-              <label>Cari Nama / NIP / NRK</label>
-              <input id="search" placeholder="Ketik nama atau NIP/NRK">
+              <label>Cari Nama / NIP</label>
+              <input id="search" placeholder="Ketik nama atau NIP">
             </div>
             <div>
               <label>UKPD Asal</label>
@@ -230,7 +230,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama & NIP</th><th>UKPD Asal • Jabatan Lama</th><th>UKPD Tujuan • Jabatan Baru</th><th>Alasan</th><th>Berkas</th><th>Created By UKPD</th><th>Created At</th><th>Updated At</th><th>Keterangan/Verifikasi</th>
+                  <th>#</th><th>Status</th><th>Aksi</th><th>Nama / NIP / Pangkat</th><th>Jabatan</th><th>UKPD Asal</th><th>UKPD Tujuan</th><th>Jabatan Baru</th><th>ABK &amp; Bezetting (Lama)</th><th>ABK &amp; Bezetting (Baru)</th><th>Alasan</th><th>Berkas</th><th>Created By UKPD</th><th>Created At</th><th>Updated At</th><th>Keterangan</th>
                 </tr>
               </thead>
               <tbody id="tableBody"></tbody>
@@ -259,7 +259,10 @@
         <form id="mutasiForm" class="detail-grid">
           <div><label>NIP</label><input name="nip" placeholder="NIP" required></div>
           <div><label>Nama Pegawai</label><input name="nama_pegawai" placeholder="Nama" required></div>
-          <div><label>NRK</label><input name="nrk" placeholder="NRK"></div>
+          <div><label>Gelar Depan</label><input name="gelar_depan" placeholder="Gelar depan"></div>
+          <div><label>Gelar Belakang</label><input name="gelar_belakang" placeholder="Gelar belakang"></div>
+          <div><label>Pangkat / Golongan</label><input name="pangkat_golongan" placeholder="Pangkat / golongan"></div>
+          <div><label>Jabatan</label><input name="jabatan" placeholder="Jabatan saat ini"></div>
           <div><label>Jenis Mutasi</label>
             <select name="jenis_mutasi">
               <option value="">Pilih</option>
@@ -278,18 +281,21 @@
               <option value="DITARIK">DITARIK</option>
             </select>
           </div>
-          <div><label>UKPD Asal</label><input name="nama_ukpd_asal" placeholder="UKPD asal"></div>
-          <div><label>Jabatan Asal</label><input name="jabatan_asal" placeholder="Jabatan asal"></div>
+          <div><label>Nama UKPD (Asal)</label><input name="nama_ukpd" placeholder="UKPD asal"></div>
+          <div><label>UKPD Tujuan</label><input name="ukpd_tujuan" placeholder="UKPD tujuan"></div>
+          <div><label>Jabatan Baru</label><input name="jabatan_baru" placeholder="Jabatan baru"></div>
           <div><label>ABK J Lama</label><input name="abk_j_lama" placeholder="ABK J lama"></div>
           <div><label>Bezetting J Lama</label><input name="bezetting_j_lama" placeholder="Bezetting J lama"></div>
-          <div><label>UKPD Tujuan</label><input name="nama_ukpd_tujuan" placeholder="UKPD tujuan"></div>
-          <div><label>Jabatan Baru</label><input name="jabatan_baru" placeholder="Jabatan baru"></div>
+          <div><label>Non-ASN Bezetting Lama</label><input name="nonasn_bezetting_lama" placeholder="Non-ASN bezetting lama"></div>
+          <div><label>Non-ASN ABK Lama</label><input name="nonasn_abk_lama" placeholder="Non-ASN ABK lama"></div>
           <div><label>ABK J Baru</label><input name="abk_j_baru" placeholder="ABK J baru"></div>
           <div><label>Bezetting J Baru</label><input name="bezetting_j_baru" placeholder="Bezetting J baru"></div>
-          <div><label>Link Usulan (URL)</label><input name="berkas_url" placeholder="https://..." inputmode="url"></div>
-          <input type="hidden" name="wilayah_asal">
-          <input type="hidden" name="wilayah_tujuan">
+          <div><label>Non-ASN Bezetting Baru</label><input name="nonasn_bezetting_baru" placeholder="Non-ASN bezetting baru"></div>
+          <div><label>Non-ASN ABK Baru</label><input name="nonasn_abk_baru" placeholder="Non-ASN ABK baru"></div>
+          <div><label>Mutasi ID</label><input name="mutasi_id" placeholder="Mutasi ID (opsional)"></div>
+          <div><label>Berkas (URL/Path)</label><input name="berkas_path" placeholder="https://... atau path" inputmode="url"></div>
           <div style="grid-column:1/-1;"><label>Alasan</label><textarea name="alasan" placeholder="Alasan mutasi"></textarea></div>
+          <div style="grid-column:1/-1;"><label>Verifikasi Checklist</label><textarea name="verif_checklist" placeholder="Checklist verifikasi..."></textarea></div>
           <div style="grid-column:1/-1;"><label>Keterangan / Verifikasi</label><textarea name="keterangan" placeholder="Catatan verifikasi..."></textarea></div>
           <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
             <button type="button" class="ghost" id="resetForm">Reset</button>
@@ -323,11 +329,15 @@
   <script>
     const BASE = (() => {
       const parts = location.pathname.split('/').filter(Boolean);
-      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+      if (parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI') return '/' + parts[0] + '/';
+      if (parts.length > 1) return '../';
+      return '/';
     })();
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
-    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+      ? 'http://127.0.0.1:5002'
+      : 'https://sikepeg.seftianh23.workers.dev';
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
@@ -413,6 +423,31 @@
       return '<span class="status-pill pill-info">Diusulkan</span>';
     }
 
+    function formatNama(row){
+      const parts = [row.gelar_depan, row.nama_pegawai, row.gelar_belakang].filter(Boolean);
+      return parts.join(' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function formatAbk(abk, bezetting, nonasnAbk, nonasnBezetting){
+      const asn = `ASN: ${abk || '-'} | Bezetting: ${bezetting || '-'}`;
+      const nonasn = (nonasnAbk || nonasnBezetting)
+        ? `<div class="pill-abk">Non-ASN: ${nonasnAbk || '-'} | Bezetting: ${nonasnBezetting || '-'}</div>`
+        : '';
+      return `<div class="pill-abk">${asn}</div>${nonasn}`;
+    }
+
+    function normalizeMutasiRow(row){
+      const next = { ...(row || {}) };
+      if (!next.id) next.id = next.id_usulan || '';
+      if (!next.nama_ukpd) next.nama_ukpd = next.nama_ukpd_asal || next.ukpd_asal || '';
+      if (!next.ukpd_tujuan) next.ukpd_tujuan = next.nama_ukpd_tujuan || '';
+      if (!next.jabatan) next.jabatan = next.jabatan_asal || '';
+      if (!next.pangkat_golongan) next.pangkat_golongan = next.pangkat_gol || '';
+      if (!next.berkas_path) next.berkas_path = next.berkas_url || next.link_dokumen || '';
+      if (next.id !== undefined && next.id !== null) next.id = String(next.id);
+      return next;
+    }
+
     async function apiFetch(url, options={}){
       const opts = { ...options };
       opts.headers = { ...API_HEADERS, ...(opts.headers || {}) };
@@ -474,13 +509,17 @@
       tableBody.innerHTML = '';
       cacheRows.forEach((r, idx)=>{
         const tr = document.createElement('tr');
+        const nama = formatNama(r) || r.nama_pegawai || '-';
         const alasan = (r.alasan||'').replace(/\n/g,'<br>');
+        const ket = (r.keterangan||'-').replace(/\n/g,'<br>');
+        const verif = (r.verif_checklist||'').replace(/\n/g,'<br>');
+        const verifHtml = verif ? `<div style="color:var(--muted); font-size:12px;">Verif: ${verif}</div>` : '';
         tr.innerHTML = `
           <td>${(page-1)*currentLimit + idx + 1}</td>
           <td>${badgeStatus(r.status)}</td>
           <td class="actions">
             <div class="dropdown">
-              <button class="ghost dropdown-toggle">Aksi ▾</button>
+              <button class="ghost dropdown-toggle">Aksi v</button>
               <div class="dropdown-menu">
                 <button data-action="view" data-id="${r.id}">Lihat</button>
                 <button data-action="edit" data-id="${r.id}">Ubah</button>
@@ -488,23 +527,26 @@
               </div>
             </div>
           </td>
-          <td><div style="font-weight:700;">${r.nama_pegawai||'-'}</div><div style="color:var(--muted); font-size:12px;">NIP: ${r.nip||'-'}</div><div style="color:var(--muted); font-size:12px;">NRK: ${r.nrk||'-'}</div></td>
           <td>
-            <div style="font-weight:700;">${r.nama_ukpd_asal||'-'}</div>
-            <div style="color:var(--muted); font-size:12px;">${r.jabatan_asal||'-'}</div>
-            <div class="pill-abk">ABK J: ${r.abk_j_lama||'-'} • Bezetting: ${r.bezetting_j_lama||'-'}</div>
+            <div style="font-weight:700;">${nama}</div>
+            <div style="color:var(--muted); font-size:12px;">NIP: ${r.nip||'-'}</div>
+            <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${r.pangkat_golongan||'-'}</div>
           </td>
           <td>
-            <div style="font-weight:700;">${r.nama_ukpd_tujuan||'-'}</div>
-            <div style="color:var(--muted); font-size:12px;">${r.jabatan_baru||'-'}</div>
-            <div class="pill-abk">ABK J: ${r.abk_j_baru||'-'} • Bezetting: ${r.bezetting_j_baru||'-'}</div>
+            <div style="font-weight:700;">${r.jabatan||'-'}</div>
+            <div style="color:var(--muted); font-size:12px;">Jenis: ${r.jenis_mutasi||'-'}</div>
           </td>
+          <td>${r.nama_ukpd||'-'}</td>
+          <td>${r.ukpd_tujuan||'-'}</td>
+          <td>${r.jabatan_baru||'-'}</td>
+          <td>${formatAbk(r.abk_j_lama, r.bezetting_j_lama, r.nonasn_abk_lama, r.nonasn_bezetting_lama)}</td>
+          <td>${formatAbk(r.abk_j_baru, r.bezetting_j_baru, r.nonasn_abk_baru, r.nonasn_bezetting_baru)}</td>
           <td style="min-width:220px;">${alasan||'-'}</td>
-          <td>${r.berkas_url ? `<a href="${r.berkas_url}" target="_blank" rel="noopener">Link</a>` : '-'}</td>
+          <td>${r.berkas_path ? `<a href="${r.berkas_path}" target="_blank" rel="noopener">Berkas</a>` : '-'}</td>
           <td>${r.created_by_ukpd || '-'}</td>
           <td>${r.created_at || '-'}</td>
           <td>${r.updated_at || '-'}</td>
-          <td style="min-width:220px;">${(r.keterangan||'-').replace(/\n/g,'<br>')}</td>
+          <td style="min-width:220px;">${verifHtml}${ket}</td>
         `;
         tableBody.appendChild(tr);
       });
@@ -537,7 +579,7 @@
       }
       if (tujuanFilter.value) params.set('tujuan', tujuanFilter.value);
       const body = await apiFetch(`${API_BASE}?action=mutasi_list&${params.toString()}`);
-      cacheRows = body.rows || [];
+      cacheRows = (body.rows || []).map(normalizeMutasiRow);
       const total = typeof body.total === 'number' ? body.total : cacheRows.length;
       totalPages = Math.max(1, Math.ceil(total / currentLimit));
       pageNow.textContent = page;
@@ -550,13 +592,19 @@
     async function saveMutasi(e){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
-      const currentRow = editingId ? cacheRows.find(r=>r.id===editingId) : null;
-      if (!data.berkas_url && currentRow?.berkas_url) {
-        data.berkas_url = currentRow.berkas_url;
+      const currentRow = editingId ? cacheRows.find(r=>String(r.id || '') === String(editingId || '')) : null;
+      if (!data.berkas_path && currentRow?.berkas_path) {
+        data.berkas_path = currentRow.berkas_path;
       }
-      // set wilayah default dari login bila kosong
-      if (!data.wilayah_asal) data.wilayah_asal = loginWilayah;
-      if (!data.wilayah_tujuan) data.wilayah_tujuan = loginWilayah;
+      const nowIso = new Date().toISOString();
+      if (!editingId) {
+        if (!data.created_at) data.created_at = nowIso;
+        if (!data.created_by_ukpd) data.created_by_ukpd = loginUkpd;
+      }
+      data.updated_at = nowIso;
+      if (!isSuper && !isWilayahAdmin) {
+        data.nama_ukpd = loginUkpd;
+      }
       const action = editingId ? 'mutasi_update' : 'mutasi_create';
       const bodyPayload = { action, ...data };
       if (editingId) bodyPayload.id = editingId;
@@ -580,20 +628,28 @@
     function openView(row){
       const fields = [
         ['NIP', row.nip],
-        ['Nama', row.nama_pegawai],
-        ['NRK', row.nrk],
+        ['Nama', formatNama(row) || row.nama_pegawai],
+        ['Gelar Depan', row.gelar_depan],
+        ['Gelar Belakang', row.gelar_belakang],
+        ['Pangkat/Golongan', row.pangkat_golongan],
+        ['Jabatan', row.jabatan],
         ['Jenis Mutasi', row.jenis_mutasi],
         ['Tanggal Usulan', row.tanggal_usulan],
         ['Status', row.status],
-        ['UKPD Asal', row.nama_ukpd_asal],
-        ['Jabatan Asal', row.jabatan_asal],
+        ['UKPD Asal', row.nama_ukpd],
+        ['UKPD Tujuan', row.ukpd_tujuan],
         ['ABK J Lama', row.abk_j_lama],
         ['Bezetting J Lama', row.bezetting_j_lama],
-        ['UKPD Tujuan', row.nama_ukpd_tujuan],
+        ['Non-ASN Bezetting Lama', row.nonasn_bezetting_lama],
+        ['Non-ASN ABK Lama', row.nonasn_abk_lama],
         ['Jabatan Baru', row.jabatan_baru],
         ['ABK J Baru', row.abk_j_baru],
         ['Bezetting J Baru', row.bezetting_j_baru],
-        ['Berkas', row.berkas_url ? `<a href="${row.berkas_url}" target="_blank" rel="noopener">Buka Link</a>` : '-'],
+        ['Non-ASN Bezetting Baru', row.nonasn_bezetting_baru],
+        ['Non-ASN ABK Baru', row.nonasn_abk_baru],
+        ['Mutasi ID', row.mutasi_id],
+        ['Verifikasi Checklist', row.verif_checklist],
+        ['Berkas', row.berkas_path ? `<a href="${row.berkas_path}" target="_blank" rel="noopener">Buka Berkas</a>` : '-'],
         ['Created By UKPD', row.created_by_ukpd],
         ['Created At', row.created_at],
         ['Updated At', row.updated_at],
@@ -609,32 +665,46 @@
       if (!btn) return;
       const id = btn.dataset.id;
       const action = btn.dataset.action;
-      const row = cacheRows.find(r=>r.id===id);
+      const row = cacheRows.find(r=>String(r.id || '') === String(id || ''));
       if (action==='view' && row){ openView(row); }
       if (action==='edit' && row){
         editingId = id;
         Object.keys(row).forEach(k=>{ if (form.elements[k]) form.elements[k].value = row[k] || ''; });
         formTitle.textContent = 'Ubah Usulan Mutasi';
         submitBtn.textContent = 'Update';
+        applyUkpdDefaults();
         showModal(formModal);
       }
       if (action==='delete' && id) deleteMutasi(id).catch(err=>alert(err.message));
     });
 
-    function setWilayahDefaults(){
-      if (form.elements['wilayah_asal']) form.elements['wilayah_asal'].value = loginWilayah || form.elements['wilayah_asal'].value;
-      if (form.elements['wilayah_tujuan']) form.elements['wilayah_tujuan'].value = loginWilayah || form.elements['wilayah_tujuan'].value;
+    function applyUkpdDefaults(){
+      const ukpdInput = form.elements['nama_ukpd'];
+      if (!ukpdInput) return;
+      if (!isSuper && !isWilayahAdmin){
+        ukpdInput.value = loginUkpd;
+        ukpdInput.readOnly = true;
+      } else {
+        ukpdInput.readOnly = false;
+      }
     }
 
     form.addEventListener('submit', (e)=>{ saveMutasi(e).catch(err=>alert(err.message)); });
-    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); setWilayahDefaults(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; });
+    resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); applyUkpdDefaults(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; });
     applyFilter.addEventListener('click', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
-    resetFilter.addEventListener('click', ()=>{ statusFilter.value=''; search.value=''; ukpdFilter.value=''; tujuanFilter.value=''; page=1; loadData().catch(err=>alert(err.message)); });
+    resetFilter.addEventListener('click', ()=>{
+      statusFilter.value = '';
+      search.value = '';
+      ukpdFilter.value = (!isSuper && !isWilayahAdmin) ? loginUkpd : '';
+      tujuanFilter.value = '';
+      page = 1;
+      loadData().catch(err=>alert(err.message));
+    });
     [statusFilter, ukpdFilter, tujuanFilter, search].forEach(el=> el.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); }));
     pageSize.addEventListener('change', ()=>{ currentLimit=parseInt(pageSize.value,10)||10; page=1; loadData().catch(err=>alert(err.message)); });
     prevPage.addEventListener('click', ()=>{ if (page>1){ page--; loadData().catch(err=>alert(err.message)); } });
     nextPage.addEventListener('click', ()=>{ if (page<totalPages){ page++; loadData().catch(err=>alert(err.message)); } });
-    btnAdd.addEventListener('click', ()=>{ editingId=null; form.reset(); setWilayahDefaults(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; showModal(formModal); });
+    btnAdd.addEventListener('click', ()=>{ editingId=null; form.reset(); applyUkpdDefaults(); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; showModal(formModal); });
     closeForm.addEventListener('click', ()=> hideModal(formModal));
     closeView.addEventListener('click', ()=> hideModal(viewModal));
     modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });
