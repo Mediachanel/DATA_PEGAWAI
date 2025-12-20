@@ -196,6 +196,7 @@
     const isWilayahAdmin = roleLower.includes('wilayah');
     const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
     const loginWilayah = authUser?.wilayah || '';
+    document.body.classList.toggle('role-super', isSuper);
 
     const statusEl = document.getElementById('pagerInfo');
     const tableBody = document.getElementById('tableBody');

@@ -29,8 +29,8 @@
     }
     .layout{ min-height:100vh; }
     .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
-    main{ padding:22px 14px 34px; }
-    .page{ width:min(1500px, calc(100vw - 24px)); margin:0 auto; display:flex; flex-direction:column; gap:12px; padding:0 12px; }
+    main{ padding:18px; }
+    .page{ width:100%; max-width:none; margin:0; display:flex; flex-direction:column; gap:12px; padding:0; }
     .sidebar{
       position:fixed; inset:0 auto 0 0; width:260px; background:var(--card); color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid var(--border); backdrop-filter:blur(8px);
     }
@@ -210,7 +210,6 @@
               <p class="eyebrow">Pemutusan JF</p>
               <div class="pill role" id="roleBadge">-</div>
               <h2>Usulan Pemutusan Jabatan Fungsional</h2>
-              <p>Pantau status usulan, lakukan verifikasi, dan kelola dokumen sesuai alur kerja (Diusulkan → Diproses → Selesai/Ditolak).</p>
             </div>
             <div class="hero-actions">
               <button class="ghost" id="refreshBtn" type="button">Muat ulang</button>
@@ -407,6 +406,7 @@
     const isWilayahAdmin = roleLower.includes('wilayah');
     const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
     const loginWilayah = authUser?.wilayah || '';
+    document.body.classList.toggle('role-super', isSuper);
 
     const statusBar = document.getElementById('statusBar');
     const tableBody = document.getElementById('tableBody');

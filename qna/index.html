@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>QnA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --border: #e6ecf4;
+      --muted: #6b7280;
+      --accent: #5e8bff;
+      --accent-2: #ff9f68;
+      --accent-soft: #eef3ff;
+      --success: #16a34a;
+      --warn: #f59e0b;
+      --danger: #dc2626;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; background:radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%), #f7f9fc; color:#1b2b3a; }
+    .layout{ min-height:100vh; }
+    .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
+    .sidebar{ position:fixed; inset:0 auto 0 0; width:260px; background:#ffffff; color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0; }
+    .topbar{ background:linear-gradient(120deg, rgba(94,139,255,0.14), rgba(255,159,104,0.16)), #ffffff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 10px 28px rgba(24,39,75,0.12); backdrop-filter:blur(6px); }
+    .hero{ background:linear-gradient(135deg, rgba(94,139,255,0.2), rgba(255,159,104,0.18)), #0f1f3a; color:#e2e8f0; border-radius:16px; padding:18px; display:flex; justify-content:space-between; gap:12px; align-items:center; box-shadow:0 12px 30px rgba(24,39,75,0.2); }
+    .hero h2{ margin:0; color:#fff; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; }
+    .pill.role{ background:#e0f2fe; color:#0369a1; }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:0 10px 28px rgba(15,23,42,0.08); }
+    .metric-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .metric{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 8px 20px rgba(15,23,42,0.06); }
+    .metric .label{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+    .metric .value{ font-size:26px; font-weight:800; }
+    .metric.blue{ background:#e0f2fe; border-color:#c7e0f7; }
+    .metric.orange{ background:#fef3c7; border-color:#fde68a; }
+    .metric.green{ background:#dcfce7; border-color:#bbf7d0; }
+    .metric.red{ background:#fee2e2; border-color:#fecdd3; }
+    label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:6px; }
+    input, select, textarea, button{ padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; }
+    input, select, textarea{ width:100%; }
+    textarea{ min-height:120px; resize:vertical; }
+    button.primary{ background:linear-gradient(120deg,var(--accent) 0%, #7cb3ff 45%, var(--accent-2) 100%); color:#0b1f2c; border:none; font-weight:800; box-shadow:0 15px 35px rgba(94,139,255,0.32); cursor:pointer; }
+    button.ghost{ background:#f8fafc; color:#1b2b3a; border:1px solid var(--border); cursor:pointer; box-shadow:0 8px 18px rgba(24,39,75,0.06); }
+    .table-wrap{ overflow-x:auto; }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; vertical-align:top; }
+    th{ background:#f8fafc; text-transform:uppercase; letter-spacing:.4px; font-size:12px; }
+    .status-pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; border:1px solid transparent; }
+    .pill-info{ background:#e0f2fe; color:#0f5098; }
+    .pill-success{ background:#dcfce7; color:#166534; }
+    .pill-danger{ background:#fee2e2; color:#b91c1c; }
+    .pill-warn{ background:#fef9c3; color:#92400e; }
+    .filters{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:10px; align-items:end; }
+    .pagination{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:10px; flex-wrap:wrap; }
+    .actions{ display:flex; gap:6px; align-items:center; }
+    .dropdown{ position:relative; }
+    .dropdown-menu{
+      position:absolute; top:100%; left:0; min-width:140px; background:#fff; border:1px solid var(--border);
+      border-radius:12px; box-shadow:0 10px 28px rgba(15,23,42,0.12); padding:6px 0; display:none; z-index:10;
+    }
+    .dropdown.open .dropdown-menu{ display:block; }
+    .dropdown-menu button{
+      width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:13px; cursor:pointer;
+    }
+    .dropdown-menu button:hover{ background:#f8fafc; }
+    .mobile-toggle{
+      position: fixed; top: 14px; left: 14px; z-index: 70;
+      background: var(--accent); color: #f8fafc; border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
+      box-shadow: 0 12px 26px rgba(94,139,255,0.35);
+    }
+    #sidebarBackdrop{
+      position: fixed; inset:0; background: rgba(0,0,0,0.45);
+      opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
+    }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    .modal-backdrop{
+      position: fixed; inset:0; background: rgba(15,23,42,0.35);
+      opacity:0; pointer-events:none; transition: opacity .15s ease; z-index:80;
+    }
+    .modal-backdrop.show{ opacity:1; pointer-events:auto; }
+    .modal{
+      position: fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; z-index:90; transition: opacity .15s ease;
+      padding:14px;
+    }
+    .modal.show{ opacity:1; pointer-events:auto; }
+    .modal-dialog{
+      width: min(900px, 100%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 48px rgba(15,23,42,0.18);
+      max-height: 90vh; overflow:auto;
+    }
+    .modal-head{
+      padding: 16px 18px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .close-btn{
+      background: none; border:1px solid var(--border); border-radius:10px;
+      padding:8px 12px; cursor:pointer; font-weight:800;
+    }
+    .modal-body{ padding: 16px 18px 20px; }
+    .detail-grid{ display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
+    .detail-card{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#f8fafc; }
+    .detail-label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+    .detail-value{ font-weight:700; margin-top:2px; }
+    @media (max-width:1100px){
+      .content{ margin-left:0; }
+      .sidebar{
+        position: fixed; inset: 0 auto 0 0; width: calc(100vw - 72px); max-width: 280px;
+        transform: translateX(-100%); transition: transform .2s ease; z-index: 60; min-height: 100vh;
+        box-shadow: 8px 0 30px -20px rgba(0,0,0,0.5);
+      }
+      .sidebar.show{ transform: translateX(0); }
+      .mobile-toggle{ display:inline-flex; }
+      main{ padding:14px; margin-top:20px; padding-top:62px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle">
+    <span style="font-size:18px;">&#9776;</span> Menu
+  </button>
+  <div class="layout">
+    <div id="sidebar-container"></div>
+    <div class="content">
+      <div id="header-container"></div>
+      <main style="padding:18px;">
+        <div class="hero">
+          <div>
+            <div class="pill role" id="roleBadge">-</div>
+            <h2>Manajemen QnA</h2>
+            <p style="margin:4px 0 0; color:#cbd5e1;">Kelola pertanyaan dan jawaban FAQ yang tampil di halaman login.</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button id="btnAdd" class="primary" style="min-width:150px;">+ Tambah QnA</button>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric blue">
+            <div class="label">Total</div>
+            <div class="value" id="mTotal">0</div>
+          </div>
+          <div class="metric green">
+            <div class="label">Published</div>
+            <div class="value" id="mPublished">0</div>
+          </div>
+          <div class="metric orange">
+            <div class="label">Draft</div>
+            <div class="value" id="mDraft">0</div>
+          </div>
+          <div class="metric red">
+            <div class="label">Arsip</div>
+            <div class="value" id="mArchived">0</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <h3 style="margin:0 0 4px;">Daftar QnA</h3>
+            <div style="color:var(--muted); font-size:13px;">Total (sesuai filter): <span id="totalFiltered">0</span> data</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="pageSize" style="width:auto;">
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="filters">
+            <div>
+              <label>Cari</label>
+              <input id="search" placeholder="Cari pertanyaan atau jawaban">
+            </div>
+            <div>
+              <label>Kategori</label>
+              <select id="categoryFilter"><option value="">Semua</option></select>
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="statusFilter">
+                <option value="">Semua</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+                <option value="archived">Arsip</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+              <button id="applyFilter" class="primary" style="width:auto;">Terapkan</button>
+              <button id="resetFilter" class="ghost" style="width:auto;">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Status</th><th>Kategori</th><th>Pertanyaan</th><th>Jawaban</th><th>Updated</th><th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <button class="ghost" id="prevPage">Sebelumnya</button>
+            <div>Halaman <span id="pageNow">1</span> / <span id="pageTotal">1</span></div>
+            <button class="ghost" id="nextPage">Berikutnya</button>
+          </div>
+        </div>
+      </main>
+      <div id="footer-container"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <div class="modal" id="formModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3 class="panel-title" id="formTitle" style="margin:0;">Tambah QnA</h3>
+        <button type="button" class="close-btn" id="closeForm" aria-label="Tutup">x</button>
+      </div>
+      <div class="modal-body">
+        <form id="qnaForm" class="detail-grid">
+          <div>
+            <label>Kategori</label>
+            <input name="category" id="categoryInput" placeholder="Contoh: Mutasi" required>
+          </div>
+          <div>
+            <label>Status</label>
+            <select name="status" id="statusInput">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Arsip</option>
+            </select>
+          </div>
+          <div style="grid-column:1/-1;">
+            <label>Pertanyaan</label>
+            <textarea name="question" id="questionInput" placeholder="Tulis pertanyaan" required></textarea>
+          </div>
+          <div style="grid-column:1/-1;">
+            <label>Jawaban</label>
+            <textarea name="answer" id="answerInput" placeholder="Tulis jawaban" required></textarea>
+          </div>
+          <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
+            <button type="button" class="ghost" id="resetForm">Reset</button>
+            <button type="submit" class="primary" id="submitBtn">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="viewModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3 class="panel-title" style="margin:0;">Detail QnA</h3>
+        <button type="button" class="close-btn" id="closeView" aria-label="Tutup">x</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-grid" id="detailGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      if (parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI') return '/' + parts[0] + '/';
+      if (parts.length > 1) return '../';
+      return '/';
+    })();
+    const favicon = document.querySelector("link[rel='icon']");
+    if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
+    const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+      ? 'http://127.0.0.1:5002'
+      : 'https://sikepeg.seftianh23.workers.dev';
+    const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
+    const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
+
+    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = BASE; }
+    const norm = (v='') => String(v || '').toLowerCase().trim();
+    const roleLower = norm(authUser?.role);
+    const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
+    document.body.classList.toggle('role-super', isSuper);
+    if (!isSuper) {
+      alert('Akses QnA hanya untuk Superadmin.');
+      window.location.href = BASE + 'dashboard/';
+    }
+
+    const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
+      document.getElementById('sidebar-container').innerHTML = s;
+      document.getElementById('header-container').innerHTML = h;
+      document.getElementById('footer-container').innerHTML = f;
+      document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
+      document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
+      document.querySelector('.nav-item.active')?.classList.remove('active');
+      const qLink = Array.from(document.querySelectorAll('.nav-item')).find(a=>a.textContent.trim().toLowerCase().includes('qna'));
+      if (qLink) qLink.classList.add('active');
+      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+      const logoutNav = document.querySelector('[data-logout]');
+      if (logoutNav) logoutNav.addEventListener('click', doLogout);
+      initSidebarToggle();
+      syncHeaderUser();
+    });
+
+    const roleBadge = document.getElementById('roleBadge');
+    const userNameEl = document.getElementById('userName');
+    const userRoleEl = document.getElementById('userRole');
+
+    function syncHeaderUser(){
+      if (!authUser) return;
+      const roleText = (authUser.role || 'USER').toUpperCase();
+      const namaText = authUser.namaUkpd || authUser.username || 'User';
+      if (roleBadge) roleBadge.textContent = roleText;
+      if (userNameEl) userNameEl.textContent = namaText;
+      if (userRoleEl) userRoleEl.textContent = authUser.role || '';
+      const headerRole = document.getElementById('rolePill');
+      const headerUkpd = document.getElementById('ukpdPill');
+      const headerName = document.getElementById('userName');
+      const headerRoleText = document.getElementById('userRole');
+      if (headerRole) headerRole.textContent = roleText;
+      if (headerUkpd) headerUkpd.textContent = namaText;
+      if (headerName) headerName.textContent = namaText;
+      if (headerRoleText) headerRoleText.textContent = authUser.role || '';
+    }
+
+    let rows = [];
+    let filtered = [];
+    let editingId = null;
+    let page = 1;
+    let totalPages = 1;
+    let currentLimit = 10;
+
+    const form = document.getElementById('qnaForm');
+    const tableBody = document.getElementById('tableBody');
+    const search = document.getElementById('search');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const applyFilter = document.getElementById('applyFilter');
+    const resetFilter = document.getElementById('resetFilter');
+    const pageSize = document.getElementById('pageSize');
+    const pageNow = document.getElementById('pageNow');
+    const pageTotal = document.getElementById('pageTotal');
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const totalFiltered = document.getElementById('totalFiltered');
+    const btnAdd = document.getElementById('btnAdd');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const formModal = document.getElementById('formModal');
+    const viewModal = document.getElementById('viewModal');
+    const closeForm = document.getElementById('closeForm');
+    const closeView = document.getElementById('closeView');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const detailGrid = document.getElementById('detailGrid');
+    const mTotal = document.getElementById('mTotal');
+    const mPublished = document.getElementById('mPublished');
+    const mDraft = document.getElementById('mDraft');
+    const mArchived = document.getElementById('mArchived');
+
+    function showModal(el){
+      el.classList.add('show');
+      modalBackdrop.classList.add('show');
+      el.setAttribute('aria-hidden','false');
+    }
+    function hideModal(el){
+      el.classList.remove('show');
+      if (![formModal, viewModal].some(m=>m.classList.contains('show'))) {
+        modalBackdrop.classList.remove('show');
+      }
+      el.setAttribute('aria-hidden','true');
+    }
+
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function badgeStatus(val){
+      const v = norm(val);
+      if (v === 'published') return '<span class="status-pill pill-success">Published</span>';
+      if (v === 'draft') return '<span class="status-pill pill-warn">Draft</span>';
+      if (v === 'archived') return '<span class="status-pill pill-danger">Arsip</span>';
+      return '<span class="status-pill pill-info">-</span>';
+    }
+
+    function formatDateDisplay(value){
+      if (!value) return '-';
+      const parsed = Date.parse(String(value || ''));
+      if (Number.isNaN(parsed)) return String(value || '');
+      return new Date(parsed).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+    }
+
+    async function apiFetch(url, options={}){
+      const opts = { ...options };
+      opts.headers = { ...API_HEADERS, ...(opts.headers || {}) };
+      if (opts.body && !opts.headers['Content-Type']) opts.headers['Content-Type'] = 'application/json';
+      const res = await fetch(url, opts);
+      const text = await res.text();
+      let body;
+      try { body = JSON.parse(text); }
+      catch { throw new Error(text || 'Respon bukan JSON'); }
+      if (!res.ok || !body.ok) throw new Error(body.error || 'Permintaan gagal');
+      return body;
+    }
+
+    function renderMetrics(){
+      const total = filtered.length;
+      const count = (status) => filtered.filter(r => norm(r.status) === status).length;
+      if (mTotal) mTotal.textContent = total;
+      if (mPublished) mPublished.textContent = count('published');
+      if (mDraft) mDraft.textContent = count('draft');
+      if (mArchived) mArchived.textContent = count('archived');
+      if (totalFiltered) totalFiltered.textContent = total;
+    }
+
+    function renderCategoryFilter(list){
+      const items = ['<option value="">Semua</option>', ...(list || []).map(v => `<option>${escapeHtml(v)}</option>`)];
+      categoryFilter.innerHTML = items.join('');
+    }
+
+    function applyFilters(){
+      const q = norm(search.value);
+      const cat = norm(categoryFilter.value);
+      const status = norm(statusFilter.value);
+      filtered = rows.filter(r => {
+        const matchQ = !q || [r.question, r.answer].some(v => norm(v).includes(q));
+        const matchCat = !cat || norm(r.category) === cat;
+        const matchStatus = !status || norm(r.status) === status;
+        return matchQ && matchCat && matchStatus;
+      });
+      filtered.sort((a, b) => {
+        const ta = Date.parse(String(a.updated_at || a.created_at || ''));
+        const tb = Date.parse(String(b.updated_at || b.created_at || ''));
+        if (!Number.isNaN(tb) && !Number.isNaN(ta) && tb !== ta) return tb - ta;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
+      page = 1;
+      renderTable();
+      renderMetrics();
+    }
+
+    function renderTable(){
+      const total = filtered.length;
+      totalPages = Math.max(1, Math.ceil(total / currentLimit));
+      if (page > totalPages) page = totalPages;
+      pageNow.textContent = page;
+      pageTotal.textContent = totalPages;
+      const start = (page - 1) * currentLimit;
+      const slice = filtered.slice(start, start + currentLimit);
+      if (!slice.length){
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:16px;">Tidak ada data</td></tr>';
+        return;
+      }
+      tableBody.innerHTML = slice.map((r, idx) => {
+        const question = escapeHtml(r.question || '-');
+        const answer = escapeHtml(r.answer || '-');
+        const shortAnswer = answer.length > 120 ? answer.slice(0, 120) + '...' : answer;
+        return `
+          <tr>
+            <td>${start + idx + 1}</td>
+            <td>${badgeStatus(r.status)}</td>
+            <td>${escapeHtml(r.category || '-')}</td>
+            <td style="min-width:220px;">${question}</td>
+            <td style="min-width:260px;">${shortAnswer}</td>
+            <td>${formatDateDisplay(r.updated_at || r.created_at)}</td>
+            <td class="actions">
+              <div class="dropdown">
+                <button class="ghost dropdown-toggle">Aksi v</button>
+                <div class="dropdown-menu">
+                  <button data-action="view" data-id="${escapeHtml(r.id)}">Lihat</button>
+                  <button data-action="edit" data-id="${escapeHtml(r.id)}">Ubah</button>
+                  <button data-action="delete" data-id="${escapeHtml(r.id)}">Hapus</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      tableBody.querySelectorAll('.dropdown-toggle').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          const dd = btn.closest('.dropdown');
+          document.querySelectorAll('.dropdown').forEach(o=>{ if (o!==dd) o.classList.remove('open'); });
+          dd.classList.toggle('open');
+        });
+      });
+      document.addEventListener('click', ()=> document.querySelectorAll('.dropdown').forEach(o=> o.classList.remove('open')), { once:true });
+    }
+
+    async function loadData(){
+      const body = await apiFetch(`${API_BASE}?action=qna_list&limit=20000`);
+      rows = (body.rows || []).map(r => ({
+        id: r.id ? String(r.id) : '',
+        category: r.category || '',
+        question: r.question || '',
+        answer: r.answer || '',
+        status: r.status || '',
+        created_at: r.created_at || '',
+        updated_at: r.updated_at || ''
+      }));
+      renderCategoryFilter(body.categories || rows.map(r => r.category).filter(Boolean));
+      filtered = rows.slice();
+      applyFilters();
+    }
+
+    function openView(row){
+      const fields = [
+        ['ID', row.id],
+        ['Status', row.status],
+        ['Kategori', row.category],
+        ['Pertanyaan', row.question],
+        ['Jawaban', row.answer],
+        ['Dibuat', formatDateDisplay(row.created_at)],
+        ['Diupdate', formatDateDisplay(row.updated_at)]
+      ];
+      detailGrid.innerHTML = fields.map(([l,v])=>`
+        <div class="detail-card">
+          <div class="detail-label">${escapeHtml(l)}</div>
+          <div class="detail-value">${escapeHtml(v || '-')}</div>
+        </div>
+      `).join('');
+      showModal(viewModal);
+    }
+
+    async function openForm(row){
+      editingId = row?.id || null;
+      form.reset();
+      if (row){
+        Object.keys(row).forEach(k=>{ if (form.elements[k]) form.elements[k].value = row[k] || ''; });
+      }
+      formTitle.textContent = editingId ? 'Ubah QnA' : 'Tambah QnA';
+      submitBtn.textContent = editingId ? 'Update' : 'Simpan';
+      showModal(formModal);
+    }
+
+    async function saveQna(e){
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      if (!data.category || !data.question || !data.answer) {
+        alert('Kategori, pertanyaan, dan jawaban wajib diisi.');
+        return;
+      }
+      const nowIso = new Date().toISOString();
+      if (!data.updated_at) data.updated_at = nowIso;
+      const action = editingId ? 'qna_update' : 'qna_create';
+      const payload = { action, ...data };
+      if (editingId) payload.id = editingId;
+      await apiFetch(API_BASE, { method: 'POST', body: JSON.stringify(payload) });
+      editingId = null;
+      form.reset();
+      await loadData();
+      hideModal(formModal);
+    }
+
+    async function deleteQna(id){
+      if (!confirm('Hapus QnA ini?')) return;
+      await apiFetch(API_BASE, { method: 'POST', body: JSON.stringify({ action: 'qna_delete', id }) });
+      await loadData();
+    }
+
+    tableBody.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      const row = rows.find(r => String(r.id || '') === String(id || ''));
+      if (action === 'view' && row) openView(row);
+      if (action === 'edit' && row) openForm(row);
+      if (action === 'delete' && id) deleteQna(id);
+    });
+
+    form.addEventListener('submit', (e)=>{ saveQna(e).catch(err=>alert(err.message)); });
+    document.getElementById('resetForm').addEventListener('click', ()=>{ editingId=null; form.reset(); });
+    applyFilter.addEventListener('click', ()=>{ applyFilters(); });
+    resetFilter.addEventListener('click', ()=>{
+      search.value = '';
+      categoryFilter.value = '';
+      statusFilter.value = '';
+      applyFilters();
+    });
+    pageSize.addEventListener('change', ()=>{ currentLimit=parseInt(pageSize.value,10)||10; page=1; renderTable(); });
+    prevPage.addEventListener('click', ()=>{ if (page>1){ page--; renderTable(); } });
+    nextPage.addEventListener('click', ()=>{ if (page<totalPages){ page++; renderTable(); } });
+    btnAdd.addEventListener('click', ()=> openForm(null));
+    closeForm.addEventListener('click', ()=> hideModal(formModal));
+    closeView.addEventListener('click', ()=> hideModal(viewModal));
+    modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ hideModal(formModal); hideModal(viewModal); } });
+
+    function doLogout(){ localStorage.removeItem('authUser'); window.location.href = BASE; }
+
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebarEl = document.querySelector('.sidebar');
+      if (!btn || !backdrop || !sidebarEl) return;
+      const close = ()=>{ sidebarEl.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebarEl.classList.contains('show');
+        sidebarEl.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebarEl.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1100) close(); });
+    }
+
+    loadData().catch(err=>alert(err.message));
+  </script>
+</body>
+</html>

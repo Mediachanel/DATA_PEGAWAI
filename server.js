@@ -87,6 +87,17 @@ const PEMUTUSAN_HEADER_MAP = {
   updated_at: ['updated_at'],
   keterangan: ['keterangan']
 };
+const QNA_RANGE = process.env.QNA_RANGE || 'Q n A!A:G';
+const QNA_COLS = ['id','category','question','answer','status','created_at','updated_at'];
+const QNA_HEADER_MAP = {
+  id: ['id'],
+  category: ['category', 'kategori'],
+  question: ['question', 'pertanyaan'],
+  answer: ['answer', 'jawaban'],
+  status: ['status'],
+  created_at: ['created_at', 'created'],
+  updated_at: ['updated_at', 'updated']
+};
 const BEZETTING_RANGE = process.env.BEZETTING_RANGE || 'bezetting!A:W';
 const BEZETTING_COLS = [
   'no','bidang','subbidang','nama_jabatan_pergub','nama_jabatan_permenpan','rumpun_jabatan','kode',
@@ -211,6 +222,35 @@ function applyPemutusanRow(row, header, rowData) {
   const next = row.slice();
   Object.keys(PEMUTUSAN_HEADER_MAP).forEach((key) => {
     const idx = findHeaderIndex(headerIndex, PEMUTUSAN_HEADER_MAP[key]);
+    if (idx >= 0) next[idx] = rowData[key] || '';
+  });
+  return next;
+}
+
+function getQnaValue(headerIndex, row, names, fallbackIdx) {
+  const idx = findHeaderIndex(headerIndex, names);
+  if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
+  if (typeof fallbackIdx === 'number' && typeof row[fallbackIdx] !== 'undefined') return row[fallbackIdx] || '';
+  return '';
+}
+
+function buildQnaRow(header, rowData) {
+  const safeHeader = header && header.length ? header : QNA_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const row = new Array(safeHeader.length).fill('');
+  Object.keys(QNA_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, QNA_HEADER_MAP[key]);
+    if (idx >= 0) row[idx] = rowData[key] || '';
+  });
+  return row;
+}
+
+function applyQnaRow(row, header, rowData) {
+  const safeHeader = header && header.length ? header : QNA_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const next = row.slice();
+  Object.keys(QNA_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, QNA_HEADER_MAP[key]);
     if (idx >= 0) next[idx] = rowData[key] || '';
   });
   return next;
@@ -402,6 +442,24 @@ app.all('/', async (req, res) => {
       const id = (req.query?.id || payload.id || payload.id_usulan || '').toString().trim();
       if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
       return forwardTo(`${baseUrl}/pemutusan-jf/${encodeURIComponent(id)}`, { method: 'DELETE', headers }, res);
+    }
+    case 'qna_list': {
+      const qs = buildQueryParams(req.query, ['action']);
+      const url = `${baseUrl}/qna${qs ? `?${qs}` : ''}`;
+      return forwardTo(url, { method: 'GET', headers }, res);
+    }
+    case 'qna_create': {
+      return forwardTo(`${baseUrl}/qna`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'qna_update': {
+      const id = (req.query?.id || payload.id || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID QnA wajib' });
+      return forwardTo(`${baseUrl}/qna/${encodeURIComponent(id)}`, { method: 'PUT', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'qna_delete': {
+      const id = (req.query?.id || payload.id || '').toString().trim();
+      if (!id) return res.status(400).json({ ok: false, error: 'ID QnA wajib' });
+      return forwardTo(`${baseUrl}/qna/${encodeURIComponent(id)}`, { method: 'DELETE', headers }, res);
     }
     case 'bezetting_list': {
       const qs = buildQueryParams(req.query, ['action']);
@@ -720,7 +778,12 @@ app.get('/mutasi', async (req, res) => {
     const jenis = (req.query.jenis_mutasi || '').toLowerCase().trim();
     const wilayah = norm(req.query.wilayah);
 
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: MUTASI_RANGE });
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: MUTASI_RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING'
+    });
     const values = result.data.values || [];
     const [header, ...rows] = values;
     const ukpdWilayahMap = await getUkpdWilayahMap();
@@ -770,7 +833,12 @@ app.get('/mutasi', async (req, res) => {
 app.get('/mutasi/:id', async (req, res) => {
   const id = req.params.id;
   try {
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: MUTASI_RANGE });
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: MUTASI_RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING'
+    });
     const values = result.data.values || [];
     const [header, ...rows] = values;
     const list = rows.map(r => toMutasiRecord(header, r));
@@ -990,6 +1058,152 @@ app.delete('/pemutusan-jf/:id', async (req, res) => {
       requestBody: {
         requests: [{
           deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } }
+        }]
+      }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/* ==== QnA (sheet Q n A) ==== */
+app.get('/qna', async (req, res) => {
+  try {
+    const term = norm(req.query.search);
+    const statusParam = norm(req.query.status);
+    const category = norm(req.query.category);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20000, 50000));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const statusList = statusParam ? statusParam.split(',').map(norm).filter(Boolean) : [];
+
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: QNA_RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING'
+    });
+    const values = result.data.values || [];
+    if (!values.length) {
+      return res.json({ ok: true, rows: [], total: 0, summary: {}, categories: [] });
+    }
+    const [header, ...rows] = values;
+    let list = rows.map(r => toQnaRecord(header, r)).filter(r => r.id || r.question || r.answer);
+
+    list = list.filter(r => {
+      const matchTerm = !term || [r.question, r.answer].some(v => norm(v).includes(term));
+      const matchStatus = !statusList.length || statusList.includes(norm(r.status));
+      const matchCategory = !category || norm(r.category) === category;
+      return matchTerm && matchStatus && matchCategory;
+    });
+
+    const parseTime = (val) => {
+      const ts = Date.parse(String(val || ''));
+      return Number.isNaN(ts) ? 0 : ts;
+    };
+    list.sort((a, b) => parseTime(b.updated_at || b.created_at) - parseTime(a.updated_at || a.created_at));
+
+    const total = list.length;
+    const summary = list.reduce((acc, r) => {
+      const key = (r.status || 'LAINNYA').toUpperCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const categories = Array.from(new Set(list.map(r => r.category).filter(Boolean))).sort();
+    const slice = list.slice(offset, offset + limit);
+
+    res.json({ ok: true, rows: slice, total, summary, categories });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/qna', async (req, res) => {
+  try {
+    const d = req.body || {};
+    const id = d.id || `QNA-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const rowData = {
+      ...d,
+      id,
+      status: d.status || 'draft',
+      created_at: d.created_at || nowIso,
+      updated_at: d.updated_at || nowIso
+    };
+    const sheetName = QNA_RANGE.split('!')[0];
+    const headerRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!1:1`
+    });
+    const header = (headerRes.data.values && headerRes.data.values[0] && headerRes.data.values[0].length)
+      ? headerRes.data.values[0]
+      : QNA_COLS;
+    const row = buildQnaRow(header, rowData);
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: sheetName,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [row] }
+    });
+    res.json({ ok: true, id });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.put('/qna/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: QNA_RANGE });
+    const rows = values.data.values || [];
+    const [header, ...data] = rows;
+    const safeHeader = header && header.length ? header : QNA_COLS;
+    const headerIndex = buildHeaderIndex(safeHeader);
+    const idCol = findHeaderIndex(headerIndex, QNA_HEADER_MAP.id);
+    const idx = data.findIndex(r => String((idCol >= 0 ? r[idCol] : r[0]) || '') === id);
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID QnA tidak ditemukan' });
+    const rowNumber = idx + 2;
+    const currentRow = data[idx] || [];
+    const current = toQnaRecord(safeHeader, currentRow);
+    const payloadData = { ...current, ...(req.body || {}), id };
+    if (!payloadData.updated_at) payloadData.updated_at = new Date().toISOString();
+    const baseRow = currentRow.slice();
+    while (baseRow.length < safeHeader.length) baseRow.push('');
+    const payload = applyQnaRow(baseRow, safeHeader, payloadData);
+    const sheetName = QNA_RANGE.split('!')[0];
+    const endCol = columnIndexToLetter(safeHeader.length);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!A${rowNumber}:${endCol}${rowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [payload] }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.delete('/qna/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: QNA_RANGE });
+    const rows = values.data.values || [];
+    const [header, ...data] = rows;
+    const safeHeader = header && header.length ? header : QNA_COLS;
+    const headerIndex = buildHeaderIndex(safeHeader);
+    const idCol = findHeaderIndex(headerIndex, QNA_HEADER_MAP.id);
+    const idx = data.findIndex(r => String((idCol >= 0 ? r[idCol] : r[0]) || '') === id);
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID QnA tidak ditemukan' });
+    const sheetId = await getSheetIdByName(QNA_RANGE.split('!')[0]);
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [{
+          deleteDimension: {
+            range: { sheetId, dimension: 'ROWS', startIndex: idx + 1, endIndex: idx + 2 }
+          }
         }]
       }
     });
@@ -1253,6 +1467,23 @@ function toPemutusanRecord(header, row){
     created_at: getVal('created_at', 18),
     updated_at: getVal('updated_at', 19),
     keterangan: getVal('keterangan', 20),
+  };
+}
+
+function toQnaRecord(header, row) {
+  const headerIndex = buildHeaderIndex(header);
+  const getVal = (key, fallbackIdx) => {
+    const names = QNA_HEADER_MAP[key] || [key];
+    return getQnaValue(headerIndex, row, names, fallbackIdx);
+  };
+  return {
+    id: getVal('id', 0),
+    category: getVal('category', 1),
+    question: getVal('question', 2),
+    answer: getVal('answer', 3),
+    status: getVal('status', 4),
+    created_at: getVal('created_at', 5),
+    updated_at: getVal('updated_at', 6)
   };
 }
 

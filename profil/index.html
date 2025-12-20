@@ -192,6 +192,7 @@
     const isWilayahAdmin = roleLower.includes('wilayah');
     const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
     const loginWilayah = authUser?.wilayah || '';
+    document.body.classList.toggle('role-super', isSuper);
 
     function updateHeaderUser() {
       if (!authUser) return;

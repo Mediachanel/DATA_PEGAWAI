@@ -152,7 +152,7 @@
           <div>
             <div class="pill role" id="roleBadge">-</div>
             <h2>Usulan Mutasi Pegawai</h2>
-            <p style="margin:4px 0 0; color:#cbd5e1;">Pantau status usulan mutasi, unggah berkas, dan tindak lanjuti verifikasi.</p>
+            
           </div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button id="btnAdd" class="primary" style="min-width:150px;">+ Tambah Usulan</button>
@@ -203,7 +203,8 @@
               <select id="statusFilter">
                 <option value="">Semua</option>
                 <option value="DIUSULKAN">Diusulkan</option>
-                <option value="DISETUJUI">Disetujui</option>
+                <option value="DIPROSES">Diproses</option>
+                <option value="SELESAI">Selesai</option>
                 <option value="DITOLAK">Ditolak</option>
                 <option value="DITARIK">Ditarik</option>
               </select>
@@ -288,7 +289,8 @@
           <div><label>Status</label>
             <select name="status">
               <option value="DIUSULKAN">DIUSULKAN</option>
-              <option value="DISETUJUI">DISETUJUI</option>
+              <option value="DIPROSES">DIPROSES</option>
+              <option value="SELESAI">SELESAI</option>
               <option value="DITOLAK">DITOLAK</option>
               <option value="DITARIK">DITARIK</option>
             </select>
@@ -387,12 +389,21 @@
     const isWilayahAdmin = roleLower.includes('wilayah');
     const loginUkpd = authUser?.namaUkpd || authUser?.username || '';
     const loginWilayah = authUser?.wilayah || '';
+    document.body.classList.toggle('role-super', isSuper);
 
     let editingId = null;
     let cacheRows = [];
     let page = 1;
     let totalPages = 1;
     let currentLimit = 10;
+    const STATUS_ORDER = { DIUSULKAN: 1, DIPROSES: 2, SELESAI: 3, DITOLAK: 4, DITARIK: 5 };
+    const STATUS_LABELS = {
+      DIUSULKAN: 'Diusulkan',
+      DIPROSES: 'Diproses',
+      SELESAI: 'Selesai',
+      DITOLAK: 'Ditolak',
+      DITARIK: 'Ditarik'
+    };
     const bezettingState = { allUkpds: null, wilayahUkpds: null, byUkpd: new Map() };
 
     const form = document.getElementById('mutasiForm');
@@ -452,12 +463,97 @@
       el.setAttribute('aria-hidden','true');
     }
 
+    function normalizeStatus(value){
+      const raw = String(value || '').trim().toUpperCase();
+      if (!raw) return '';
+      if (raw === 'DISETUJUI' || raw === 'SELESAI') return 'SELESAI';
+      if (raw === 'DIPROSES' || raw === 'PROSES' || raw === 'DALAM PROSES') return 'DIPROSES';
+      if (raw === 'DIUSULKAN' || raw === 'USULAN') return 'DIUSULKAN';
+      if (raw === 'DITOLAK' || raw === 'TOLAK') return 'DITOLAK';
+      if (raw === 'DITARIK' || raw === 'DICABUT') return 'DITARIK';
+      return raw;
+    }
+
+    function formatStatusLabel(value){
+      const key = normalizeStatus(value);
+      return STATUS_LABELS[key] || (value ? String(value) : '-');
+    }
+
+    function parseDateValue(value){
+      if (!value) return 0;
+      if (value instanceof Date) return value.getTime();
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        if (value < 100000000000) return serialToDate(value).getTime();
+        return value;
+      }
+      const str = String(value).trim();
+      if (!str) return 0;
+      const parsed = Date.parse(str);
+      if (!Number.isNaN(parsed)) return parsed;
+      const match = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10) - 1;
+        let year = parseInt(match[3], 10);
+        if (year < 100) year += 2000;
+        const dt = new Date(year, month, day);
+        return Number.isNaN(dt.getTime()) ? 0 : dt.getTime();
+      }
+      return 0;
+    }
+
+    function serialToDate(serial){
+      const ms = Math.round((serial - 25569) * 86400 * 1000);
+      return new Date(ms);
+    }
+
+    function formatDateParts(date){
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '-';
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${d}/${m}/${y}`;
+    }
+
+    function formatDateDisplay(value){
+      if (value === null || value === undefined) return '-';
+      const raw = String(value).trim();
+      if (!raw || raw === '#######') return '-';
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        const date = value > 100000000000 ? new Date(value) : serialToDate(value);
+        return formatDateParts(date);
+      }
+      const parsed = Date.parse(raw);
+      if (!Number.isNaN(parsed)) return formatDateParts(new Date(parsed));
+      return raw;
+    }
+
+    function getRowTimestamp(row){
+      return parseDateValue(row.updated_at) || parseDateValue(row.created_at) || parseDateValue(row.tanggal_usulan) || 0;
+    }
+
+    function sortRows(rows){
+      return (rows || []).slice().sort((a, b) => {
+        const aKey = normalizeStatus(a.status);
+        const bKey = normalizeStatus(b.status);
+        const aOrder = STATUS_ORDER[aKey] || 99;
+        const bOrder = STATUS_ORDER[bKey] || 99;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        const aTime = getRowTimestamp(a);
+        const bTime = getRowTimestamp(b);
+        if (aTime !== bTime) return bTime - aTime;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
+    }
+
     function badgeStatus(val){
-      const v = (val||'').toUpperCase();
-      if (v==='DISETUJUI') return '<span class="status-pill pill-success">Disetujui</span>';
-      if (v==='DITOLAK') return '<span class="status-pill pill-danger">Ditolak</span>';
-      if (v==='DITARIK') return '<span class="status-pill pill-warn">Ditarik</span>';
-      return '<span class="status-pill pill-info">Diusulkan</span>';
+      const v = normalizeStatus(val);
+      if (v === 'SELESAI') return '<span class="status-pill pill-success">Selesai</span>';
+      if (v === 'DITOLAK') return '<span class="status-pill pill-danger">Ditolak</span>';
+      if (v === 'DIPROSES') return '<span class="status-pill pill-warn">Diproses</span>';
+      if (v === 'DITARIK') return '<span class="status-pill pill-warn">Ditarik</span>';
+      if (v === 'DIUSULKAN') return '<span class="status-pill pill-info">Diusulkan</span>';
+      return `<span class="status-pill pill-info">${formatStatusLabel(val)}</span>`;
     }
 
     function formatNama(row){
@@ -720,17 +816,22 @@
       return body;
     }
 
-    function renderMetrics(summary, total){
-      const totalCount = typeof total === 'number' ? total : cacheRows.length;
-      const disetujui = summary.DISETUJUI || 0;
-      const ditolak = summary.DITOLAK || 0;
-      const diusulkan = summary.DIUSULKAN || 0;
-      const ditarik = summary.DITARIK || 0;
-      const proses = totalCount - (disetujui + ditolak + ditarik);
+    function renderMetrics(rows){
+      const counts = (rows || []).reduce((acc, r) => {
+        const key = normalizeStatus(r.status);
+        if (!key) return acc;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      const totalCount = (rows || []).length;
+      const diusulkan = counts.DIUSULKAN || 0;
+      const diproses = counts.DIPROSES || 0;
+      const selesai = counts.SELESAI || 0;
+      const ditolak = (counts.DITOLAK || 0) + (counts.DITARIK || 0);
       document.getElementById('mTotal').textContent = totalCount;
       document.getElementById('mDiusulkan').textContent = diusulkan;
-      document.getElementById('mProses').textContent = proses < 0 ? 0 : proses;
-      document.getElementById('mSelesai').textContent = disetujui;
+      document.getElementById('mProses').textContent = diproses;
+      document.getElementById('mSelesai').textContent = selesai;
       document.getElementById('mDitolak').textContent = ditolak;
       totalFiltered.textContent = totalCount;
     }
@@ -764,9 +865,33 @@
       }
     }
 
-    function renderTable(){
+    function getFilteredRows(){
+      let rows = cacheRows.slice();
+      const statusValue = statusFilter.value;
+      if (statusValue) {
+        rows = rows.filter(r => normalizeStatus(r.status) === statusValue);
+      }
+      return rows;
+    }
+
+    function applyTableState(){
+      const filtered = getFilteredRows();
+      const sorted = sortRows(filtered);
+      const total = sorted.length;
+      totalPages = Math.max(1, Math.ceil(total / currentLimit));
+      if (page > totalPages) page = totalPages;
+      pageNow.textContent = page;
+      pageTotal.textContent = totalPages;
+      renderMetrics(sorted);
+      const startIndex = (page - 1) * currentLimit;
+      const pageRows = sorted.slice(startIndex, startIndex + currentLimit);
+      renderTable(pageRows, startIndex);
+    }
+
+    function renderTable(rows, startIndex){
       tableBody.innerHTML = '';
-      cacheRows.forEach((r, idx)=>{
+      const safeRows = rows || [];
+      safeRows.forEach((r, idx)=>{
         const tr = document.createElement('tr');
         const nama = formatNama(r) || r.nama_pegawai || '-';
         const alasan = (r.alasan||'').replace(/\n/g,'<br>');
@@ -774,7 +899,7 @@
         const verif = (r.verif_checklist||'').replace(/\n/g,'<br>');
         const verifHtml = verif ? `<div style="color:var(--muted); font-size:12px;">Verif: ${verif}</div>` : '';
         tr.innerHTML = `
-          <td>${(page-1)*currentLimit + idx + 1}</td>
+          <td>${(startIndex || 0) + idx + 1}</td>
           <td>${badgeStatus(r.status)}</td>
           <td class="actions">
             <div class="dropdown">
@@ -803,8 +928,8 @@
           <td style="min-width:220px;">${alasan||'-'}</td>
           <td>${r.berkas_path ? `<a href="${r.berkas_path}" target="_blank" rel="noopener">Berkas</a>` : '-'}</td>
           <td>${r.created_by_ukpd || '-'}</td>
-          <td>${r.created_at || '-'}</td>
-          <td>${r.updated_at || '-'}</td>
+          <td>${formatDateDisplay(r.created_at)}</td>
+          <td>${formatDateDisplay(r.updated_at)}</td>
           <td style="min-width:220px;">${verifHtml}${ket}</td>
         `;
         tableBody.appendChild(tr);
@@ -824,10 +949,7 @@
 
     async function loadData(){
       const params = new URLSearchParams();
-      params.set('limit', currentLimit);
-      params.set('offset', (page-1)*currentLimit);
       if (search.value) params.set('search', search.value);
-      if (statusFilter.value) params.set('status', statusFilter.value);
       if (isSuper) {
         if (ukpdFilter.value) params.set('ukpd', ukpdFilter.value);
       } else if (isWilayahAdmin) {
@@ -839,18 +961,14 @@
       if (tujuanFilter.value) params.set('tujuan', tujuanFilter.value);
       const body = await apiFetch(`${API_BASE}?action=mutasi_list&${params.toString()}`);
       cacheRows = (body.rows || []).map(normalizeMutasiRow);
-      const total = typeof body.total === 'number' ? body.total : cacheRows.length;
-      totalPages = Math.max(1, Math.ceil(total / currentLimit));
-      pageNow.textContent = page;
-      pageTotal.textContent = totalPages;
-      renderMetrics(body.summary || {}, total);
       renderFilters(body);
-      renderTable();
+      applyTableState();
     }
 
     async function saveMutasi(e){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
+      if (data.status) data.status = normalizeStatus(data.status) || data.status;
       const currentRow = editingId ? cacheRows.find(r=>String(r.id || '') === String(editingId || '')) : null;
       if (!data.berkas_path && currentRow?.berkas_path) {
         data.berkas_path = currentRow.berkas_path;
@@ -896,8 +1014,8 @@
         ['Pangkat/Golongan', row.pangkat_golongan],
         ['Jabatan', row.jabatan],
         ['Jenis Mutasi', row.jenis_mutasi],
-        ['Tanggal Usulan', row.tanggal_usulan],
-        ['Status', row.status],
+        ['Tanggal Usulan', formatDateDisplay(row.tanggal_usulan)],
+        ['Status', formatStatusLabel(row.status)],
         ['UKPD Asal', row.nama_ukpd],
         ['UKPD Tujuan', row.ukpd_tujuan],
         ['ABK J Lama', row.abk_j_lama],
@@ -913,8 +1031,8 @@
         ['Verifikasi Checklist', row.verif_checklist],
         ['Berkas', row.berkas_path ? `<a href="${row.berkas_path}" target="_blank" rel="noopener">Buka Berkas</a>` : '-'],
         ['Created By UKPD', row.created_by_ukpd],
-        ['Created At', row.created_at],
-        ['Updated At', row.updated_at],
+        ['Created At', formatDateDisplay(row.created_at)],
+        ['Updated At', formatDateDisplay(row.updated_at)],
       ];
       detailGrid.innerHTML = fields.map(([l,v])=>`<div class="detail-card"><div class="detail-label">${l}</div><div class="detail-value">${v||'-'}</div></div>`).join('');
       detailAlasan.textContent = row.alasan || '-';
@@ -948,6 +1066,7 @@
       editingId = row.id;
       form.reset();
       Object.keys(row).forEach(k=>{ if (form.elements[k]) form.elements[k].value = row[k] || ''; });
+      if (form.elements.status) form.elements.status.value = normalizeStatus(row.status) || row.status || '';
       if (namaUkpdHidden && row.nama_ukpd) namaUkpdHidden.value = row.nama_ukpd;
       await applyFormDefaults(row.nama_ukpd, row.nama_pegawai, row.ukpd_tujuan, row.jabatan_baru);
       formTitle.textContent = 'Ubah Usulan Mutasi';

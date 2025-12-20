@@ -55,6 +55,16 @@
     input{ width:100%; }
     button.primary{ background:linear-gradient(120deg,var(--accent) 0%, #7cb3ff 45%, var(--accent-2) 100%); color:#0b1f2c; border:none; font-weight:800; box-shadow:0 15px 35px rgba(94,139,255,0.32); cursor:pointer; }
     button.ghost{ background:#f8fafc; color:#1b2b3a; border:1px solid var(--border); cursor:pointer; box-shadow:0 8px 18px rgba(24,39,75,0.06); }
+    .input-wrap{ position:relative; }
+    .input-wrap input{ padding-right:40px; }
+    .toggle-visibility{
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      width:30px; height:30px; border:none; background:transparent; padding:0;
+      display:grid; place-items:center; color:#64748b; cursor:pointer; box-shadow:none;
+    }
+    .toggle-visibility:hover{ color:#0f172a; }
+    .toggle-visibility:focus-visible{ outline:2px solid rgba(94,139,255,0.45); outline-offset:2px; border-radius:999px; }
+    .toggle-visibility svg{ width:18px; height:18px; display:block; fill:currentColor; }
     .form-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
     .criteria{ display:grid; gap:8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin:12px 0; }
     .criteria div{ padding:10px 12px; border:1px dashed var(--border); border-radius:12px; font-size:13px; color:#8b95a5; background:#f8fafc; }
@@ -114,15 +124,36 @@
             <form id="passwordForm" class="form-grid">
               <div>
                 <label>Password Saat Ini</label>
-                <input type="password" name="current_password" id="currentPassword" autocomplete="current-password" required />
+                <div class="input-wrap">
+                  <input type="password" name="current_password" id="currentPassword" autocomplete="current-password" required />
+                  <button type="button" class="toggle-visibility" data-target="currentPassword" aria-label="Tampilkan password">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5c5 0 9.27 3.11 11 7-1.73 3.89-6 7-11 7S2.73 15.89 1 12c1.73-3.89 6-7 11-7Zm0 2c-3.76 0-7.09 2.2-8.74 5 1.65 2.8 4.98 5 8.74 5s7.09-2.2 8.74-5C19.09 9.2 15.76 7 12 7Zm0 2.5A2.5 2.5 0 1 1 9.5 12 2.5 2.5 0 0 1 12 9.5Z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div>
                 <label>Password Baru</label>
-                <input type="password" name="new_password" id="newPassword" autocomplete="new-password" required />
+                <div class="input-wrap">
+                  <input type="password" name="new_password" id="newPassword" autocomplete="new-password" required />
+                  <button type="button" class="toggle-visibility" data-target="newPassword" aria-label="Tampilkan password">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5c5 0 9.27 3.11 11 7-1.73 3.89-6 7-11 7S2.73 15.89 1 12c1.73-3.89 6-7 11-7Zm0 2c-3.76 0-7.09 2.2-8.74 5 1.65 2.8 4.98 5 8.74 5s7.09-2.2 8.74-5C19.09 9.2 15.76 7 12 7Zm0 2.5A2.5 2.5 0 1 1 9.5 12 2.5 2.5 0 0 1 12 9.5Z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div>
                 <label>Konfirmasi Password Baru</label>
-                <input type="password" name="confirm_password" id="confirmPassword" autocomplete="new-password" required />
+                <div class="input-wrap">
+                  <input type="password" name="confirm_password" id="confirmPassword" autocomplete="new-password" required />
+                  <button type="button" class="toggle-visibility" data-target="confirmPassword" aria-label="Tampilkan password">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5c5 0 9.27 3.11 11 7-1.73 3.89-6 7-11 7S2.73 15.89 1 12c1.73-3.89 6-7 11-7Zm0 2c-3.76 0-7.09 2.2-8.74 5 1.65 2.8 4.98 5 8.74 5s7.09-2.2 8.74-5C19.09 9.2 15.76 7 12 7Zm0 2.5A2.5 2.5 0 1 1 9.5 12 2.5 2.5 0 0 1 12 9.5Z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
                 <button type="button" class="ghost" id="resetForm">Reset</button>
@@ -174,6 +205,9 @@
 
     const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
     if (!authUser) { window.location.href = BASE; }
+    const roleLower = (authUser.role || '').toLowerCase();
+    const isSuper = roleLower.includes('super') || roleLower.includes('dinkes');
+    document.body.classList.toggle('role-super', isSuper);
     const roleBadge = document.getElementById('roleBadge');
     const form = document.getElementById('passwordForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -183,6 +217,21 @@
     const newPassword = document.getElementById('newPassword');
     const confirmPassword = document.getElementById('confirmPassword');
     const criteriaList = document.getElementById('criteriaList');
+
+    function initPasswordToggles(){
+      document.querySelectorAll('.toggle-visibility').forEach(btn => {
+        const targetId = btn.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        btn.setAttribute('data-state', 'hidden');
+        btn.addEventListener('click', () => {
+          const show = input.type === 'password';
+          input.type = show ? 'text' : 'password';
+          btn.setAttribute('data-state', show ? 'shown' : 'hidden');
+          btn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+        });
+      });
+    }
 
     function syncHeaderUser(){
       if (!authUser) return;
@@ -198,6 +247,8 @@
       if (headerName) headerName.textContent = namaText;
       if (headerRoleText) headerRoleText.textContent = authUser.role || '';
     }
+
+    initPasswordToggles();
 
     function showStatus(message, type){
       statusEl.textContent = message;

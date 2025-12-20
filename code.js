@@ -4,6 +4,7 @@ const DATA_SHEET = 'DATA PEGAWAI';
 const USER_SHEET = 'username'; // kolom: Nama UKPD | Username | Password | Hak akses | Wilayah
 const MUTASI_SHEET = 'USULAN_MUTASI';
 const PEMUTUSAN_SHEET = 'USULAN_PEMUTUSAN_JF';
+const QNA_SHEET = 'Q n A';
 const BEZETTING_SHEET = 'bezetting';
 // Urutan kolom data pegawai (A:AC) termasuk wilayah_ukpd
 const COLS = [
@@ -77,6 +78,16 @@ const PEMUTUSAN_HEADER_MAP = {
   updated_at: ['updated_at'],
   keterangan: ['keterangan']
 };
+const QNA_COLS = ['id','category','question','answer','status','created_at','updated_at'];
+const QNA_HEADER_MAP = {
+  id: ['id'],
+  category: ['category', 'kategori'],
+  question: ['question', 'pertanyaan'],
+  answer: ['answer', 'jawaban'],
+  status: ['status'],
+  created_at: ['created_at', 'created'],
+  updated_at: ['updated_at', 'updated']
+};
 const BEZETTING_COLS = [
   'no','bidang','subbidang','nama_jabatan_pergub','nama_jabatan_permenpan','rumpun_jabatan','kode',
   'abk','eksisting','selisih','nama_pegawai','nip','nrk','status_formasi','pendidikan','keterangan',
@@ -107,6 +118,7 @@ function handleRequest(e, method) {
     if (action === 'mutasi_list') return listMutasi(e);
     if (action === 'pemutusan_jf_list') return listPemutusan(e);
     if (action === 'bezetting_list') return listBezetting(e);
+    if (action === 'qna_list') return listQna(e);
   }
 
   if (method === 'POST') {
@@ -125,6 +137,9 @@ function handleRequest(e, method) {
     if (action === 'bezetting_create') return createBezetting(e);
     if (action === 'bezetting_update') return updateBezetting(e);
     if (action === 'bezetting_delete') return deleteBezetting(e);
+    if (action === 'qna_create') return createQna(e);
+    if (action === 'qna_update') return updateQna(e);
+    if (action === 'qna_delete') return deleteQna(e);
   }
 
   return json({ ok: false, error: 'route not found' });
@@ -561,6 +576,123 @@ function deletePemutusan(e) {
   return json({ ok: true, data: { id }, id });
 }
 
+// ==== QnA ====
+function listQna(e) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
+  if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
+  const params = e.parameter || {};
+  const term = norm(params.search);
+  const statusParam = norm(params.status);
+  const categoryParam = norm(params.category);
+  const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 50000));
+  const offset = Math.max(0, parseInt(params.offset, 10) || 0);
+  const statusList = statusParam ? statusParam.split(',').map(norm).filter(Boolean) : [];
+
+  const values = sheet.getDataRange().getValues();
+  if (!values.length) {
+    return json({
+      ok: true,
+      data: { rows: [], total: 0, summary: {}, categories: [] },
+      rows: [],
+      total: 0,
+      summary: {},
+      categories: []
+    });
+  }
+  const [header, ...rows] = values;
+  let list = rows.map(r => toQnaRecord(header, r)).filter(r => r.id || r.question || r.answer);
+
+  list = list.filter(r => {
+    const matchTerm = !term || [r.question, r.answer].some(v => norm(v).includes(term));
+    const matchStatus = !statusList.length || statusList.includes(norm(r.status));
+    const matchCategory = !categoryParam || norm(r.category) === categoryParam;
+    return matchTerm && matchStatus && matchCategory;
+  });
+
+  const parseTime = (val) => {
+    const ts = Date.parse(String(val || ''));
+    return Number.isNaN(ts) ? 0 : ts;
+  };
+  list.sort((a, b) => parseTime(b.updated_at || b.created_at) - parseTime(a.updated_at || a.created_at));
+
+  const total = list.length;
+  const summary = countBy(list, 'status');
+  const categories = uniq(list.map(r => r.category));
+  const slice = list.slice(offset, offset + limit);
+  return json({
+    ok: true,
+    data: { rows: slice, total, summary, categories },
+    rows: slice,
+    total,
+    summary,
+    categories
+  });
+}
+
+function createQna(e) {
+  if (!checkToken(e)) return forbidden();
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
+  if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
+  const body = e.body || parseBody(e) || {};
+  const id = body.id || `QNA-${Date.now()}`;
+  const nowIso = new Date().toISOString();
+  const rowData = {
+    ...body,
+    id,
+    status: body.status || 'draft',
+    created_at: body.created_at || nowIso,
+    updated_at: body.updated_at || nowIso
+  };
+  const values = sheet.getDataRange().getValues();
+  const header = values.length && values[0].length ? values[0] : QNA_COLS;
+  const row = buildQnaRow(header, rowData);
+  sheet.appendRow(row);
+  return json({ ok: true, data: { id }, id });
+}
+
+function updateQna(e) {
+  if (!checkToken(e)) return forbidden();
+  const id = getParam(e, 'id');
+  if (!id) return json({ ok: false, error: 'ID wajib' });
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
+  if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
+  const body = e.body || parseBody(e) || {};
+  const values = sheet.getDataRange().getValues();
+  const [header, ...rows] = values;
+  const safeHeader = header && header.length ? header : QNA_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const idCol = findHeaderIndex(headerIndex, QNA_HEADER_MAP.id);
+  const idx = rows.findIndex(r => String((idCol >= 0 ? r[idCol] : r[0]) || '') === String(id));
+  if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
+  const rowNumber = idx + 2;
+  const currentRow = rows[idx] || [];
+  const current = toQnaRecord(safeHeader, currentRow);
+  const rowData = { ...current, ...body, id };
+  if (!rowData.updated_at) rowData.updated_at = new Date().toISOString();
+  const baseRow = currentRow.slice();
+  while (baseRow.length < safeHeader.length) baseRow.push('');
+  const payload = applyQnaRow(baseRow, safeHeader, rowData);
+  sheet.getRange(rowNumber, 1, 1, safeHeader.length).setValues([payload]);
+  return json({ ok: true, data: { id }, id });
+}
+
+function deleteQna(e) {
+  if (!checkToken(e)) return forbidden();
+  const id = getParam(e, 'id');
+  if (!id) return json({ ok: false, error: 'ID wajib' });
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
+  if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
+  const values = sheet.getDataRange().getValues();
+  const [header, ...rows] = values;
+  const safeHeader = header && header.length ? header : QNA_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const idCol = findHeaderIndex(headerIndex, QNA_HEADER_MAP.id);
+  const idx = rows.findIndex(r => String((idCol >= 0 ? r[idCol] : r[0]) || '') === String(id));
+  if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
+  sheet.deleteRow(idx + 2);
+  return json({ ok: true, data: { id }, id });
+}
+
 // ==== Bezetting ====
 function listBezetting(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
@@ -843,6 +975,35 @@ function applyPemutusanRow(row, header, rowData) {
   return next;
 }
 
+function getQnaValue(headerIndex, row, names, fallbackIdx) {
+  const idx = findHeaderIndex(headerIndex, names);
+  if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
+  if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
+  return '';
+}
+
+function buildQnaRow(header, rowData) {
+  const safeHeader = (header && header.length) ? header : QNA_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const row = new Array(safeHeader.length).fill('');
+  Object.keys(QNA_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, QNA_HEADER_MAP[key]);
+    if (idx >= 0) row[idx] = rowData[key] || '';
+  });
+  return row;
+}
+
+function applyQnaRow(row, header, rowData) {
+  const safeHeader = (header && header.length) ? header : QNA_COLS;
+  const headerIndex = buildHeaderIndex(safeHeader);
+  const next = row.slice();
+  Object.keys(QNA_HEADER_MAP).forEach((key) => {
+    const idx = findHeaderIndex(headerIndex, QNA_HEADER_MAP[key]);
+    if (idx >= 0) next[idx] = rowData[key] || '';
+  });
+  return next;
+}
+
 function normalizePegawaiHeader(name) {
   return String(name || '').toLowerCase().trim().replace(/\s+/g, '_');
 }
@@ -955,6 +1116,23 @@ function toPemutusanRecord(header, row) {
     created_at: getVal('created_at', 18),
     updated_at: getVal('updated_at', 19),
     keterangan: getVal('keterangan', 20),
+  };
+}
+
+function toQnaRecord(header, row) {
+  const headerIndex = buildHeaderIndex(header);
+  const getVal = (key, fallbackIdx) => {
+    const names = QNA_HEADER_MAP[key] || [key];
+    return getQnaValue(headerIndex, row, names, fallbackIdx);
+  };
+  return {
+    id: getVal('id', 0),
+    category: getVal('category', 1),
+    question: getVal('question', 2),
+    answer: getVal('answer', 3),
+    status: getVal('status', 4),
+    created_at: getVal('created_at', 5),
+    updated_at: getVal('updated_at', 6)
   };
 }
 
