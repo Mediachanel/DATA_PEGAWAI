@@ -1,5 +1,6 @@
 import express from 'express';
 import { google } from 'googleapis';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import process from 'process';
@@ -95,6 +96,48 @@ const BEZETTING_COLS = [
 ];
 
 const norm = (val = '') => (val || '').toString().trim().toLowerCase();
+const HASH_PREFIX = 'sha256$';
+
+function isHashedPassword(value = '') {
+  const raw = String(value || '');
+  return raw.startsWith(HASH_PREFIX) || raw.startsWith('sha256:');
+}
+
+function hashPassword(password, salt) {
+  const safeSalt = salt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.createHash('sha256').update(`${safeSalt}:${password}`).digest('hex');
+  return `${HASH_PREFIX}${safeSalt}$${hash}`;
+}
+
+function verifyPassword(input, stored) {
+  const raw = String(stored || '');
+  if (raw.startsWith(HASH_PREFIX)) {
+    const parts = raw.split('$');
+    if (parts.length !== 3) return false;
+    const salt = parts[1] || '';
+    const hash = parts[2] || '';
+    const candidate = crypto.createHash('sha256').update(`${salt}:${input}`).digest('hex');
+    return candidate === hash;
+  }
+  if (raw.startsWith('sha256:')) {
+    const parts = raw.split(':');
+    const salt = parts[1] || '';
+    const hash = parts[2] || '';
+    if (!salt || !hash) return false;
+    const candidate = crypto.createHash('sha256').update(`${salt}:${input}`).digest('hex');
+    return candidate === hash;
+  }
+  return raw === String(input || '');
+}
+
+function isStrongPassword(password = '') {
+  if (password.length < 8) return false;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+  return hasUpper && hasLower && hasNumber && hasSymbol;
+}
 const normalizeHeaderKey = (val = '') => val.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
 
 function buildHeaderIndex(header) {
@@ -317,6 +360,9 @@ app.all('/', async (req, res) => {
     }
     case 'login': {
       return forwardTo(`${baseUrl}/login`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'password_change': {
+      return forwardTo(`${baseUrl}/password`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
     }
     case 'upload': {
       return forwardTo(`${baseUrl}/upload`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
@@ -593,7 +639,8 @@ app.post('/login', async (req, res) => {
     const idxPass = h.indexOf('password');
     const idxHak = h.indexOf('hak akses');
     const idxWilayah = h.indexOf('wilayah');
-    const users = data.map(r => ({
+    const users = data.map((r, idx) => ({
+      rowNumber: idx + 2,
       namaUkpd: (idxNamaUkpd >= 0 ? r[idxNamaUkpd] : r[0] || '').trim(),
       username: (idxUser >= 0 ? r[idxUser] : r[1] || r[0] || '').trim(),
       password: (idxPass >= 0 ? r[idxPass] : r[2] || '').trim(),
@@ -602,11 +649,64 @@ app.post('/login', async (req, res) => {
     }));
     const uname = username.trim().toLowerCase();
     const pword = password.trim();
-    const found = users.find(u => u.username.toLowerCase() === uname && u.password === pword);
-    if (found) return res.json({ ok: true, user: { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah } });
-    return res.status(401).json({ ok: false, error: 'Username atau password salah' });
+    const found = users.find(u => u.username.toLowerCase() === uname && verifyPassword(pword, u.password));
+    if (!found) return res.status(401).json({ ok: false, error: 'Username atau password salah' });
+    if (!isHashedPassword(found.password)) {
+      const newHash = hashPassword(pword);
+      const sheetName = USER_RANGE.split('!')[0];
+      const passCol = idxPass >= 0 ? idxPass + 1 : 3;
+      const passColLetter = columnIndexToLetter(passCol);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${sheetName}!${passColLetter}${found.rowNumber}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[newHash]] }
+      });
+    }
+    return res.json({ ok: true, user: { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah } });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/password', async (req, res) => {
+  const bodyPayload = req.body || {};
+  const username = (bodyPayload.username || '').trim();
+  const currentPassword = (bodyPayload.current_password || bodyPayload.old_password || '').trim();
+  const newPassword = (bodyPayload.new_password || '').trim();
+  if (!username || !currentPassword || !newPassword) {
+    return res.status(400).json({ ok: false, error: 'Username, password lama, dan password baru wajib' });
+  }
+  if (!isStrongPassword(newPassword)) {
+    return res.status(400).json({ ok: false, error: 'Password baru belum memenuhi kriteria keamanan' });
+  }
+  try {
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: USER_RANGE });
+    const values = result.data.values || [];
+    const [header, ...data] = values;
+    const h = (header || []).map(x => (x || '').toLowerCase());
+    const idxUser = h.indexOf('username');
+    const idxPass = h.indexOf('password');
+    const userIndex = data.findIndex(r => (idxUser >= 0 ? r[idxUser] : r[1] || r[0] || '').toString().trim().toLowerCase() === username.toLowerCase());
+    if (userIndex < 0) return res.status(404).json({ ok: false, error: 'User tidak ditemukan' });
+    const rowNumber = userIndex + 2;
+    const stored = (idxPass >= 0 ? data[userIndex][idxPass] : data[userIndex][2] || '').toString().trim();
+    if (!verifyPassword(currentPassword, stored)) {
+      return res.status(401).json({ ok: false, error: 'Password lama salah' });
+    }
+    const newHash = hashPassword(newPassword);
+    const sheetName = USER_RANGE.split('!')[0];
+    const passCol = idxPass >= 0 ? idxPass + 1 : 3;
+    const passColLetter = columnIndexToLetter(passCol);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!${passColLetter}${rowNumber}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [[newHash]] }
+    });
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -1197,6 +1297,53 @@ function toBezettingRecord(header, row){
   };
 }
 
-app.listen(PORT, () => {
-  console.log(`API listening on http://localhost:${PORT}`);
-});
+async function migratePasswords({ dryRun = false } = {}) {
+  const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: USER_RANGE });
+  const values = result.data.values || [];
+  if (!values.length) {
+    console.log('No user data found.');
+    return;
+  }
+  const [header, ...rows] = values;
+  const h = (header || []).map(x => norm(x));
+  const idxPass = h.indexOf('password');
+  if (idxPass < 0) {
+    console.log('Kolom password tidak ditemukan.');
+    return;
+  }
+  const sheetName = USER_RANGE.split('!')[0];
+  const updates = [];
+  rows.forEach((row, i) => {
+    const raw = (row[idxPass] || '').toString().trim();
+    if (!raw || isHashedPassword(raw)) return;
+    const hash = hashPassword(raw);
+    const col = columnIndexToLetter(idxPass + 1);
+    updates.push({ range: `${sheetName}!${col}${i + 2}`, values: [[hash]] });
+  });
+  if (!updates.length) {
+    console.log('Semua password sudah di-hash.');
+    return;
+  }
+  console.log(`Password akan diubah: ${updates.length} baris.`);
+  if (dryRun) return;
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: { valueInputOption: 'RAW', data: updates }
+  });
+  console.log('Migrate password selesai.');
+}
+
+const shouldMigratePasswords = process.argv.includes('--migrate-passwords');
+const dryRun = process.argv.includes('--dry-run');
+if (shouldMigratePasswords) {
+  migratePasswords({ dryRun })
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('Migrate password gagal:', err);
+      process.exit(1);
+    });
+} else {
+  app.listen(PORT, () => {
+    console.log(`API listening on http://localhost:${PORT}`);
+  });
+}

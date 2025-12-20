@@ -6,7 +6,7 @@
 - Set `PROXY_KEY` di semua halaman (header `X-Proxy-Key`) dan samakan dengan env `PROXY_KEY` di Worker.
 - Worker meneruskan `key` ke Apps Script (env `APPS_SCRIPT_KEY` harus sama dengan `API_KEY` di `code.js`).
 - Frontend hanya memanggil Worker (tidak langsung ke Apps Script).
-- Endpoint memakai `action`: `GET ?action=health|list|get`, `POST {action:create|update|delete|login|upload}`.
+- Endpoint memakai `action`: `GET ?action=health|list|get`, `POST {action:create|update|delete|login|upload|password_change}`.
 
 ## Backend Node (service account)
 - File: `server.js`
@@ -15,6 +15,7 @@
 - Share spreadsheet ke email service account dengan hak Edit.
 - Install deps: `npm install`.
 - Jalankan: `npm start` (opsional: `PORT=4000 SPREADSHEET_ID=... RANGE="DATA PEGAWAI!A:AC"`).
+- Migrasi password lama ke hash (sekali jalan): `npm run migrate-passwords` (opsional `--dry-run`).
 - Endpoint:
   - GET `/health` (cek status).
   - POST `/login` dengan `{"username":"","password":""}` memakai sheet `username!A:E`.
@@ -58,7 +59,7 @@
   27. catatan_revisi_biodata
   28. alamat_ktp
   29. alamat_domisili
-- Login: `username` (A:E) kolom Nama UKPD, Username, Password, Hak akses, Wilayah.
+- Login: `username` (A:E) kolom Nama UKPD, Username, Password, Hak akses, Wilayah. Password disimpan hash `sha256$<salt>$<hash>` (login akan upgrade jika masih plaintext).
 
 ## Troubleshooting
 - Response `forbidden`: cek `PROXY_KEY` (frontend vs Worker) dan `APPS_SCRIPT_KEY` (Worker) harus sama dengan `API_KEY` di `code.js`.

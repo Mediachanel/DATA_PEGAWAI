@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ubah Password</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="foto/Dinkes.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --border:#e6ecf4;
+      --muted:#6b7280;
+      --accent:#5e8bff;
+      --accent-2:#ff9f68;
+      --success:#16a34a;
+      --danger:#dc2626;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif;
+      background:radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%), #f7f9fc;
+      color:#1b2b3a;
+    }
+    .layout{ min-height:100vh; }
+    .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
+    .sidebar{
+      position:fixed; inset:0 auto 0 0; width:260px; background:#ffffff; color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0;
+    }
+    .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
+    .logo img{ width:38px; height:38px; object-fit:contain; }
+    .logo-title{ font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
+    .logo-sub{ font-size:12px; color:#94a3b8; }
+    nav{ display:flex; flex-direction:column; gap:6px; }
+    .nav-title{ margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
+    .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .nav-item:hover{ background:#f8fafc; }
+    .nav-item.active{ background:#eef3ff; color:#3b5ecc; font-weight:700; box-shadow:0 10px 22px rgba(94,139,255,0.18); }
+    .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    main{ padding:20px 14px 34px; }
+    .page{ width: calc(100% - 12px); max-width: 1200px; margin: 0 auto; display:flex; flex-direction:column; gap:12px; padding:0 12px; }
+    .panel{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:0 12px 26px rgba(24,39,75,0.08); }
+    .hero{
+      background:linear-gradient(135deg, rgba(94,139,255,0.22), rgba(255,159,104,0.18)), #0f1f3a;
+      color:#e7efff; border:none; box-shadow:0 14px 32px rgba(24,39,75,0.2);
+    }
+    .hero h2{ margin:6px 0 4px; color:#fff; }
+    .badge{ display:inline-flex; align-items:center; gap:8px; background:#eef3ff; color:#3b5ecc; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; box-shadow:0 10px 20px rgba(94,139,255,0.2); }
+    label{ font-size:12px; font-weight:700; color:#485668; text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:6px; }
+    input, button{ padding:11px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; }
+    input{ width:100%; }
+    button.primary{ background:linear-gradient(120deg,var(--accent) 0%, #7cb3ff 45%, var(--accent-2) 100%); color:#0b1f2c; border:none; font-weight:800; box-shadow:0 15px 35px rgba(94,139,255,0.32); cursor:pointer; }
+    button.ghost{ background:#f8fafc; color:#1b2b3a; border:1px solid var(--border); cursor:pointer; box-shadow:0 8px 18px rgba(24,39,75,0.06); }
+    .form-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .criteria{ display:grid; gap:8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin:12px 0; }
+    .criteria div{ padding:10px 12px; border:1px dashed var(--border); border-radius:12px; font-size:13px; color:#8b95a5; background:#f8fafc; }
+    .criteria div.ok{ border-color:#bbf7d0; color:#15803d; background:#dcfce7; font-weight:700; }
+    .criteria div::before{ content:'[ ] '; }
+    .criteria div.ok::before{ content:'[x] '; }
+    .status{ margin-top:12px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#f8fafc; color:#334155; font-weight:700; font-size:13px; }
+    .status.ok{ border-color:#bbf7d0; background:#dcfce7; color:#15803d; }
+    .status.err{ border-color:#fecdd3; background:#fee2e2; color:#b91c1c; }
+    .mobile-toggle{
+      position: fixed; top: 14px; left: 14px; z-index: 70;
+      background: #5e8bff; color: #f8fafc; border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
+      box-shadow: 0 12px 26px rgba(94,139,255,0.35);
+    }
+    #sidebarBackdrop{
+      position: fixed; inset:0; background: rgba(0,0,0,0.45);
+      opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
+    }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    @media (max-width:1100px){
+      .content{ margin-left:0; }
+      .sidebar{
+        position:fixed; inset:0 auto 0 0; width:calc(100vw - 72px); max-width:280px;
+        transform:translateX(-100%); transition:transform .2s ease; z-index:60; min-height:100vh;
+        box-shadow:8px 0 30px -20px rgba(0,0,0,0.5);
+      }
+      .sidebar.show{ transform:translateX(0); }
+      .mobile-toggle{ display:inline-flex; }
+      main{ padding:14px; margin-top:20px; padding-top:62px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle"><span style="font-size:18px;">&#9776;</span> Menu</button>
+  <div class="layout">
+    <div id="sidebar-container"></div>
+    <div class="content">
+      <div id="header-container"></div>
+      <main>
+        <div class="page">
+          <div class="panel hero">
+            <div class="badge" id="roleBadge">-</div>
+            <h2>Ubah Password</h2>
+            <div style="color:#d6e1f5;">Gunakan kombinasi yang kuat agar akun tetap aman.</div>
+          </div>
+          <div class="panel">
+            <h3 style="margin:0 0 6px;">Kriteria Password Kuat</h3>
+            <div class="criteria" id="criteriaList">
+              <div data-req="length">Minimal 8 karakter</div>
+              <div data-req="upper">Ada huruf besar (A-Z)</div>
+              <div data-req="lower">Ada huruf kecil (a-z)</div>
+              <div data-req="number">Ada angka (0-9)</div>
+              <div data-req="symbol">Ada simbol (contoh: !@#)</div>
+            </div>
+            <form id="passwordForm" class="form-grid">
+              <div>
+                <label>Password Saat Ini</label>
+                <input type="password" name="current_password" id="currentPassword" autocomplete="current-password" required />
+              </div>
+              <div>
+                <label>Password Baru</label>
+                <input type="password" name="new_password" id="newPassword" autocomplete="new-password" required />
+              </div>
+              <div>
+                <label>Konfirmasi Password Baru</label>
+                <input type="password" name="confirm_password" id="confirmPassword" autocomplete="new-password" required />
+              </div>
+              <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
+                <button type="button" class="ghost" id="resetForm">Reset</button>
+                <button type="submit" class="primary" id="submitBtn">Simpan</button>
+              </div>
+            </form>
+            <div id="status" class="status" style="display:none;"></div>
+          </div>
+        </div>
+      </main>
+      <div id="footer-container"></div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      if (parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI') return '/' + parts[0] + '/';
+      if (parts.length > 1) return '../';
+      return '/';
+    })();
+    const favicon = document.querySelector("link[rel='icon']");
+    if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
+    const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+      ? 'http://127.0.0.1:5002'
+      : 'https://sikepeg.seftianh23.workers.dev';
+    const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
+    const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
+
+    const sidebarPromise = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), headerPromise = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footerPromise = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
+    Promise.all([sidebarPromise, headerPromise, footerPromise]).then(([s,h,f])=>{
+      const wrap = document.getElementById('sidebar-container');
+      wrap.innerHTML = s;
+      const hdr = document.getElementById('header-container');
+      if (hdr) hdr.innerHTML = h;
+      const ftr = document.getElementById('footer-container');
+      if (ftr) ftr.innerHTML = f;
+      document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
+      document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
+      document.querySelector('.nav-item.active')?.classList.remove('active');
+      const passLink = Array.from(document.querySelectorAll('.nav-item')).find(a=>a.textContent.trim().toLowerCase().includes('ubah password'));
+      if (passLink) passLink.classList.add('active');
+      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+      const logoutNav = document.querySelector('[data-logout]');
+      if (logoutNav) logoutNav.addEventListener('click', doLogout);
+      initSidebarToggle();
+      syncHeaderUser();
+    });
+
+    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = BASE; }
+    const roleBadge = document.getElementById('roleBadge');
+    const form = document.getElementById('passwordForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resetBtn = document.getElementById('resetForm');
+    const statusEl = document.getElementById('status');
+    const currentPassword = document.getElementById('currentPassword');
+    const newPassword = document.getElementById('newPassword');
+    const confirmPassword = document.getElementById('confirmPassword');
+    const criteriaList = document.getElementById('criteriaList');
+
+    function syncHeaderUser(){
+      if (!authUser) return;
+      const roleText = (authUser.role || 'USER').toUpperCase();
+      const namaText = authUser.namaUkpd || authUser.username || 'User';
+      if (roleBadge) roleBadge.textContent = roleText;
+      const headerRole = document.getElementById('rolePill');
+      const headerUkpd = document.getElementById('ukpdPill');
+      const headerName = document.getElementById('userName');
+      const headerRoleText = document.getElementById('userRole');
+      if (headerRole) headerRole.textContent = roleText;
+      if (headerUkpd) headerUkpd.textContent = namaText;
+      if (headerName) headerName.textContent = namaText;
+      if (headerRoleText) headerRoleText.textContent = authUser.role || '';
+    }
+
+    function showStatus(message, type){
+      statusEl.textContent = message;
+      statusEl.classList.remove('ok','err');
+      if (type === 'ok') statusEl.classList.add('ok');
+      if (type === 'err') statusEl.classList.add('err');
+      statusEl.style.display = 'block';
+    }
+
+    function checkStrength(value){
+      return {
+        length: value.length >= 8,
+        upper: /[A-Z]/.test(value),
+        lower: /[a-z]/.test(value),
+        number: /[0-9]/.test(value),
+        symbol: /[^A-Za-z0-9]/.test(value),
+      };
+    }
+
+    function updateCriteria(value){
+      const result = checkStrength(value || '');
+      const items = criteriaList.querySelectorAll('[data-req]');
+      items.forEach((item) => {
+        const key = item.dataset.req;
+        item.classList.toggle('ok', !!result[key]);
+      });
+      return Object.values(result).every(Boolean);
+    }
+
+    async function apiFetch(url, options = {}){
+      const opts = { ...options };
+      opts.headers = { ...API_HEADERS, ...(opts.headers || {}) };
+      if (opts.body && !opts.headers['Content-Type']) opts.headers['Content-Type'] = 'application/json';
+      const res = await fetch(url, opts);
+      const text = await res.text();
+      let body;
+      try { body = JSON.parse(text); }
+      catch { throw new Error(text || 'Respon bukan JSON'); }
+      if (!res.ok || !body.ok) throw new Error(body.error || 'Permintaan gagal');
+      return body;
+    }
+
+    form.addEventListener('input', ()=> updateCriteria(newPassword.value || ''));
+    resetBtn.addEventListener('click', ()=>{
+      form.reset();
+      updateCriteria('');
+      statusEl.style.display = 'none';
+    });
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const strong = updateCriteria(newPassword.value || '');
+      if (!strong) {
+        showStatus('Password baru belum memenuhi kriteria keamanan.', 'err');
+        return;
+      }
+      if (newPassword.value !== confirmPassword.value) {
+        showStatus('Konfirmasi password tidak sama.', 'err');
+        return;
+      }
+      submitBtn.disabled = true;
+      try{
+        const passwordUrl = API_BASE + (API_BASE.includes('?') ? '&' : '?') + 'action=password_change';
+        await apiFetch(passwordUrl, {
+          method: 'POST',
+          body: JSON.stringify({
+            username: authUser.username || '',
+            current_password: currentPassword.value || '',
+            new_password: newPassword.value || ''
+          })
+        });
+        showStatus('Password berhasil diubah. Silakan login ulang.', 'ok');
+        setTimeout(()=>{
+          localStorage.removeItem('authUser');
+          window.location.href = BASE;
+        }, 1200);
+      }catch(err){
+        showStatus(err.message, 'err');
+      }finally{
+        submitBtn.disabled = false;
+      }
+    });
+
+    function doLogout(){ localStorage.removeItem('authUser'); window.location.href = BASE; }
+
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebarEl = document.querySelector('.sidebar');
+      if (!btn || !backdrop || !sidebarEl) return;
+      const close = ()=>{ sidebarEl.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebarEl.classList.contains('show');
+        sidebarEl.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebarEl.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1100) close(); });
+    }
+  </script>
+</body>
+</html>

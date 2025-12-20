@@ -86,6 +86,7 @@ const BEZETTING_COLS = [
 // API key untuk Apps Script (diteruskan proxy via query `key`).
 const API_KEY = 'api_6f9e3a1c8d4b2f7a9e5c1d6b8f3a2c7e';
 const DRIVE_FOLDER_ID = '';
+const HASH_PREFIX = 'sha256$';
 
 // Router utama
 function doGet(e) { return handleRequest(e, 'GET'); }
@@ -110,6 +111,7 @@ function handleRequest(e, method) {
 
   if (method === 'POST') {
     if (action === 'login') return login(e);
+    if (action === 'password_change') return changePassword(e);
     if (action === 'upload') return uploadFile(e);
     if (action === 'create') return createPegawai(e);
     if (action === 'update') return updatePegawai(e);
@@ -264,17 +266,53 @@ function login(e) {
   const idxPass = h.indexOf('password');
   const idxHak = h.indexOf('hak akses');
   const idxWilayah = h.indexOf('wilayah');
-  const users = rows.map(r => ({
+  const users = rows.map((r, idx) => ({
+    rowNumber: idx + 2,
     namaUkpd: (idxNamaUkpd >= 0 ? r[idxNamaUkpd] : r[0] || '').trim(),
     username: (idxUser >= 0 ? r[idxUser] : r[1] || r[0] || '').trim(),
     password: (idxPass >= 0 ? r[idxPass] : r[2] || '').trim(),
     role: (idxHak >= 0 ? r[idxHak] : r[3] || '').trim(),
     wilayah: (idxWilayah >= 0 ? r[idxWilayah] : r[4] || '').trim(),
   }));
-  const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+  const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && verifyPassword(password, u.password));
   if (!found) return json({ ok: false, error: 'Username atau password salah' });
+  if (!isHashedPassword(found.password)) {
+    const newHash = hashPassword(password);
+    const passCol = idxPass >= 0 ? idxPass + 1 : 3;
+    sheet.getRange(found.rowNumber, passCol).setValue(newHash);
+  }
   const user = { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah };
   return json({ ok: true, data: { user }, user });
+}
+
+function changePassword(e) {
+  if (!checkToken(e)) return forbidden();
+  const body = e.body || parseBody(e) || {};
+  const username = (body.username || '').trim();
+  const currentPassword = (body.current_password || body.old_password || '').trim();
+  const newPassword = (body.new_password || '').trim();
+  if (!username || !currentPassword || !newPassword) {
+    return json({ ok: false, error: 'Username, password lama, dan password baru wajib' });
+  }
+  if (!isStrongPassword(newPassword)) {
+    return json({ ok: false, error: 'Password baru belum memenuhi kriteria keamanan' });
+  }
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USER_SHEET);
+  if (!sheet) return json({ ok: false, error: 'Sheet username tidak ditemukan' });
+  const [header, ...rows] = sheet.getDataRange().getValues();
+  const h = (header || []).map(x => (x || '').toLowerCase());
+  const idxUser = h.indexOf('username');
+  const idxPass = h.indexOf('password');
+  const userIndex = rows.findIndex(r => (idxUser >= 0 ? r[idxUser] : r[1] || r[0] || '').toString().trim().toLowerCase() === username.toLowerCase());
+  if (userIndex < 0) return json({ ok: false, error: 'User tidak ditemukan' });
+  const stored = (idxPass >= 0 ? rows[userIndex][idxPass] : rows[userIndex][2] || '').toString().trim();
+  if (!verifyPassword(currentPassword, stored)) {
+    return json({ ok: false, error: 'Password lama salah' });
+  }
+  const newHash = hashPassword(newPassword);
+  const passCol = idxPass >= 0 ? idxPass + 1 : 3;
+  sheet.getRange(userIndex + 2, passCol).setValue(newHash);
+  return json({ ok: true });
 }
 
 // ==== Mutasi ====
@@ -658,6 +696,52 @@ function uploadFile(e) {
 // ==== Helpers ====
 function norm(val = '') {
   return String(val || '').toLowerCase().trim();
+}
+
+function isHashedPassword(value = '') {
+  const raw = String(value || '');
+  return raw.indexOf(HASH_PREFIX) === 0 || raw.indexOf('sha256:') === 0;
+}
+
+function digestHex(input) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, input, Utilities.Charset.UTF_8);
+  return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+}
+
+function hashPassword(password, salt) {
+  const safeSalt = salt || Utilities.getUuid().replace(/-/g, '');
+  const hash = digestHex(`${safeSalt}:${password}`);
+  return `${HASH_PREFIX}${safeSalt}$${hash}`;
+}
+
+function verifyPassword(input, stored) {
+  const raw = String(stored || '');
+  if (raw.indexOf(HASH_PREFIX) === 0) {
+    const parts = raw.split('$');
+    if (parts.length !== 3) return false;
+    const salt = parts[1] || '';
+    const hash = parts[2] || '';
+    const candidate = digestHex(`${salt}:${input}`);
+    return candidate === hash;
+  }
+  if (raw.indexOf('sha256:') === 0) {
+    const parts = raw.split(':');
+    const salt = parts[1] || '';
+    const hash = parts[2] || '';
+    if (!salt || !hash) return false;
+    const candidate = digestHex(`${salt}:${input}`);
+    return candidate === hash;
+  }
+  return raw === String(input || '');
+}
+
+function isStrongPassword(password) {
+  if (!password || password.length < 8) return false;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+  return hasUpper && hasLower && hasNumber && hasSymbol;
 }
 
 function getUkpdWilayahMap() {

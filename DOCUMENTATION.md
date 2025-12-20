@@ -9,7 +9,7 @@
 - Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
 
 ## Frontend
-- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`, `/DATA_PEGAWAI/pemutusan-jf/`, `/DATA_PEGAWAI/bezetting/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
+- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`, `/DATA_PEGAWAI/pemutusan-jf/`, `/DATA_PEGAWAI/bezetting/`, `/DATA_PEGAWAI/ubah-password/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
 - Header/sidebar/footer di-root (`header.html`, `sidebar.html`, `footer.html`) diambil dengan BASE dinamis; logo/favikon juga di-set ulang via BASE + `foto/Dinkes.png`.
 
 ### Kolom data (urutan A:AC)
@@ -126,6 +126,7 @@ GET
 
 POST (JSON)
 - `action=login`
+- `action=password_change`
 - `action=create|update|delete` (pegawai)
 - `action=mutasi_create|mutasi_update|mutasi_delete`
 - `action=pemutusan_jf_create|pemutusan_jf_update|pemutusan_jf_delete`
@@ -135,6 +136,8 @@ POST (JSON)
 Keamanan:
 - Frontend mengirim header `X-Proxy-Key` ke Worker.
 - Worker menambahkan query `key` untuk Apps Script (harus sama dengan `API_KEY` di `code.js`).
+- Password disimpan hash `sha256$<salt>$<hash>`; login menerima plaintext/hashed dan akan upgrade otomatis ke hash saat login sukses.
+- Untuk migrasi massal password lama di sheet `username`, jalankan `npm run migrate-passwords` (opsional `--dry-run`) di backend Node.
 
 ### Catatan backend
 - Header sheet di-normalisasi (trim + lowercase) dan ada fallback index, sehingga tetap terbaca meski ada spasi tersembunyi.
@@ -142,7 +145,7 @@ Keamanan:
 - Role filter di front-end juga normalisasi nama_ukpd (trim + lowercase).
 
 ## Front-end
-- File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`, `pemutusan-jf/index.html`, `bezetting/index.html`.
+- File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`, `pemutusan-jf/index.html`, `bezetting/index.html`, `ubah-password/index.html`.
 - `API_BASE` default: `https://sikepeg.seftianh23.workers.dev` (Cloudflare Worker). Frontend hanya memanggil Worker.
 - Sidebar dan header diinject dari `sidebar.html` dan `header.html` (sticky). Footer dari `footer.html` dipakai di dashboard dan data-pegawai.
 - Auth disimpan di `localStorage` (`authUser`: username, role, namaUkpd) setelah login di `index.html`.
