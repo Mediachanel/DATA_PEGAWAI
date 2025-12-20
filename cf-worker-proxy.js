@@ -13,7 +13,7 @@ export default {
       'access-control-allow-methods': 'GET,POST,OPTIONS',
     };
     const cacheTtl = Math.max(5, parseInt(env.CACHE_TTL || '30', 10));
-    const cacheableActions = new Set(['list','mutasi_list','pemutusan_jf_list','bezetting_list','qna_list']);
+    const cacheableActions = new Set(['list','dashboard_stats','mutasi_list','pemutusan_jf_list','bezetting_list','qna_list']);
 
     if (req.method === 'OPTIONS') {
       return new Response('', { status: 204, headers: corsHeaders });

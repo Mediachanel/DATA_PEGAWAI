@@ -426,16 +426,34 @@ document.body.classList.toggle('role-super', isSuper);
     }
 
     async function loadData(){
-      try{
-        const params = new URLSearchParams({ limit:'20000', offset:'0', lite:'1' });
-        if (!isSuper) {
-          if (isWilayahAdmin) {
-            if (loginWilayah) params.set('wilayah', loginWilayah);
-          } else {
-            const ukpd = loginUkpd.trim();
-            if (ukpd) params.set('unit', ukpd);
-          }
+      const params = new URLSearchParams({ limit:'20000', offset:'0', lite:'1' });
+      if (!isSuper) {
+        if (isWilayahAdmin) {
+          if (loginWilayah) params.set('wilayah', loginWilayah);
+        } else {
+          const ukpd = loginUkpd.trim();
+          if (ukpd) params.set('unit', ukpd);
         }
+      }
+      try {
+        const statsRes = await fetch(`${API_BASE}?action=dashboard_stats&${params.toString()}`, { headers: API_HEADERS });
+        const statsBody = await statsRes.json().catch(()=>null);
+        if (statsRes.ok && statsBody && statsBody.ok && statsBody.prepared) {
+          const prepared = statsBody.prepared;
+          preparedCache = prepared;
+          renderKpi(prepared.statusCounts);
+          updateChartTitles(chartMode);
+          renderCharts(prepared);
+          renderTable(prepared.tableRows || []);
+          const totalRows = statsBody.total || prepared.totalRows || 0;
+          setStatus('Data dimuat: ' + totalRows + ' baris.');
+          return;
+        }
+      } catch (_) {
+        /* fallback to legacy list */
+      }
+
+      try{
         const res = await fetch(`${API_BASE}?action=list&${params.toString()}`, { headers: API_HEADERS });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');

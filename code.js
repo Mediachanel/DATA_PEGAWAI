@@ -98,6 +98,26 @@ const BEZETTING_COLS = [
 const API_KEY = 'api_6f9e3a1c8d4b2f7a9e5c1d6b8f3a2c7e';
 const DRIVE_FOLDER_ID = '';
 const HASH_PREFIX = 'sha256$';
+const DASHBOARD_CACHE_TTL = 30; // detik
+const DASH_STATUS_ORDER = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP'];
+const DASH_STATUS_LABELS = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP' };
+const DASH_STATUS_COLORS = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
+const DASH_GENDER_ORDER = ['LAKI','PEREMPUAN'];
+const DASH_GENDER_LABELS = { LAKI:'Laki-laki', PEREMPUAN:'Perempuan' };
+const DASH_GENDER_COLORS = { LAKI:'#0EA5E9', PEREMPUAN:'#F97316' };
+const DASH_MARITAL_ORDER = ['BELUM_MENIKAH','MENIKAH','CERAI_HIDUP','CERAI_MATI'];
+const DASH_MARITAL_LABELS = {
+  BELUM_MENIKAH:'Belum Menikah',
+  MENIKAH:'Menikah',
+  CERAI_HIDUP:'Cerai Hidup',
+  CERAI_MATI:'Cerai Mati'
+};
+const DASH_MARITAL_COLORS = {
+  BELUM_MENIKAH:'#0EA5E9',
+  MENIKAH:'#22C55E',
+  CERAI_HIDUP:'#F97316',
+  CERAI_MATI:'#EF4444'
+};
 
 // Router utama
 function doGet(e) { return handleRequest(e, 'GET'); }
@@ -114,6 +134,7 @@ function handleRequest(e, method) {
   if (method === 'GET') {
     if (action === 'health') return json({ ok: true, data: { time: new Date().toISOString() } });
     if (action === 'list') return listPegawai(e);
+    if (action === 'dashboard_stats') return dashboardStats(e);
     if (action === 'get') return getPegawai(e);
     if (action === 'mutasi_list') return listMutasi(e);
     if (action === 'pemutusan_jf_list') return listPemutusan(e);
@@ -202,6 +223,194 @@ function listPegawai(e) {
     jabs,
     statuses: statusList,
   });
+}
+
+function dashboardStats(e) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
+  if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
+
+  const params = e.parameter || {};
+  const term = norm(params.search);
+  const unit = norm(params.unit);
+  const wilayah = norm(params.wilayah);
+  const jab = norm(params.jabatan);
+  const statuses = (params.status || '').split(',').map(s => norm(s)).filter(Boolean);
+  const cacheKey = [
+    'dashboard_stats',
+    unit || '-',
+    wilayah || '-',
+    term || '-',
+    jab || '-',
+    statuses.join('|') || '-'
+  ].join(':');
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    try { return json(JSON.parse(cached)); } catch (_) { /* ignore */ }
+  }
+
+  const values = sheet.getDataRange().getValues();
+  if (!values.length) {
+    return json({ ok: true, prepared: emptyDashboardPrepared(), total: 0 });
+  }
+  const [header, ...rowsRaw] = values;
+  const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.id);
+  const filtered = records.filter(r => {
+    const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => (v || '').toLowerCase().includes(term));
+    const matchUnit = !unit || (r.nama_ukpd || '').toLowerCase().trim() === unit;
+    const matchWilayah = !wilayah || (r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
+    const matchJab = !jab || (r.nama_jabatan_orb || '').toLowerCase().includes(jab);
+    const matchStatus = !statuses.length || statuses.includes((r.nama_status_aktif || '').toLowerCase().trim());
+    return matchTerm && matchUnit && matchWilayah && matchJab && matchStatus;
+  });
+
+  const prepared = buildDashboardPrepared(filtered);
+  prepared.totalRows = filtered.length;
+  const response = { ok: true, prepared, total: filtered.length };
+  try {
+    cache.put(cacheKey, JSON.stringify(response), DASHBOARD_CACHE_TTL);
+  } catch (_) { /* ignore cache write */ }
+  return json(response);
+}
+
+function emptyDashboardPrepared() {
+  const emptyStatus = emptyStatusCounts();
+  return {
+    statusCounts: { ...emptyStatus },
+    genderCounts: { LAKI: 0, PEREMPUAN: 0 },
+    maritalCounts: { BELUM_MENIKAH: 0, MENIKAH: 0, CERAI_HIDUP: 0, CERAI_MATI: 0 },
+    unitLabelsStatus: [],
+    unitLabelsGender: [],
+    unitLabelsMarital: [],
+    unitDatasetsStatus: [],
+    unitDatasetsGender: [],
+    unitDatasetsMarital: [],
+    rumpunLabelsStatus: [],
+    rumpunLabelsGender: [],
+    rumpunLabelsMarital: [],
+    rumpunDatasetsStatus: [],
+    rumpunDatasetsGender: [],
+    rumpunDatasetsMarital: [],
+    pendidikanLabelsStatus: [],
+    pendidikanLabelsGender: [],
+    pendidikanLabelsMarital: [],
+    pendidikanDatasetsStatus: [],
+    pendidikanDatasetsGender: [],
+    pendidikanDatasetsMarital: [],
+    tableRows: [],
+    totalRows: 0
+  };
+}
+
+function buildDashboardPrepared(records) {
+  const statusCounts = emptyStatusCounts();
+  const genderCounts = { LAKI: 0, PEREMPUAN: 0 };
+  const maritalCounts = { BELUM_MENIKAH: 0, MENIKAH: 0, CERAI_HIDUP: 0, CERAI_MATI: 0 };
+  const unitStatusMap = {};
+  const unitGenderMap = {};
+  const unitMaritalMap = {};
+  const wilMap = {};
+  const rumpunStatusMap = {};
+  const rumpunGenderMap = {};
+  const rumpunMaritalMap = {};
+  const pendidikanStatusMap = {};
+  const pendidikanGenderMap = {};
+  const pendidikanMaritalMap = {};
+
+  records.forEach(r => {
+    const unit = cleanLabel(r.nama_ukpd);
+    const wilayah = cleanLabel(r.wilayah_ukpd || r.wilayah || '');
+    const rumpun = cleanLabel(r.nama_status_rumpun);
+    const pend = cleanLabel(r.jenjang_pendidikan);
+
+    const st = normalizeStatusDashboard(r.nama_jenis_pegawai || r.nama_status_aktif || r.nama_status_rumpun);
+    if (st && st !== 'LAINNYA') {
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
+      if (!wilMap[wilayah]) wilMap[wilayah] = {};
+      if (!wilMap[wilayah][unit]) wilMap[wilayah][unit] = emptyStatusCounts();
+      wilMap[wilayah][unit][st] += 1;
+      if (!unitStatusMap[unit]) unitStatusMap[unit] = emptyStatusCounts();
+      unitStatusMap[unit][st] += 1;
+      if (!rumpunStatusMap[rumpun]) rumpunStatusMap[rumpun] = emptyStatusCounts();
+      rumpunStatusMap[rumpun][st] += 1;
+      if (!pendidikanStatusMap[pend]) pendidikanStatusMap[pend] = emptyStatusCounts();
+      pendidikanStatusMap[pend][st] += 1;
+    }
+
+    const gender = normalizeGenderDashboard(r.jenis_kelamin);
+    if (gender) {
+      genderCounts[gender] = (genderCounts[gender] || 0) + 1;
+      if (!unitGenderMap[unit]) unitGenderMap[unit] = { LAKI: 0, PEREMPUAN: 0 };
+      unitGenderMap[unit][gender] += 1;
+      if (!rumpunGenderMap[rumpun]) rumpunGenderMap[rumpun] = { LAKI: 0, PEREMPUAN: 0 };
+      rumpunGenderMap[rumpun][gender] += 1;
+      if (!pendidikanGenderMap[pend]) pendidikanGenderMap[pend] = { LAKI: 0, PEREMPUAN: 0 };
+      pendidikanGenderMap[pend][gender] += 1;
+    }
+
+    const marital = normalizeMaritalDashboard(r.status_pernikahan);
+    if (marital) {
+      maritalCounts[marital] = (maritalCounts[marital] || 0) + 1;
+      if (!unitMaritalMap[unit]) unitMaritalMap[unit] = emptyMaritalCounts();
+      unitMaritalMap[unit][marital] += 1;
+      if (!rumpunMaritalMap[rumpun]) rumpunMaritalMap[rumpun] = emptyMaritalCounts();
+      rumpunMaritalMap[rumpun][marital] += 1;
+      if (!pendidikanMaritalMap[pend]) pendidikanMaritalMap[pend] = emptyMaritalCounts();
+      pendidikanMaritalMap[pend][marital] += 1;
+    }
+  });
+
+  const unitLabelsStatus = Object.keys(unitStatusMap).sort();
+  const unitLabelsGender = Object.keys(unitGenderMap).sort();
+  const unitLabelsMarital = Object.keys(unitMaritalMap).sort();
+  const rumpunLabelsStatus = Object.keys(rumpunStatusMap).sort((a, b) => sumCounts(rumpunStatusMap[b]) - sumCounts(rumpunStatusMap[a]));
+  const rumpunLabelsGender = Object.keys(rumpunGenderMap).sort((a, b) => sumCounts(rumpunGenderMap[b]) - sumCounts(rumpunGenderMap[a]));
+  const rumpunLabelsMarital = Object.keys(rumpunMaritalMap).sort((a, b) => sumCounts(rumpunMaritalMap[b]) - sumCounts(rumpunMaritalMap[a]));
+  const pendidikanLabelsStatus = Object.keys(pendidikanStatusMap).sort((a, b) => sumCounts(pendidikanStatusMap[b]) - sumCounts(pendidikanStatusMap[a]));
+  const pendidikanLabelsGender = Object.keys(pendidikanGenderMap).sort((a, b) => sumCounts(pendidikanGenderMap[b]) - sumCounts(pendidikanGenderMap[a]));
+  const pendidikanLabelsMarital = Object.keys(pendidikanMaritalMap).sort((a, b) => sumCounts(pendidikanMaritalMap[b]) - sumCounts(pendidikanMaritalMap[a]));
+
+  const wilayahLabels = Object.keys(wilMap).sort();
+  const tableRows = [];
+  wilayahLabels.forEach(w => {
+    const unitEntries = Object.keys(wilMap[w] || {});
+    const unitRows = unitEntries.map(u => {
+      const counts = Object.assign(emptyStatusCounts(), wilMap[w][u] || {});
+      return { wilayah: w || 'Tidak Tercatat', unit: u || '-', ...counts, total: sumCounts(counts) };
+    }).sort((a, b) => b.total - a.total);
+    const groupTotals = unitRows.reduce((acc, row) => {
+      DASH_STATUS_ORDER.forEach(k => { acc[k] = (acc[k] || 0) + (row[k] || 0); });
+      acc.total = (acc.total || 0) + (row.total || 0);
+      return acc;
+    }, Object.assign(emptyStatusCounts(), { total: 0 }));
+    tableRows.push({ isGroup: true, wilayah: w || 'Tidak Tercatat', ...groupTotals });
+    unitRows.forEach((row, idx) => tableRows.push({ ...row, no: idx + 1 }));
+  });
+
+  return {
+    statusCounts,
+    genderCounts,
+    maritalCounts,
+    unitLabelsStatus,
+    unitLabelsGender,
+    unitLabelsMarital,
+    unitDatasetsStatus: makeDatasets(unitStatusMap, unitLabelsStatus, DASH_STATUS_ORDER, DASH_STATUS_LABELS, DASH_STATUS_COLORS),
+    unitDatasetsGender: makeDatasets(unitGenderMap, unitLabelsGender, DASH_GENDER_ORDER, DASH_GENDER_LABELS, DASH_GENDER_COLORS),
+    unitDatasetsMarital: makeDatasets(unitMaritalMap, unitLabelsMarital, DASH_MARITAL_ORDER, DASH_MARITAL_LABELS, DASH_MARITAL_COLORS),
+    rumpunLabelsStatus,
+    rumpunLabelsGender,
+    rumpunLabelsMarital,
+    rumpunDatasetsStatus: makeDatasets(rumpunStatusMap, rumpunLabelsStatus, DASH_STATUS_ORDER, DASH_STATUS_LABELS, DASH_STATUS_COLORS),
+    rumpunDatasetsGender: makeDatasets(rumpunGenderMap, rumpunLabelsGender, DASH_GENDER_ORDER, DASH_GENDER_LABELS, DASH_GENDER_COLORS),
+    rumpunDatasetsMarital: makeDatasets(rumpunMaritalMap, rumpunLabelsMarital, DASH_MARITAL_ORDER, DASH_MARITAL_LABELS, DASH_MARITAL_COLORS),
+    pendidikanLabelsStatus,
+    pendidikanLabelsGender,
+    pendidikanLabelsMarital,
+    pendidikanDatasetsStatus: makeDatasets(pendidikanStatusMap, pendidikanLabelsStatus, DASH_STATUS_ORDER, DASH_STATUS_LABELS, DASH_STATUS_COLORS),
+    pendidikanDatasetsGender: makeDatasets(pendidikanGenderMap, pendidikanLabelsGender, DASH_GENDER_ORDER, DASH_GENDER_LABELS, DASH_GENDER_COLORS),
+    pendidikanDatasetsMarital: makeDatasets(pendidikanMaritalMap, pendidikanLabelsMarital, DASH_MARITAL_ORDER, DASH_MARITAL_LABELS, DASH_MARITAL_COLORS),
+    tableRows
+  };
 }
 
 function getPegawai(e) {
@@ -828,6 +1037,65 @@ function uploadFile(e) {
 // ==== Helpers ====
 function norm(val = '') {
   return String(val || '').toLowerCase().trim();
+}
+
+function cleanLabel(val) {
+  const text = String(val || '').trim();
+  return text || '(Tidak Tercatat)';
+}
+
+function sumCounts(obj) {
+  return Object.keys(obj || {}).reduce((sum, key) => sum + (+obj[key] || 0), 0);
+}
+
+function emptyStatusCounts() {
+  return { PNS: 0, CPNS: 0, PPPK: 0, PROFESIONAL: 0, PJLP: 0 };
+}
+
+function emptyMaritalCounts() {
+  return { BELUM_MENIKAH: 0, MENIKAH: 0, CERAI_HIDUP: 0, CERAI_MATI: 0 };
+}
+
+function makeDatasets(map, labels, order, labelMap, colorMap) {
+  return order.map(k => ({
+    label: labelMap[k],
+    data: labels.map(l => (map[l] && map[l][k]) ? map[l][k] : 0),
+    backgroundColor: colorMap[k],
+    borderRadius: 6
+  }));
+}
+
+function normalizeStatusDashboard(raw) {
+  const t = String(raw || '').toUpperCase().trim();
+  if (!t) return '';
+  if (t === 'PNS') return 'PNS';
+  if (t === 'CPNS') return 'CPNS';
+  if (t.indexOf('PPPK') > -1 || t.indexOf('P3K') > -1) return 'PPPK';
+  if (t.indexOf('PJLP') > -1) return 'PJLP';
+  if ([
+    'NON PNS','NON ASN','PROFESIONAL','PROFESIONAL (NON PNS)',
+    'PROFESIONAL/NON PNS','TENAGA PROFESIONAL'
+  ].indexOf(t) > -1) return 'PROFESIONAL';
+  return 'LAINNYA';
+}
+
+function normalizeGenderDashboard(raw) {
+  const t = String(raw || '').toLowerCase().trim();
+  if (!t) return '';
+  if (['l','laki','laki-laki','laki laki','pria','cowok','cwo','male','m','lk'].indexOf(t) > -1 || t.indexOf('laki') > -1) return 'LAKI';
+  if (['p','perempuan','wanita','cewek','cwe','female','f','pr'].indexOf(t) > -1 || t.indexOf('perempuan') > -1) return 'PEREMPUAN';
+  return '';
+}
+
+function normalizeMaritalDashboard(raw) {
+  const t = String(raw || '').toLowerCase().trim();
+  if (!t) return '';
+  if (t.indexOf('belum') > -1 || t.indexOf('single') > -1 || t.indexOf('tidak menikah') > -1) return 'BELUM_MENIKAH';
+  if (t.indexOf('cerai') > -1 && t.indexOf('mati') > -1) return 'CERAI_MATI';
+  if (t.indexOf('cerai') > -1 && t.indexOf('hidup') > -1) return 'CERAI_HIDUP';
+  if (t.indexOf('janda') > -1 || t.indexOf('duda') > -1) return 'CERAI_MATI';
+  if (t.indexOf('menikah') > -1 || t.indexOf('kawin') > -1) return 'MENIKAH';
+  return '';
 }
 
 function isHashedPassword(value = '') {
