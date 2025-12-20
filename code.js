@@ -553,8 +553,13 @@ function listBezetting(e) {
   const [header, ...rowsRaw] = values;
   let list = rowsRaw.map(r => toBezettingRecord(header, r)).filter(r => r.kode || r.no);
 
+  const matchWilayah = (value, query) => {
+    if (!query) return true;
+    const v = norm(value);
+    return v === query || v.indexOf(query) > -1 || query.indexOf(v) > -1;
+  };
   list = list.filter(r => {
-    if (wilayahQuery && norm(r.wilayah) !== wilayahQuery) return false;
+    if (!matchWilayah(r.wilayah, wilayahQuery)) return false;
     if (ukpdQuery && norm(r.ukpd) !== ukpdQuery) return false;
     return true;
   });
@@ -781,9 +786,16 @@ function toRecord(header, row) {
   const keys = (header || []).map(normalizePegawaiHeader);
   const obj = rowToObject(keys, row);
   const idVal = obj.id || obj.nip || obj.nik || '';
+  const pangkatGolongan = obj.pangkat_golongan
+    || obj['pangkat/golongan']
+    || obj['pangkat golongan']
+    || obj['pangkat/gol']
+    || obj.pangkat
+    || '';
   return {
     ...obj,
     id: idVal,
+    pangkat_golongan: pangkatGolongan,
     unit: obj.nama_ukpd || obj.unit || '',
     jabatan: obj.nama_jabatan_orb || obj.jabatan || '',
     statusKaryawan: obj.nama_status_aktif || obj.statusKaryawan || '',
@@ -870,12 +882,18 @@ function toBezettingRecord(header, row) {
     if (typeof fallbackIdx === 'number' && row[fallbackIdx] !== undefined) return row[fallbackIdx] || '';
     return '';
   };
+  const namaJabatanPergub = get('nama jabatan (pergub 1)', 3);
+  const namaJabatanPermenpan = get('nama jabatan (permenpan)', 4);
+  const jabatanOrb = get('jabatan orb') || get('nama jabatan orb') || get('jabatan (orb)') || get('nama jabatan (orb)') || namaJabatanPergub || namaJabatanPermenpan;
+  const pangkatGolongan = get('pangkat/golongan') || get('pangkat golongan') || get('pangkat_golongan') || get('pangkat/gol') || get('pangkat');
   return {
     no: get('no', 0),
     bidang: get('bidang/bagian', 1),
     subbidang: get('subbidang/subbagian/satuan pelaksana', 2),
-    nama_jabatan_pergub: get('nama jabatan (pergub 1)', 3),
-    nama_jabatan_permenpan: get('nama jabatan (permenpan)', 4),
+    nama_jabatan_pergub: namaJabatanPergub,
+    nama_jabatan_permenpan: namaJabatanPermenpan,
+    jabatan_orb: jabatanOrb,
+    pangkat_golongan: pangkatGolongan,
     rumpun_jabatan: get('rumpun jabatan (sesuai peta pergub 1)', 5),
     kode: get('kode', 6),
     abk: get('abk', 7),
