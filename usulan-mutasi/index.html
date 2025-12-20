@@ -350,6 +350,7 @@
     </div>
   </div>
 
+  <script src="../loader.js"></script>
   <script>
     const BASE = (() => {
       const parts = location.pathname.split('/').filter(Boolean);
@@ -364,6 +365,7 @@
       : 'https://sikepeg.seftianh23.workers.dev';
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
+    if (window.AppLoader) window.AppLoader.wrapFetch(API_BASE);
     const sidebar = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=>''), header = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=>''), footer = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '');
     Promise.all([sidebar, header, footer]).then(([s,h,f])=>{
       document.getElementById('sidebar-container').innerHTML = s;
