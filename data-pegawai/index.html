@@ -65,12 +65,18 @@
     tr:hover { background: #f7f9fd; }
     #status { margin-top: 10px; color: #0b5ed7; font-weight: 600; }
     .hidden { display: none; }
-    .actions { display:flex; gap:6px; align-items:center; }
-    .icon-btn { width:34px; height:34px; display:grid; place-items:center; border:1px solid transparent; border-radius:10px; cursor:pointer; font-size:16px; box-shadow: 0 4px 10px rgba(15,23,42,0.08); transition: transform .12s ease, box-shadow .12s ease; }
-    .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(15,23,42,0.12); }
-    .icon-view { background:#e0f2fe; color:#0f5098; border-color:#bfdbfe; }
-    .icon-edit { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
-    .icon-delete { background:#fee2e2; color:#b91c1c; border-color:#fecdd3; }
+    .actions { display:inline-flex; gap:6px; align-items:center; padding:4px; border-radius:999px; background:#f8fafc; border:1px solid #e2e8f0; }
+    .icon-btn {
+      width:36px; height:36px; display:grid; place-items:center; border:1px solid transparent; border-radius:999px;
+      cursor:pointer; background:#ffffff; color:#475569; box-shadow: 0 8px 16px rgba(15,23,42,0.08);
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .icon-btn svg { width:16px; height:16px; display:block; fill:currentColor; }
+    .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(15,23,42,0.14); }
+    .icon-btn:focus-visible { outline: 2px solid rgba(94,139,255,0.45); outline-offset: 2px; }
+    .icon-view { background:linear-gradient(135deg, #e0f2fe, #eff6ff); color:#0f5098; border-color:#bfdbfe; }
+    .icon-edit { background:linear-gradient(135deg, #fff7ed, #ffedd5); color:#c2410c; border-color:#fed7aa; }
+    .icon-delete { background:linear-gradient(135deg, #fee2e2, #ffe4e6); color:#b91c1c; border-color:#fecdd3; }
     .warn-badge{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:8px; background:#fef3c7; color:#92400e; font-size:12px; font-weight:700; margin-left:6px; cursor:pointer; border:1px solid #fcd34d; }
     .table-tools { display:flex; gap:14px; align-items:center; justify-content:space-between; margin:8px 0; flex-wrap:wrap; }
     .table-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
@@ -255,7 +261,9 @@
     })();
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
-    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+      ? 'http://127.0.0.1:5002'
+      : 'https://sikepeg.seftianh23.workers.dev';
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     if (window.AppLoader) window.AppLoader.wrapFetch(API_BASE);
@@ -376,19 +384,11 @@
       });
     }
 
-    async function init(){
-      try {
-        setStatus('Cek koneksi server...');
-        const res = await fetch(API_BASE + '?action=health', { headers: API_HEADERS });
-        if (!res.ok) throw new Error('Server tidak siap');
-        initialized = true;
-        setStatus('Server siap. Memuat data...');
-        initSelectOptions();
-        setUkpdField();
-        await loadData();
-      } catch(err){
-        setStatus('Gagal konek server: ' + err.message);
-      }
+    function init(){
+      initialized = true;
+      initSelectOptions();
+      setUkpdField();
+      loadData();
     }
 
     function initSelectOptions(){
@@ -521,6 +521,14 @@
       loadData();
     }
 
+    function debounce(fn, wait = 300){
+      let timer;
+      return (...args) => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(null, args), wait);
+      };
+    }
+
     function renderStats(summary, countInPage){
       statsEl.innerHTML = '';
       const cards = [{ title: 'Total Pegawai (filter)', value: totalCount || countInPage || 0 }];
@@ -565,13 +573,25 @@
           <td>${r.nama_status_rumpun || '-'}</td>
           <td>${r.nama_jenis_pegawai || '-'}</td>
           <td>${r.nama_ukpd || '-'}</td>
-          <td>${r.nama_status_aktif || '-'}</td>
-          <td class="actions">
-            <button class="icon-btn icon-view" title="Lihat Profil" data-id="${rowId}" data-action="view">&#128065;</button>
-            <button class="icon-btn icon-edit" title="Edit" data-id="${rowId}" data-action="edit">&#9998;</button>
-            <button class="icon-btn icon-delete" title="Hapus" data-id="${rowId}" data-action="delete">&#128465;</button>
-          </td>
-        `;
+            <td>${r.nama_status_aktif || '-'}</td>
+            <td class="actions">
+              <button class="icon-btn icon-view" type="button" title="Lihat Profil" aria-label="Lihat Profil" data-id="${rowId}" data-action="view">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 5c5 0 9.27 3.11 11 7-1.73 3.89-6 7-11 7S2.73 15.89 1 12c1.73-3.89 6-7 11-7Zm0 2c-3.76 0-7.09 2.2-8.74 5 1.65 2.8 4.98 5 8.74 5s7.09-2.2 8.74-5C19.09 9.2 15.76 7 12 7Zm0 2.5A2.5 2.5 0 1 1 9.5 12 2.5 2.5 0 0 1 12 9.5Z"></path>
+                </svg>
+              </button>
+              <button class="icon-btn icon-edit" type="button" title="Edit" aria-label="Edit" data-id="${rowId}" data-action="edit">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M3 17.25V21h3.75l11.06-11.06-3.75-3.75L3 17.25Zm2.06 2.69H5v-0.94l9.06-9.06.94.94-9.06 9.06Zm12.02-11.08-.94.94-3.75-3.75.94-.94a1 1 0 0 1 1.41 0l2.34 2.34a1 1 0 0 1 0 1.41Z"></path>
+                </svg>
+              </button>
+              <button class="icon-btn icon-delete" type="button" title="Hapus" aria-label="Hapus" data-id="${rowId}" data-action="delete">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M6 7h12l-1 13H7L6 7Zm3-3h6l1 1h4v2H4V5h4l1-1Zm1 5v9h2V9H10Zm4 0v9h2V9H14Z"></path>
+                </svg>
+              </button>
+            </td>
+          `;
         tableBody.appendChild(tr);
       });
       if (pagerInfo) pagerInfo.textContent = `Halaman ${currentPage} / ${maxPage} • Total ${total.toLocaleString('id-ID')} baris`;
@@ -662,8 +682,9 @@
     unitFilter.addEventListener('change', applyFilters);
     jabatanFilter.addEventListener('change', applyFilters);
     if (aktifFilter) aktifFilter.addEventListener('change', applyFilters);
-    searchInput.addEventListener('input', applyFilters);
-    quickSearch.addEventListener('input', applyFilters);
+    const debouncedApply = debounce(applyFilters, 350);
+    searchInput.addEventListener('input', debouncedApply);
+    quickSearch.addEventListener('input', debouncedApply);
     pageSize.addEventListener('change', ()=>{ currentPage = 1; loadData(); });
     prevPage.addEventListener('click', ()=>{ if (currentPage > 1) { currentPage--; loadData(); } });
     nextPage.addEventListener('click', ()=>{ const size = parseInt(pageSize.value,10)||10; const maxPage = Math.max(1, Math.ceil((totalCount||rows.length)/size)); if (currentPage < maxPage) { currentPage++; loadData(); } });

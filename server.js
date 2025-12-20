@@ -310,6 +310,8 @@ function loadClient() {
 const auth = loadClient();
 const sheets = google.sheets({ version: 'v4', auth });
 const drive = google.drive({ version: 'v3', auth });
+const PEGAWAI_CACHE_TTL = Math.max(5000, parseInt(process.env.PEGAWAI_CACHE_TTL, 10) || 45000);
+const pegawaiCache = { at: 0, header: [], records: [], inflight: null, version: 0 };
 const app = express();
 const fetchFn = (...args) => (global.fetch ? global.fetch(...args) : import('node-fetch').then(({ default: f }) => f(...args)));
 // perbesar batas body untuk upload base64
@@ -330,6 +332,36 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+function invalidatePegawaiCache() {
+  pegawaiCache.version += 1;
+  pegawaiCache.at = 0;
+  pegawaiCache.header = [];
+  pegawaiCache.records = [];
+}
+
+async function getPegawaiRecords() {
+  const now = Date.now();
+  if (pegawaiCache.at && (now - pegawaiCache.at) < PEGAWAI_CACHE_TTL) return pegawaiCache.records;
+  if (pegawaiCache.inflight) return pegawaiCache.inflight;
+  const version = pegawaiCache.version;
+  pegawaiCache.inflight = sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: RANGE })
+    .then((result) => {
+      const values = result.data.values || [];
+      const [header, ...data] = values;
+      const safeHeader = header || [];
+      const records = data.map(r => toRecord(safeHeader, r));
+      if (pegawaiCache.version !== version) return pegawaiCache.records;
+      pegawaiCache.at = Date.now();
+      pegawaiCache.header = safeHeader;
+      pegawaiCache.records = records;
+      return records;
+    })
+    .finally(() => {
+      pegawaiCache.inflight = null;
+    });
+  return pegawaiCache.inflight;
+}
 
 
 // Action router for action-based frontend
@@ -548,6 +580,7 @@ app.post('/pegawai', async (req, res) => {
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] }
     });
+    invalidatePegawaiCache();
     res.json({ ok: true, updatedRange: result.data.updates.updatedRange });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -563,12 +596,10 @@ app.get('/pegawai', async (req, res) => {
     const wilayah = norm(req.query.wilayah);
     const jab = norm(req.query.jabatan);
     const statuses = (req.query.status || '').split(',').map(s => norm(s)).filter(Boolean);
+    const lite = ['1', 'true', 'yes'].includes(norm(req.query.lite));
 
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: RANGE });
-    const values = result.data.values || [];
-    const [header, ...data] = values;
-    const h = header || [];
-    let rows = data.map(r => toRecord(h, r));
+    const baseRecords = await getPegawaiRecords();
+    let rows = baseRecords;
 
     rows = rows.filter(r => {
       const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => norm(v).includes(term));
@@ -581,12 +612,11 @@ app.get('/pegawai', async (req, res) => {
     });
 
     const total = rows.length;
-    const summary = countStatus(rows);
     const slice = rows.slice(offset, offset + limit);
-
-    const units = Array.from(new Set(rows.map(r => r.nama_ukpd).filter(Boolean))).sort();
-    const jabs = Array.from(new Set(rows.map(r => r.nama_jabatan_orb).filter(Boolean))).sort();
-    const statusList = Array.from(new Set(rows.map(r => r.nama_status_aktif).filter(Boolean))).sort();
+    const summary = lite ? {} : countStatus(rows);
+    const units = lite ? [] : Array.from(new Set(rows.map(r => r.nama_ukpd).filter(Boolean))).sort();
+    const jabs = lite ? [] : Array.from(new Set(rows.map(r => r.nama_jabatan_orb).filter(Boolean))).sort();
+    const statusList = lite ? [] : Array.from(new Set(rows.map(r => r.nama_status_aktif).filter(Boolean))).sort();
 
     res.json({ ok: true, rows: slice, total, summary, units, jabs, statuses: statusList });
   } catch (err) {
@@ -598,23 +628,11 @@ app.get('/pegawai', async (req, res) => {
 app.get('/pegawai/:id', async (req, res) => {
   const id = req.params.id;
   try {
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: RANGE });
-    const values = result.data.values || [];
-    if (!values.length) return res.status(404).json({ ok: false, error: 'Data kosong' });
-    const [header, ...rows] = values;
-    const h = (header || []).map(x => (x || '').toLowerCase().trim());
-    const idxId = h.indexOf('id');
-    const idxNip = h.indexOf('nip');
-    const idxNik = h.indexOf('nik');
-    const idx = rows.findIndex(r => {
-      const idVal = (idxId >= 0 ? r[idxId] : '') || '';
-      const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
-      const nikVal = (idxNik >= 0 ? r[idxNik] : '') || '';
-      return idVal === id || nipVal === id || nikVal === id;
-    });
-    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
-    const record = toRecord(header, rows[idx]);
-    res.json({ ok: true, data: record });
+    const records = await getPegawaiRecords();
+    if (!records.length) return res.status(404).json({ ok: false, error: 'Data kosong' });
+    const found = records.find(r => r.id === id || r.nip === id || r.nik === id);
+    if (!found) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
+    res.json({ ok: true, data: found });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -645,6 +663,7 @@ app.put('/pegawai/:id', async (req, res) => {
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
+    invalidatePegawaiCache();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -677,6 +696,7 @@ app.delete('/pegawai/:id', async (req, res) => {
         }]
       }
     });
+    invalidatePegawaiCache();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
