@@ -3,14 +3,17 @@
 // - WEB_APP_BASE: URL Apps Script Web App (/exec)
 // - PROXY_KEY: nilai header X-Proxy-Key dari frontend
 // - APPS_SCRIPT_KEY: API key yang diteruskan ke Apps Script via query `key`
+// - CACHE_TTL: durasi cache (detik) untuk request GET list (default 30)
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const corsHeaders = {
       'access-control-allow-origin': '*',
       'access-control-allow-headers': '*',
       'access-control-allow-methods': 'GET,POST,OPTIONS',
     };
+    const cacheTtl = Math.max(5, parseInt(env.CACHE_TTL || '30', 10));
+    const cacheableActions = new Set(['list','mutasi_list','pemutusan_jf_list','bezetting_list','qna_list']);
 
     if (req.method === 'OPTIONS') {
       return new Response('', { status: 204, headers: corsHeaders });
@@ -34,6 +37,12 @@ export default {
     }
 
     const url = new URL(req.url);
+    const action = (url.searchParams.get('action') || '').toLowerCase();
+    const shouldCache = req.method === 'GET' && cacheableActions.has(action);
+    if (shouldCache) {
+      const cached = await caches.default.match(req);
+      if (cached) return cached;
+    }
     const targetUrl = new URL(base);
     url.searchParams.forEach((value, key) => {
       targetUrl.searchParams.append(key, value);
@@ -50,12 +59,18 @@ export default {
 
     const upstream = await fetch(targetUrl.toString(), init);
     const text = await upstream.text();
-    return new Response(text, {
+    const headers = {
+      'content-type': upstream.headers.get('content-type') || 'application/json',
+      ...corsHeaders,
+    };
+    if (shouldCache && upstream.ok) headers['cache-control'] = `public, max-age=${cacheTtl}`;
+    const response = new Response(text, {
       status: upstream.status,
-      headers: {
-        'content-type': upstream.headers.get('content-type') || 'application/json',
-        ...corsHeaders,
-      },
+      headers,
     });
+    if (shouldCache && upstream.ok && ctx) {
+      ctx.waitUntil(caches.default.put(req, response.clone()));
+    }
+    return response;
   },
 };
