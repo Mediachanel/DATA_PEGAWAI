@@ -270,5 +270,31 @@
     };
   };
 
+  const initIdleLogout = () => {
+    let idleTimer = null;
+    const authUser = (() => {
+      try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; }
+    })();
+    if (!authUser) return;
+    const base = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+    })();
+    const IDLE_MS = 10 * 60 * 1000;
+    const resetIdle = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        try { localStorage.removeItem('authUser'); } catch (_) { /* ignore */ }
+        window.location.href = base;
+      }, IDLE_MS);
+    };
+    ['click','keydown','mousemove','scroll','touchstart','focus'].forEach((ev) => {
+      document.addEventListener(ev, resetIdle, { passive: true });
+    });
+    resetIdle();
+  };
+
+  initIdleLogout();
+
   window.AppLoader = { show, hide, wrapFetch };
 })();
