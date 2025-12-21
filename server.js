@@ -311,7 +311,9 @@ const auth = loadClient();
 const sheets = google.sheets({ version: 'v4', auth });
 const drive = google.drive({ version: 'v3', auth });
 const PEGAWAI_CACHE_TTL = Math.max(5000, parseInt(process.env.PEGAWAI_CACHE_TTL, 10) || 45000);
+const BEZETTING_CACHE_TTL = Math.max(5000, parseInt(process.env.BEZETTING_CACHE_TTL, 10) || 60000);
 const pegawaiCache = { at: 0, header: [], records: [], inflight: null, version: 0 };
+const bezettingCache = { at: 0, records: [], inflight: null, version: 0 };
 const app = express();
 const fetchFn = (...args) => (global.fetch ? global.fetch(...args) : import('node-fetch').then(({ default: f }) => f(...args)));
 // perbesar batas body untuk upload base64
@@ -340,6 +342,12 @@ function invalidatePegawaiCache() {
   pegawaiCache.records = [];
 }
 
+function invalidateBezettingCache() {
+  bezettingCache.version += 1;
+  bezettingCache.at = 0;
+  bezettingCache.records = [];
+}
+
 async function getPegawaiRecords() {
   const now = Date.now();
   if (pegawaiCache.at && (now - pegawaiCache.at) < PEGAWAI_CACHE_TTL) return pegawaiCache.records;
@@ -363,6 +371,27 @@ async function getPegawaiRecords() {
   return pegawaiCache.inflight;
 }
 
+async function getBezettingRecords() {
+  const now = Date.now();
+  if (bezettingCache.at && (now - bezettingCache.at) < BEZETTING_CACHE_TTL) return bezettingCache.records;
+  if (bezettingCache.inflight) return bezettingCache.inflight;
+  const version = bezettingCache.version;
+  bezettingCache.inflight = sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: BEZETTING_RANGE })
+    .then((result) => {
+      const values = result.data.values || [];
+      const [header, ...data] = values;
+      const safeHeader = header || [];
+      const records = data.map(r => toBezettingRecord(safeHeader, r));
+      if (bezettingCache.version !== version) return bezettingCache.records;
+      bezettingCache.at = Date.now();
+      bezettingCache.records = records;
+      return records;
+    })
+    .finally(() => {
+      bezettingCache.inflight = null;
+    });
+  return bezettingCache.inflight;
+}
 
 // Action router for action-based frontend
 function buildQueryParams(query, omitKeys = []) {
@@ -1245,10 +1274,8 @@ app.get('/bezetting', async (req, res) => {
     const rumpunQuery = norm(req.query.rumpun);
     const jabatanQuery = norm(req.query.jabatan);
 
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: BEZETTING_RANGE });
-    const values = result.data.values || [];
-    const [header, ...rowsRaw] = values;
-    let list = rowsRaw.map(r => toBezettingRecord(header, r)).filter(r => r.kode || r.no);
+    const records = await getBezettingRecords();
+    let list = records.filter(r => r.kode || r.no);
 
     // Role filter
     const matchWilayah = (value, query) => {
@@ -1296,6 +1323,7 @@ app.post('/bezetting', async (req, res) => {
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] }
     });
+    invalidateBezettingCache();
     res.json({ ok: true, kode });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -1321,6 +1349,7 @@ app.put('/bezetting/:kode', async (req, res) => {
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
+    invalidateBezettingCache();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -1346,6 +1375,7 @@ app.delete('/bezetting/:kode', async (req, res) => {
         }]
       }
     });
+    invalidateBezettingCache();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });

@@ -99,6 +99,10 @@ const API_KEY = 'api_6f9e3a1c8d4b2f7a9e5c1d6b8f3a2c7e';
 const DRIVE_FOLDER_ID = '';
 const HASH_PREFIX = 'sha256$';
 const DASHBOARD_CACHE_TTL = 30; // detik
+const LIST_CACHE_TTL = 20; // detik
+const BEZETTING_CACHE_TTL = 60; // detik
+const META_CACHE_TTL = 300; // detik
+const CACHE_VERSION_KEY = 'cache_version';
 const DASH_STATUS_ORDER = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP'];
 const DASH_STATUS_LABELS = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP' };
 const DASH_STATUS_COLORS = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
@@ -172,6 +176,8 @@ function listPegawai(e) {
   if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
 
   const params = e.parameter || {};
+  const cached = getCachedResponse('list', params);
+  if (cached) return cached;
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 30000));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
   const term = (params.search || '').toLowerCase().trim();
@@ -213,7 +219,7 @@ function listPegawai(e) {
   const jabs = uniq(filtered.map(r => r.nama_jabatan_orb));
   const statusList = uniq(filtered.map(r => r.nama_status_aktif));
 
-  return json({
+  const response = {
     ok: true,
     data: { rows: slice, total, summary, units, jabs, statuses: statusList },
     rows: slice,
@@ -222,7 +228,8 @@ function listPegawai(e) {
     units,
     jabs,
     statuses: statusList,
-  });
+  };
+  return storeCachedResponse('list', params, response, LIST_CACHE_TTL);
 }
 
 function dashboardStats(e) {
@@ -230,24 +237,13 @@ function dashboardStats(e) {
   if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
 
   const params = e.parameter || {};
+  const cached = getCachedResponse('dashboard_stats', params);
+  if (cached) return cached;
   const term = norm(params.search);
   const unit = norm(params.unit);
   const wilayah = norm(params.wilayah);
   const jab = norm(params.jabatan);
   const statuses = (params.status || '').split(',').map(s => norm(s)).filter(Boolean);
-  const cacheKey = [
-    'dashboard_stats',
-    unit || '-',
-    wilayah || '-',
-    term || '-',
-    jab || '-',
-    statuses.join('|') || '-'
-  ].join(':');
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get(cacheKey);
-  if (cached) {
-    try { return json(JSON.parse(cached)); } catch (_) { /* ignore */ }
-  }
 
   const values = sheet.getDataRange().getValues();
   if (!values.length) {
@@ -267,10 +263,7 @@ function dashboardStats(e) {
   const prepared = buildDashboardPrepared(filtered);
   prepared.totalRows = filtered.length;
   const response = { ok: true, prepared, total: filtered.length };
-  try {
-    cache.put(cacheKey, JSON.stringify(response), DASHBOARD_CACHE_TTL);
-  } catch (_) { /* ignore cache write */ }
-  return json(response);
+  return storeCachedResponse('dashboard_stats', params, response, DASHBOARD_CACHE_TTL);
 }
 
 function emptyDashboardPrepared() {
@@ -441,6 +434,7 @@ function createPegawai(e) {
     return body[k] !== undefined ? body[k] : '';
   });
   sheet.appendRow(row);
+  bumpCacheVersion();
   return json({ ok: true, data: { id: body.id || body.nip || body.nik || '' } });
 }
 
@@ -460,6 +454,7 @@ function updatePegawai(e) {
   if (keys.includes('id') && !next.id) next.id = id;
   const payload = keys.map((k) => (k ? (next[k] !== undefined ? next[k] : '') : ''));
   sheet.getRange(rowNumber, 1, 1, keys.length).setValues([payload]);
+  bumpCacheVersion();
   return json({ ok: true, data: { id } });
 }
 
@@ -472,6 +467,7 @@ function deletePegawai(e) {
   const idx = findRowIndexById(header, rows, id);
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   sheet.deleteRow(idx + 2);
+  bumpCacheVersion();
   return json({ ok: true, data: { id } });
 }
 
@@ -544,6 +540,8 @@ function listMutasi(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MUTASI_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
   const params = e.parameter || {};
+  const cached = getCachedResponse('mutasi_list', params);
+  if (cached) return cached;
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 30000));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
   const term = norm(params.search);
@@ -604,7 +602,7 @@ function listMutasi(e) {
   const jenisList = uniq(filtered.map(r => r.jenis_mutasi));
   const slice = filtered.slice(offset, offset + limit);
 
-  return json({
+  const response = {
     ok: true,
     data: { rows: slice, total, summary, statuses, ukpds, tujuan: tujuanList, jenis: jenisList },
     rows: slice,
@@ -614,7 +612,8 @@ function listMutasi(e) {
     ukpds,
     tujuan: tujuanList,
     jenis: jenisList,
-  });
+  };
+  return storeCachedResponse('mutasi_list', params, response, LIST_CACHE_TTL);
 }
 
 function createMutasi(e) {
@@ -635,6 +634,7 @@ function createMutasi(e) {
   const header = values.length && values[0].length ? values[0] : MUTASI_COLS;
   const row = buildMutasiRow(header, rowData);
   sheet.appendRow(row);
+  bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
 }
 
@@ -659,6 +659,7 @@ function updateMutasi(e) {
   while (baseRow.length < safeHeader.length) baseRow.push('');
   const payload = applyMutasiRow(baseRow, safeHeader, rowData);
   sheet.getRange(rowNumber, 1, 1, safeHeader.length).setValues([payload]);
+  bumpCacheVersion();
   return json({ ok: true, data: { id } });
 }
 
@@ -673,6 +674,7 @@ function deleteMutasi(e) {
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID mutasi tidak ditemukan' });
   sheet.deleteRow(idx + 2);
+  bumpCacheVersion();
   return json({ ok: true, data: { id } });
 }
 
@@ -681,6 +683,8 @@ function listPemutusan(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
   const params = e.parameter || {};
+  const cached = getCachedResponse('pemutusan_jf_list', params);
+  if (cached) return cached;
   const term = norm(params.search);
   const status = norm(params.status);
   const ukpdQuery = norm(params.ukpd);
@@ -715,7 +719,7 @@ function listPemutusan(e) {
   const summary = countBy(filtered, 'status');
   const statuses = uniq(filtered.map(r => r.status));
   const ukpds = uniq(filtered.map(r => r.nama_ukpd));
-  return json({
+  const response = {
     ok: true,
     data: { rows: filtered, total: filtered.length, summary, statuses, ukpds },
     rows: filtered,
@@ -723,7 +727,8 @@ function listPemutusan(e) {
     summary,
     statuses,
     ukpds,
-  });
+  };
+  return storeCachedResponse('pemutusan_jf_list', params, response, LIST_CACHE_TTL);
 }
 
 function createPemutusan(e) {
@@ -744,6 +749,7 @@ function createPemutusan(e) {
   const header = values.length && values[0].length ? values[0] : PEMUTUSAN_COLS;
   const row = buildPemutusanRow(header, rowData);
   sheet.appendRow(row);
+  bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
 }
 
@@ -768,6 +774,7 @@ function updatePemutusan(e) {
   while (baseRow.length < safeHeader.length) baseRow.push('');
   const payload = applyPemutusanRow(baseRow, safeHeader, rowData);
   sheet.getRange(rowNumber, 1, 1, safeHeader.length).setValues([payload]);
+  bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
 }
 
@@ -782,6 +789,7 @@ function deletePemutusan(e) {
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   sheet.deleteRow(idx + 2);
+  bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
 }
 
@@ -790,6 +798,8 @@ function listQna(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
   const params = e.parameter || {};
+  const cached = getCachedResponse('qna_list', params);
+  if (cached) return cached;
   const term = norm(params.search);
   const statusParam = norm(params.status);
   const categoryParam = norm(params.category);
@@ -799,14 +809,15 @@ function listQna(e) {
 
   const values = sheet.getDataRange().getValues();
   if (!values.length) {
-    return json({
+    const response = {
       ok: true,
       data: { rows: [], total: 0, summary: {}, categories: [] },
       rows: [],
       total: 0,
       summary: {},
       categories: []
-    });
+    };
+    return storeCachedResponse('qna_list', params, response, LIST_CACHE_TTL);
   }
   const [header, ...rows] = values;
   let list = rows.map(r => toQnaRecord(header, r)).filter(r => r.id || r.question || r.answer);
@@ -828,14 +839,15 @@ function listQna(e) {
   const summary = countBy(list, 'status');
   const categories = uniq(list.map(r => r.category));
   const slice = list.slice(offset, offset + limit);
-  return json({
+  const response = {
     ok: true,
     data: { rows: slice, total, summary, categories },
     rows: slice,
     total,
     summary,
     categories
-  });
+  };
+  return storeCachedResponse('qna_list', params, response, LIST_CACHE_TTL);
 }
 
 function createQna(e) {
@@ -856,6 +868,7 @@ function createQna(e) {
   const header = values.length && values[0].length ? values[0] : QNA_COLS;
   const row = buildQnaRow(header, rowData);
   sheet.appendRow(row);
+  bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
 }
 
@@ -882,6 +895,7 @@ function updateQna(e) {
   while (baseRow.length < safeHeader.length) baseRow.push('');
   const payload = applyQnaRow(baseRow, safeHeader, rowData);
   sheet.getRange(rowNumber, 1, 1, safeHeader.length).setValues([payload]);
+  bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
 }
 
@@ -899,6 +913,7 @@ function deleteQna(e) {
   const idx = rows.findIndex(r => String((idCol >= 0 ? r[idCol] : r[0]) || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   sheet.deleteRow(idx + 2);
+  bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
 }
 
@@ -907,6 +922,8 @@ function listBezetting(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet bezetting tidak ditemukan' });
   const params = e.parameter || {};
+  const cached = getCachedResponse('bezetting_list', params);
+  if (cached) return cached;
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 30000));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
   const term = norm(params.search);
@@ -918,7 +935,7 @@ function listBezetting(e) {
 
   const values = sheet.getDataRange().getValues();
   if (!values.length) {
-    return json({
+    const response = {
       ok: true,
       data: { rows: [], total: 0, ukpds: [], statuses: [], rumpuns: [], jabatans: [] },
       rows: [],
@@ -927,7 +944,8 @@ function listBezetting(e) {
       statuses: [],
       rumpuns: [],
       jabatans: [],
-    });
+    };
+    return storeCachedResponse('bezetting_list', params, response, BEZETTING_CACHE_TTL);
   }
   const [header, ...rowsRaw] = values;
   let list = rowsRaw.map(r => toBezettingRecord(header, r)).filter(r => r.kode || r.no);
@@ -957,7 +975,7 @@ function listBezetting(e) {
   const statuses = uniq(list.map(r => r.status_formasi));
   const rumpuns = uniq(list.map(r => r.rumpun_jabatan));
   const jabatans = uniq(list.flatMap(r => [r.nama_jabatan_pergub, r.nama_jabatan_permenpan]));
-  return json({
+  const response = {
     ok: true,
     data: { rows: slice, total, ukpds, statuses, rumpuns, jabatans },
     rows: slice,
@@ -966,7 +984,8 @@ function listBezetting(e) {
     statuses,
     rumpuns,
     jabatans,
-  });
+  };
+  return storeCachedResponse('bezetting_list', params, response, BEZETTING_CACHE_TTL);
 }
 
 function createBezetting(e) {
@@ -978,6 +997,7 @@ function createBezetting(e) {
   const rowData = { ...body, kode };
   const row = BEZETTING_COLS.map(k => rowData[k] || '');
   sheet.appendRow(row);
+  bumpCacheVersion();
   return json({ ok: true, data: { kode }, kode });
 }
 
@@ -996,6 +1016,7 @@ function updateBezetting(e) {
   const rowData = { ...body, kode };
   const payload = BEZETTING_COLS.map(k => rowData[k] || '');
   sheet.getRange(rowNumber, 1, 1, BEZETTING_COLS.length).setValues([payload]);
+  bumpCacheVersion();
   return json({ ok: true, data: { kode } });
 }
 
@@ -1010,6 +1031,7 @@ function deleteBezetting(e) {
   const idx = findRowIndexByHeader(header, rows, 'kode', 6, kode);
   if (idx < 0) return json({ ok: false, error: 'Kode tidak ditemukan' });
   sheet.deleteRow(idx + 2);
+  bumpCacheVersion();
   return json({ ok: true, data: { kode } });
 }
 
@@ -1035,6 +1057,66 @@ function uploadFile(e) {
 }
 
 // ==== Helpers ====
+function getCacheVersion() {
+  return PropertiesService.getScriptProperties().getProperty(CACHE_VERSION_KEY) || '0';
+}
+
+function bumpCacheVersion() {
+  try {
+    PropertiesService.getScriptProperties().setProperty(CACHE_VERSION_KEY, String(Date.now()));
+  } catch (_) { /* ignore */ }
+}
+
+function shouldBypassCache(params) {
+  const p = params || {};
+  const noCache = String(p.nocache || '').toLowerCase().trim();
+  if (noCache === '1' || noCache === 'true' || noCache === 'yes') return true;
+  const cache = String(p.cache || '').toLowerCase().trim();
+  if (cache === '0' || cache === 'false' || cache === 'no') return true;
+  return false;
+}
+
+function sanitizeCacheParams(params) {
+  const raw = params || {};
+  const clean = {};
+  Object.keys(raw).forEach((key) => {
+    const lower = String(key || '').toLowerCase();
+    if (!lower || lower === 'key' || lower === 'nocache' || lower === 'cache') return;
+    clean[key] = raw[key];
+  });
+  return clean;
+}
+
+function buildCacheKey(action, params) {
+  const version = getCacheVersion();
+  const safeParams = sanitizeCacheParams(params);
+  const keys = Object.keys(safeParams).sort();
+  const query = keys.map(k => `${k}=${String(safeParams[k])}`).join('&');
+  const raw = `${action}|${version}|${query}`;
+  if (raw.length <= 230) return raw;
+  const hash = digestHex(raw).slice(0, 20);
+  return `${action}|${version}|${hash}`;
+}
+
+function getCachedResponse(action, params) {
+  if (shouldBypassCache(params)) return null;
+  const key = buildCacheKey(action, params);
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(key);
+  if (!cached) return null;
+  try { return json(JSON.parse(cached)); } catch (_) { return null; }
+}
+
+function storeCachedResponse(action, params, response, ttlSeconds) {
+  if (shouldBypassCache(params)) return json(response);
+  if (!ttlSeconds || ttlSeconds <= 0) return json(response);
+  const key = buildCacheKey(action, params);
+  try {
+    CacheService.getScriptCache().put(key, JSON.stringify(response), ttlSeconds);
+  } catch (_) { /* ignore */ }
+  return json(response);
+}
+
 function norm(val = '') {
   return String(val || '').toLowerCase().trim();
 }
@@ -1145,6 +1227,12 @@ function isStrongPassword(password) {
 }
 
 function getUkpdWilayahMap() {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = `ukpd_wilayah_map:${getCacheVersion()}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (_) { /* ignore */ }
+  }
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USER_SHEET);
   if (!sheet) return {};
   const values = sheet.getDataRange().getValues();
@@ -1160,6 +1248,9 @@ function getUkpdWilayahMap() {
     const wilayahVal = String(wilayahRaw || '').trim();
     if (key && wilayahVal) map[key] = wilayahVal;
   });
+  try {
+    cache.put(cacheKey, JSON.stringify(map), META_CACHE_TTL);
+  } catch (_) { /* ignore */ }
   return map;
 }
 

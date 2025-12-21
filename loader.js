@@ -28,8 +28,11 @@
         inset: 0;
         display: grid;
         place-items: center;
-        background: rgba(15, 23, 42, 0.38);
-        backdrop-filter: blur(6px) saturate(120%);
+        background:
+          radial-gradient(circle at 10% 20%, rgba(94, 139, 255, 0.18), transparent 35%),
+          radial-gradient(circle at 80% 0%, rgba(255, 159, 104, 0.22), transparent 40%),
+          rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(8px) saturate(130%);
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
@@ -42,41 +45,60 @@
         pointer-events: auto;
       }
       #app-loader .app-loader-card {
-        width: min(360px, calc(100% - 32px));
+        width: min(420px, calc(100% - 32px));
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), #ffffff);
-        border-radius: 18px;
-        padding: 18px 18px 16px;
+        border-radius: 20px;
+        padding: 16px 18px 18px;
         border: 1px solid rgba(226, 232, 240, 0.9);
-        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35);
+        box-shadow: 0 30px 70px rgba(15, 23, 42, 0.35);
         display: grid;
-        gap: 12px;
-        text-align: center;
+        gap: 14px;
+        text-align: left;
         font-family: 'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif;
       }
-      #app-loader .app-loader-icon {
+      #app-loader .app-loader-top {
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent, #5e8bff), var(--accent-2, #ff9f68));
+        box-shadow: 0 8px 16px rgba(94, 139, 255, 0.3);
+      }
+      #app-loader .app-loader-body {
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        gap: 12px;
+        align-items: center;
+      }
+      #app-loader .app-loader-orbit {
         width: 64px;
         height: 64px;
-        margin: 0 auto;
         position: relative;
         display: grid;
         place-items: center;
       }
-      #app-loader .app-loader-ring {
-        width: 58px;
-        height: 58px;
-        border-radius: 50%;
-        border: 3px solid rgba(94, 139, 255, 0.22);
-        border-top-color: var(--accent, #5e8bff);
-        border-right-color: var(--accent-2, #ff9f68);
-        animation: appLoaderSpin 1s linear infinite;
-      }
-      #app-loader .app-loader-pulse {
+      #app-loader .app-loader-orbit::before {
+        content: '';
         position: absolute;
-        width: 14px;
-        height: 14px;
+        inset: 6px;
+        border-radius: 50%;
+        border: 2px dashed rgba(94, 139, 255, 0.35);
+        animation: appLoaderSpin 2.4s linear infinite;
+      }
+      #app-loader .app-loader-orbit::after {
+        content: '';
+        position: absolute;
+        inset: 14px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 159, 104, 0.25);
+        border-top-color: var(--accent-2, #ff9f68);
+        border-right-color: var(--accent, #5e8bff);
+        animation: appLoaderSpin 1.2s linear infinite reverse;
+      }
+      #app-loader .app-loader-core {
+        width: 12px;
+        height: 12px;
         border-radius: 999px;
         background: radial-gradient(circle, var(--accent-2, #ff9f68), var(--accent, #5e8bff));
-        box-shadow: 0 0 0 8px rgba(94, 139, 255, 0.12);
+        box-shadow: 0 0 0 10px rgba(94, 139, 255, 0.12);
         animation: appLoaderPulse 1.2s ease-in-out infinite;
       }
       #app-loader .app-loader-title {
@@ -88,29 +110,27 @@
         font-size: 12px;
         color: #64748b;
       }
-      #app-loader .app-loader-bar {
-        height: 6px;
-        background: #edf2ff;
+      #app-loader .app-loader-skeleton {
+        display: grid;
+        gap: 8px;
+      }
+      #app-loader .app-loader-line {
+        height: 10px;
         border-radius: 999px;
-        overflow: hidden;
+        background: linear-gradient(90deg, #eef2f7 25%, #dbe4f3 37%, #eef2f7 63%);
+        background-size: 200% 100%;
+        animation: appLoaderShimmer 1.2s ease-in-out infinite;
       }
-      #app-loader .app-loader-bar span {
-        display: block;
-        height: 100%;
-        width: 45%;
-        background: linear-gradient(90deg, var(--accent, #5e8bff), var(--accent-2, #ff9f68));
-        border-radius: inherit;
-        animation: appLoaderBar 1.1s ease-in-out infinite;
-      }
+      #app-loader .app-loader-line:nth-child(2) { width: 88%; }
+      #app-loader .app-loader-line:nth-child(3) { width: 72%; }
       @keyframes appLoaderSpin { to { transform: rotate(360deg); } }
       @keyframes appLoaderPulse {
         0%, 100% { transform: scale(0.7); opacity: 0.8; }
         50% { transform: scale(1); opacity: 1; }
       }
-      @keyframes appLoaderBar {
-        0% { transform: translateX(-60%); }
-        50% { transform: translateX(40%); }
-        100% { transform: translateX(160%); }
+      @keyframes appLoaderShimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
       }
       @media (max-width: 600px) {
         #app-loader .app-loader-card { width: calc(100% - 24px); }
@@ -129,15 +149,21 @@
     overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
       <div class="app-loader-card" role="status" aria-live="polite">
-        <div class="app-loader-icon">
-          <div class="app-loader-ring"></div>
-          <div class="app-loader-pulse"></div>
+        <div class="app-loader-top"></div>
+        <div class="app-loader-body">
+          <div class="app-loader-orbit">
+            <div class="app-loader-core"></div>
+          </div>
+          <div class="app-loader-text">
+            <div class="app-loader-title">${DEFAULT_TITLE}</div>
+            <div class="app-loader-sub">${DEFAULT_SUB}</div>
+          </div>
         </div>
-        <div class="app-loader-text">
-          <div class="app-loader-title">${DEFAULT_TITLE}</div>
-          <div class="app-loader-sub">${DEFAULT_SUB}</div>
+        <div class="app-loader-skeleton">
+          <div class="app-loader-line"></div>
+          <div class="app-loader-line"></div>
+          <div class="app-loader-line"></div>
         </div>
-        <div class="app-loader-bar"><span></span></div>
       </div>
     `;
     document.body.appendChild(overlay);

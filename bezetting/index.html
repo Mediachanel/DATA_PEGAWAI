@@ -166,7 +166,9 @@
       const parts = location.pathname.split('/').filter(Boolean);
       return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
     })();
-    const API_BASE = 'https://sikepeg.seftianh23.workers.dev';
+    const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
+      ? 'http://127.0.0.1:5002'
+      : 'https://sikepeg.seftianh23.workers.dev';
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     if (window.AppLoader) window.AppLoader.wrapFetch(API_BASE);
@@ -357,7 +359,13 @@
     pageSize.addEventListener('change', ()=>{ page=1; renderTable(); });
     prevPage.addEventListener('click', ()=>{ if (page>1){ page--; renderTable(); } });
     nextPage.addEventListener('click', ()=>{ const per = parseInt(pageSize.value,10)||10; const maxPage = Math.max(1, Math.ceil((rows.length||0)/per)); if (page < maxPage){ page++; renderTable(); } });
-    searchInput.addEventListener('input', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
+    let searchTimer = null;
+    searchInput.addEventListener('input', ()=>{
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(()=>{
+        page=1; loadData().catch(err=>alert(err.message));
+      }, 350);
+    });
     ukpdFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
     wilayahFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
     rumpunFilter.addEventListener('change', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });

@@ -12,7 +12,8 @@ export default {
       'access-control-allow-headers': '*',
       'access-control-allow-methods': 'GET,POST,OPTIONS',
     };
-    const cacheTtl = Math.max(5, parseInt(env.CACHE_TTL || '30', 10));
+    const cacheTtlDefault = Math.max(5, parseInt(env.CACHE_TTL || '30', 10));
+    const cacheTtlBezetting = Math.max(5, parseInt(env.CACHE_TTL_BEZETTING || String(cacheTtlDefault), 10));
     const cacheableActions = new Set(['list','dashboard_stats','mutasi_list','pemutusan_jf_list','bezetting_list','qna_list']);
 
     if (req.method === 'OPTIONS') {
@@ -38,6 +39,7 @@ export default {
 
     const url = new URL(req.url);
     const action = (url.searchParams.get('action') || '').toLowerCase();
+    const cacheTtl = action === 'bezetting_list' ? cacheTtlBezetting : cacheTtlDefault;
     const shouldCache = req.method === 'GET' && cacheableActions.has(action);
     if (shouldCache) {
       const cached = await caches.default.match(req);
