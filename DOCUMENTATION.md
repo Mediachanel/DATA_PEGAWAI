@@ -1,5 +1,13 @@
 ﻿# Dokumentasi Integrasi SI Data Pegawai
 
+## Log Kegiatan Terbaru (Des 2025)
+- Percepatan Apps Script `code.js`: cache untuk `list`, `mutasi_list`, `pemutusan_jf_list`, `bezetting_list`, `qna_list`, dan `dashboard_stats`. TTL default: list 20s, dashboard 30s, bezetting 60s, meta 300s.
+- Cache invalidasi otomatis via `bumpCacheVersion()` pada create/update/delete (pegawai, mutasi, pemutusan JF, bezetting, QnA). Bisa bypass cache dengan query `nocache=1` atau `cache=0`.
+- Mapping UKPD->wilayah sekarang di-cache untuk filter wilayah (mutasi/pemutusan JF).
+- Cloudflare Worker mendukung TTL khusus bezetting via env `CACHE_TTL_BEZETTING`.
+- Backend Node men-cache bezetting in-memory (env `BEZETTING_CACHE_TTL`) dan invalidasi saat create/update/delete.
+- Frontend bezetting memakai API lokal saat localhost dan input search sudah debounce; loader global diperbarui (orbital + skeleton shimmer).
+
 ## Backend (Node/Express + Google Sheets)
 - File: `server.js`
 - Port: 5002 (dipakai bila menjalankan backend Node; front-end default kini langsung ke Web App Apps Script)
@@ -121,8 +129,9 @@ Semua request lewat Cloudflare Worker, gunakan query/body `action`.
 GET
 - `?action=health` - cek status.
 - `?action=list` - daftar pegawai (query: `offset`, `limit`, `search`, `unit`, `jabatan`, `status`).
+- `?action=dashboard_stats` - ringkasan dashboard (query sama seperti `list`).
 - `?action=get&id=...` - detail pegawai.
-- `?action=mutasi_list`, `?action=pemutusan_jf_list`, `?action=bezetting_list`.
+- `?action=mutasi_list`, `?action=pemutusan_jf_list`, `?action=bezetting_list`, `?action=qna_list`.
 
 POST (JSON)
 - `action=login`
