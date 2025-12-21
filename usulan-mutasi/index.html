@@ -476,9 +476,27 @@
       return raw;
     }
 
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function safeUrl(value){
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      const lower = raw.toLowerCase();
+      if (lower.startsWith('http://') || lower.startsWith('https://')) return raw;
+      return '';
+    }
+
+    function formatMultiline(value){
+      return escapeHtml(value || '').replace(/\n/g, '<br>');
+    }
+
     function formatStatusLabel(value){
       const key = normalizeStatus(value);
-      return STATUS_LABELS[key] || (value ? String(value) : '-');
+      return escapeHtml(STATUS_LABELS[key] || (value ? String(value) : '-'));
     }
 
     function parseDateValue(value){
@@ -564,9 +582,9 @@
     }
 
     function formatAbk(abk, bezetting, nonasnAbk, nonasnBezetting){
-      const asn = `ASN: ${abk || '-'} | Bezetting: ${bezetting || '-'}`;
+      const asn = `ASN: ${escapeHtml(abk || '-')} | Bezetting: ${escapeHtml(bezetting || '-')}`;
       const nonasn = (nonasnAbk || nonasnBezetting)
-        ? `<div class="pill-abk">Non-ASN: ${nonasnAbk || '-'} | Bezetting: ${nonasnBezetting || '-'}</div>`
+        ? `<div class="pill-abk">Non-ASN: ${escapeHtml(nonasnAbk || '-')} | Bezetting: ${escapeHtml(nonasnBezetting || '-')}</div>`
         : '';
       return `<div class="pill-abk">${asn}</div>${nonasn}`;
     }
@@ -856,7 +874,7 @@
     }
 
     function renderFilters(body){
-      const setOptions = (el, list)=>{ el.innerHTML = '<option value="">Semua</option>' + (list||[]).map(v=>`<option>${v}</option>`).join(''); };
+      const setOptions = (el, list)=>{ el.innerHTML = '<option value="">Semua</option>' + (list||[]).map(v=>`<option>${escapeHtml(v)}</option>`).join(''); };
       setOptions(ukpdFilter, body.ukpds || []);
       setOptions(tujuanFilter, body.tujuan || []);
       if (!isSuper && !isWilayahAdmin){
@@ -895,11 +913,13 @@
       const safeRows = rows || [];
       safeRows.forEach((r, idx)=>{
         const tr = document.createElement('tr');
-        const nama = formatNama(r) || r.nama_pegawai || '-';
-        const alasan = (r.alasan||'').replace(/\n/g,'<br>');
-        const ket = (r.keterangan||'-').replace(/\n/g,'<br>');
-        const verif = (r.verif_checklist||'').replace(/\n/g,'<br>');
+        const nama = escapeHtml(formatNama(r) || r.nama_pegawai || '-');
+        const alasan = formatMultiline(r.alasan || '');
+        const ket = formatMultiline(r.keterangan || '-');
+        const verif = formatMultiline(r.verif_checklist || '');
         const verifHtml = verif ? `<div style="color:var(--muted); font-size:12px;">Verif: ${verif}</div>` : '';
+        const safeId = escapeHtml(r.id || '');
+        const berkasUrl = safeUrl(r.berkas_path);
         tr.innerHTML = `
           <td>${(startIndex || 0) + idx + 1}</td>
           <td>${badgeStatus(r.status)}</td>
@@ -907,31 +927,31 @@
             <div class="dropdown">
               <button class="ghost dropdown-toggle">Aksi v</button>
               <div class="dropdown-menu">
-                <button data-action="view" data-id="${r.id}">Lihat</button>
-                <button data-action="edit" data-id="${r.id}">Ubah</button>
-                <button data-action="delete" data-id="${r.id}">Hapus</button>
+                <button data-action="view" data-id="${safeId}">Lihat</button>
+                <button data-action="edit" data-id="${safeId}">Ubah</button>
+                <button data-action="delete" data-id="${safeId}">Hapus</button>
               </div>
             </div>
           </td>
           <td>
             <div style="font-weight:700;">${nama}</div>
-            <div style="color:var(--muted); font-size:12px;">NIP: ${r.nip||'-'}</div>
-            <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${r.pangkat_golongan||'-'}</div>
+            <div style="color:var(--muted); font-size:12px;">NIP: ${escapeHtml(r.nip || '-')}</div>
+            <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${escapeHtml(r.pangkat_golongan || '-')}</div>
           </td>
           <td>
-            <div style="font-weight:700;">${r.jabatan||'-'}</div>
-            <div style="color:var(--muted); font-size:12px;">Jenis: ${r.jenis_mutasi||'-'}</div>
+            <div style="font-weight:700;">${escapeHtml(r.jabatan || '-')}</div>
+            <div style="color:var(--muted); font-size:12px;">Jenis: ${escapeHtml(r.jenis_mutasi || '-')}</div>
           </td>
-          <td>${r.nama_ukpd||'-'}</td>
-          <td>${r.ukpd_tujuan||'-'}</td>
-          <td>${r.jabatan_baru||'-'}</td>
+          <td>${escapeHtml(r.nama_ukpd || '-')}</td>
+          <td>${escapeHtml(r.ukpd_tujuan || '-')}</td>
+          <td>${escapeHtml(r.jabatan_baru || '-')}</td>
           <td>${formatAbk(r.abk_j_lama, r.bezetting_j_lama, r.nonasn_abk_lama, r.nonasn_bezetting_lama)}</td>
           <td>${formatAbk(r.abk_j_baru, r.bezetting_j_baru, r.nonasn_abk_baru, r.nonasn_bezetting_baru)}</td>
-          <td style="min-width:220px;">${alasan||'-'}</td>
-          <td>${r.berkas_path ? `<a href="${r.berkas_path}" target="_blank" rel="noopener">Berkas</a>` : '-'}</td>
-          <td>${r.created_by_ukpd || '-'}</td>
-          <td>${formatDateDisplay(r.created_at)}</td>
-          <td>${formatDateDisplay(r.updated_at)}</td>
+          <td style="min-width:220px;">${alasan || '-'}</td>
+          <td>${berkasUrl ? `<a href="${escapeHtml(berkasUrl)}" target="_blank" rel="noopener">Berkas</a>` : '-'}</td>
+          <td>${escapeHtml(r.created_by_ukpd || '-')}</td>
+          <td>${escapeHtml(formatDateDisplay(r.created_at))}</td>
+          <td>${escapeHtml(formatDateDisplay(r.updated_at))}</td>
           <td style="min-width:220px;">${verifHtml}${ket}</td>
         `;
         tableBody.appendChild(tr);
@@ -1008,6 +1028,7 @@
     }
 
     function openView(row){
+      const berkasUrl = safeUrl(row.berkas_path);
       const fields = [
         ['NIP', row.nip],
         ['Nama', formatNama(row) || row.nama_pegawai],
@@ -1017,7 +1038,7 @@
         ['Jabatan', row.jabatan],
         ['Jenis Mutasi', row.jenis_mutasi],
         ['Tanggal Usulan', formatDateDisplay(row.tanggal_usulan)],
-        ['Status', formatStatusLabel(row.status)],
+        ['Status', formatStatusLabel(row.status), true],
         ['UKPD Asal', row.nama_ukpd],
         ['UKPD Tujuan', row.ukpd_tujuan],
         ['ABK J Lama', row.abk_j_lama],
@@ -1031,12 +1052,16 @@
         ['Non-ASN ABK Baru', row.nonasn_abk_baru],
         ['Mutasi ID', row.mutasi_id],
         ['Verifikasi Checklist', row.verif_checklist],
-        ['Berkas', row.berkas_path ? `<a href="${row.berkas_path}" target="_blank" rel="noopener">Buka Berkas</a>` : '-'],
+        ['Berkas', berkasUrl ? `<a href="${escapeHtml(berkasUrl)}" target="_blank" rel="noopener">Buka Berkas</a>` : '-', true],
         ['Created By UKPD', row.created_by_ukpd],
         ['Created At', formatDateDisplay(row.created_at)],
         ['Updated At', formatDateDisplay(row.updated_at)],
       ];
-      detailGrid.innerHTML = fields.map(([l,v])=>`<div class="detail-card"><div class="detail-label">${l}</div><div class="detail-value">${v||'-'}</div></div>`).join('');
+      detailGrid.innerHTML = fields.map(([l,v,isHtml])=>{
+        const safeLabel = escapeHtml(l);
+        const safeValue = isHtml ? (v || '-') : escapeHtml(v || '-');
+        return `<div class="detail-card"><div class="detail-label">${safeLabel}</div><div class="detail-value">${safeValue}</div></div>`;
+      }).join('');
       detailAlasan.textContent = row.alasan || '-';
       detailKet.textContent = row.keterangan || '-';
       showModal(viewModal);

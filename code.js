@@ -103,6 +103,8 @@ const LIST_CACHE_TTL = 20; // detik
 const BEZETTING_CACHE_TTL = 60; // detik
 const META_CACHE_TTL = 300; // detik
 const CACHE_VERSION_KEY = 'cache_version';
+const SESSION_TTL = 10 * 60; // detik
+const SESSION_PREFIX = 'session:';
 const DASH_STATUS_ORDER = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP'];
 const DASH_STATUS_LABELS = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP' };
 const DASH_STATUS_COLORS = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
@@ -134,6 +136,13 @@ function handleRequest(e, method) {
   const action = getAction(e);
   if (!action) return json({ ok: false, error: 'action wajib' });
   if (!checkApiKey(e)) return forbidden();
+  const publicActions = ['health', 'login'];
+  const isPublicQna = action === 'qna_list' && isPublicQnaRequest(e);
+  if (publicActions.indexOf(action) === -1 && !isPublicQna) {
+    const sessionUser = readSession(getSessionToken(e));
+    if (!sessionUser) return forbidden();
+    e.sessionUser = sessionUser;
+  }
 
   if (method === 'GET') {
     if (action === 'health') return json({ ok: true, data: { time: new Date().toISOString() } });
@@ -148,6 +157,7 @@ function handleRequest(e, method) {
 
   if (method === 'POST') {
     if (action === 'login') return login(e);
+    if (action === 'logout') return logout(e);
     if (action === 'password_change') return changePassword(e);
     if (action === 'upload') return uploadFile(e);
     if (action === 'create') return createPegawai(e);
@@ -170,13 +180,23 @@ function handleRequest(e, method) {
   return json({ ok: false, error: 'route not found' });
 }
 
+function isPublicQnaRequest(e) {
+  const params = e.parameter || e.body || {};
+  const statusParam = norm(params.status);
+  if (!statusParam) return false;
+  const statuses = statusParam.split(',').map(norm).filter(Boolean);
+  return statuses.length === 1 && statuses[0] === 'published';
+}
+
 // ==== Handler ====
 function listPegawai(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
 
   const params = e.parameter || {};
-  const cached = getCachedResponse('list', params);
+  const sessionUser = e.sessionUser || {};
+  const cacheParams = { ...params, __scope: getSessionScope(sessionUser) };
+  const cached = getCachedResponse('list', cacheParams);
   if (cached) return cached;
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 30000));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
@@ -202,8 +222,9 @@ function listPegawai(e) {
 
   const [header, ...rowsRaw] = values;
   const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.id);
+  const scopedRecords = filterPegawaiByRole(records, sessionUser);
 
-  const filtered = records.filter(r => {
+  const filtered = scopedRecords.filter(r => {
     const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => (v || '').toLowerCase().includes(term));
     const matchUnit = !unit || (r.nama_ukpd || '').toLowerCase().trim() === unit;
     const matchWilayah = !wilayah || (r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
@@ -229,7 +250,7 @@ function listPegawai(e) {
     jabs,
     statuses: statusList,
   };
-  return storeCachedResponse('list', params, response, LIST_CACHE_TTL);
+  return storeCachedResponse('list', cacheParams, response, LIST_CACHE_TTL);
 }
 
 function dashboardStats(e) {
@@ -237,7 +258,9 @@ function dashboardStats(e) {
   if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
 
   const params = e.parameter || {};
-  const cached = getCachedResponse('dashboard_stats', params);
+  const sessionUser = e.sessionUser || {};
+  const cacheParams = { ...params, __scope: getSessionScope(sessionUser) };
+  const cached = getCachedResponse('dashboard_stats', cacheParams);
   if (cached) return cached;
   const term = norm(params.search);
   const unit = norm(params.unit);
@@ -251,7 +274,8 @@ function dashboardStats(e) {
   }
   const [header, ...rowsRaw] = values;
   const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.id);
-  const filtered = records.filter(r => {
+  const scopedRecords = filterPegawaiByRole(records, sessionUser);
+  const filtered = scopedRecords.filter(r => {
     const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => (v || '').toLowerCase().includes(term));
     const matchUnit = !unit || (r.nama_ukpd || '').toLowerCase().trim() === unit;
     const matchWilayah = !wilayah || (r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
@@ -263,7 +287,7 @@ function dashboardStats(e) {
   const prepared = buildDashboardPrepared(filtered);
   prepared.totalRows = filtered.length;
   const response = { ok: true, prepared, total: filtered.length };
-  return storeCachedResponse('dashboard_stats', params, response, DASHBOARD_CACHE_TTL);
+  return storeCachedResponse('dashboard_stats', cacheParams, response, DASHBOARD_CACHE_TTL);
 }
 
 function emptyDashboardPrepared() {
@@ -424,6 +448,21 @@ function createPegawai(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = getUkpdWilayahMap();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.nama_ukpd || '').trim();
+      if (!ukpdName) return json({ ok: false, error: 'Nama UKPD wajib' });
+      const wilayahVal = map[norm(ukpdName)] || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+      body.wilayah_ukpd = wilayahVal;
+    } else {
+      body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || body.nama_ukpd;
+      if (sessionUser.wilayah) body.wilayah_ukpd = sessionUser.wilayah;
+    }
+  }
   const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] || [];
   const keys = header.map(normalizePegawaiHeader);
   const idIdx = keys.indexOf('id');
@@ -450,6 +489,21 @@ function updatePegawai(e) {
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   const rowNumber = idx + 2; // header di baris 1
   const current = rowToObject(keys, rows[idx]);
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, current.nama_ukpd, current.wilayah_ukpd, map)) return forbidden();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.nama_ukpd || current.nama_ukpd || '').trim();
+      const wilayahVal = map[norm(ukpdName)] || current.wilayah_ukpd || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+      body.wilayah_ukpd = wilayahVal;
+    } else {
+      body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
+      if (sessionUser.wilayah) body.wilayah_ukpd = sessionUser.wilayah;
+    }
+  }
   const next = { ...current, ...body };
   if (keys.includes('id') && !next.id) next.id = id;
   const payload = keys.map((k) => (k ? (next[k] !== undefined ? next[k] : '') : ''));
@@ -466,6 +520,13 @@ function deletePegawai(e) {
   const [header, ...rows] = values;
   const idx = findRowIndexById(header, rows, id);
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const record = toRecord(header, rows[idx]);
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, record.nama_ukpd, record.wilayah_ukpd, map)) return forbidden();
+  }
   sheet.deleteRow(idx + 2);
   bumpCacheVersion();
   return json({ ok: true, data: { id } });
@@ -502,7 +563,15 @@ function login(e) {
     sheet.getRange(found.rowNumber, passCol).setValue(newHash);
   }
   const user = { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah };
-  return json({ ok: true, data: { user }, user });
+  const sessionToken = generateSessionToken();
+  storeSession(sessionToken, user);
+  return json({
+    ok: true,
+    data: { user, session_token: sessionToken, session_expires_in: SESSION_TTL },
+    user,
+    session_token: sessionToken,
+    session_expires_in: SESSION_TTL
+  });
 }
 
 function changePassword(e) {
@@ -513,6 +582,10 @@ function changePassword(e) {
   const newPassword = (body.new_password || '').trim();
   if (!username || !currentPassword || !newPassword) {
     return json({ ok: false, error: 'Username, password lama, dan password baru wajib' });
+  }
+  const ctx = getRoleContext(e.sessionUser || {});
+  if (!ctx.isSuper && String(e.sessionUser?.username || '').toLowerCase() !== username.toLowerCase()) {
+    return forbidden();
   }
   if (!isStrongPassword(newPassword)) {
     return json({ ok: false, error: 'Password baru belum memenuhi kriteria keamanan' });
@@ -535,12 +608,20 @@ function changePassword(e) {
   return json({ ok: true });
 }
 
+function logout(e) {
+  const token = getSessionToken(e);
+  clearSession(token);
+  return json({ ok: true });
+}
+
 // ==== Mutasi ====
 function listMutasi(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MUTASI_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
   const params = e.parameter || {};
-  const cached = getCachedResponse('mutasi_list', params);
+  const sessionUser = e.sessionUser || {};
+  const cacheParams = { ...params, __scope: getSessionScope(sessionUser) };
+  const cached = getCachedResponse('mutasi_list', cacheParams);
   if (cached) return cached;
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 30000));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
@@ -568,7 +649,7 @@ function listMutasi(e) {
 
   const [header, ...rows] = values;
   const map = getUkpdWilayahMap();
-  const list = rows.map(r => {
+  let list = rows.map(r => {
     const rec = toMutasiRecord(header, r);
     const ukpdAsal = norm(rec.nama_ukpd);
     const ukpdTujuan = norm(rec.ukpd_tujuan);
@@ -576,6 +657,7 @@ function listMutasi(e) {
     if (!rec.wilayah_tujuan) rec.wilayah_tujuan = map[ukpdTujuan] || '';
     return rec;
   }).filter(r => r.id);
+  list = filterMutasiByRole(list, sessionUser);
 
   let filtered = list.filter(r => {
     const matchTerm = !term || [r.nip, r.nama_pegawai].some(v => norm(v).includes(term));
@@ -613,7 +695,7 @@ function listMutasi(e) {
     tujuan: tujuanList,
     jenis: jenisList,
   };
-  return storeCachedResponse('mutasi_list', params, response, LIST_CACHE_TTL);
+  return storeCachedResponse('mutasi_list', cacheParams, response, LIST_CACHE_TTL);
 }
 
 function createMutasi(e) {
@@ -621,6 +703,19 @@ function createMutasi(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MUTASI_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = getUkpdWilayahMap();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.nama_ukpd || '').trim();
+      if (!ukpdName) return json({ ok: false, error: 'Nama UKPD wajib' });
+      const wilayahVal = map[norm(ukpdName)] || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+    } else {
+      body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || body.nama_ukpd;
+    }
+  }
   const id = body.id || `UM-${Date.now()}`;
   const nowIso = new Date().toISOString();
   const rowData = {
@@ -653,6 +748,19 @@ function updateMutasi(e) {
   const rowNumber = idx + 2;
   const currentRow = rows[idx] || [];
   const current = toMutasiRecord(safeHeader, currentRow);
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, current.nama_ukpd, map[norm(current.nama_ukpd)] || '', map)) return forbidden();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.nama_ukpd || current.nama_ukpd || '').trim();
+      const wilayahVal = map[norm(ukpdName)] || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+    } else {
+      body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
+    }
+  }
   const rowData = { ...current, ...body, id };
   if (!rowData.updated_at) rowData.updated_at = new Date().toISOString();
   const baseRow = currentRow.slice();
@@ -673,6 +781,14 @@ function deleteMutasi(e) {
   const [, ...rows] = values;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID mutasi tidak ditemukan' });
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const header = values[0] || MUTASI_COLS;
+    const record = toMutasiRecord(header, rows[idx]);
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, record.nama_ukpd, map[norm(record.nama_ukpd)] || '', map)) return forbidden();
+  }
   sheet.deleteRow(idx + 2);
   bumpCacheVersion();
   return json({ ok: true, data: { id } });
@@ -683,7 +799,9 @@ function listPemutusan(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
   const params = e.parameter || {};
-  const cached = getCachedResponse('pemutusan_jf_list', params);
+  const sessionUser = e.sessionUser || {};
+  const cacheParams = { ...params, __scope: getSessionScope(sessionUser) };
+  const cached = getCachedResponse('pemutusan_jf_list', cacheParams);
   if (cached) return cached;
   const term = norm(params.search);
   const status = norm(params.status);
@@ -703,8 +821,15 @@ function listPemutusan(e) {
     });
   }
   const [header, ...rows] = values;
-  const list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id);
-  const map = wilayahQuery ? getUkpdWilayahMap() : {};
+  let list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id);
+  const map = (wilayahQuery || getRoleContext(sessionUser).isWilayah) ? getUkpdWilayahMap() : {};
+  if (Object.keys(map).length) {
+    list = list.map((r) => ({
+      ...r,
+      wilayah: r.wilayah || map[norm(r.nama_ukpd)] || ''
+    }));
+  }
+  list = filterPemutusanByRole(list, sessionUser);
 
   const filtered = list.filter(r => {
     const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => norm(v).includes(term));
@@ -728,7 +853,7 @@ function listPemutusan(e) {
     statuses,
     ukpds,
   };
-  return storeCachedResponse('pemutusan_jf_list', params, response, LIST_CACHE_TTL);
+  return storeCachedResponse('pemutusan_jf_list', cacheParams, response, LIST_CACHE_TTL);
 }
 
 function createPemutusan(e) {
@@ -736,6 +861,19 @@ function createPemutusan(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = getUkpdWilayahMap();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.nama_ukpd || '').trim();
+      if (!ukpdName) return json({ ok: false, error: 'Nama UKPD wajib' });
+      const wilayahVal = map[norm(ukpdName)] || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+    } else {
+      body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || body.nama_ukpd;
+    }
+  }
   const id = body.id || `PJ-${Date.now()}`;
   const nowIso = new Date().toISOString();
   const rowData = {
@@ -768,6 +906,19 @@ function updatePemutusan(e) {
   const rowNumber = idx + 2;
   const currentRow = rows[idx] || [];
   const current = toPemutusanRecord(safeHeader, currentRow);
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, current.nama_ukpd, map[norm(current.nama_ukpd)] || '', map)) return forbidden();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.nama_ukpd || current.nama_ukpd || '').trim();
+      const wilayahVal = map[norm(ukpdName)] || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+    } else {
+      body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
+    }
+  }
   const rowData = { ...current, ...body, id };
   if (!rowData.updated_at) rowData.updated_at = new Date().toISOString();
   const baseRow = currentRow.slice();
@@ -788,6 +939,14 @@ function deletePemutusan(e) {
   const [, ...rows] = values;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const header = values[0] || PEMUTUSAN_COLS;
+    const record = toPemutusanRecord(header, rows[idx]);
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, record.nama_ukpd, map[norm(record.nama_ukpd)] || '', map)) return forbidden();
+  }
   sheet.deleteRow(idx + 2);
   bumpCacheVersion();
   return json({ ok: true, data: { id }, id });
@@ -798,14 +957,20 @@ function listQna(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
   const params = e.parameter || {};
-  const cached = getCachedResponse('qna_list', params);
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  const statusParam = norm(params.status);
+  const statusList = statusParam ? statusParam.split(',').map(norm).filter(Boolean) : [];
+  const isPublic = !ctx.isSuper && statusList.length === 1 && statusList[0] === 'published';
+  if (!ctx.isSuper && !isPublic) return forbidden();
+  const cacheParams = { ...params, __scope: getSessionScope(sessionUser) };
+  const cached = getCachedResponse('qna_list', cacheParams);
   if (cached) return cached;
   const term = norm(params.search);
-  const statusParam = norm(params.status);
   const categoryParam = norm(params.category);
-  const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 50000));
+  const maxLimit = ctx.isSuper ? 50000 : 200;
+  const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, maxLimit));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
-  const statusList = statusParam ? statusParam.split(',').map(norm).filter(Boolean) : [];
 
   const values = sheet.getDataRange().getValues();
   if (!values.length) {
@@ -817,7 +982,7 @@ function listQna(e) {
       summary: {},
       categories: []
     };
-    return storeCachedResponse('qna_list', params, response, LIST_CACHE_TTL);
+    return storeCachedResponse('qna_list', cacheParams, response, LIST_CACHE_TTL);
   }
   const [header, ...rows] = values;
   let list = rows.map(r => toQnaRecord(header, r)).filter(r => r.id || r.question || r.answer);
@@ -847,11 +1012,13 @@ function listQna(e) {
     summary,
     categories
   };
-  return storeCachedResponse('qna_list', params, response, LIST_CACHE_TTL);
+  return storeCachedResponse('qna_list', cacheParams, response, LIST_CACHE_TTL);
 }
 
 function createQna(e) {
   if (!checkToken(e)) return forbidden();
+  const ctx = getRoleContext(e.sessionUser || {});
+  if (!ctx.isSuper) return forbidden();
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
@@ -874,6 +1041,8 @@ function createQna(e) {
 
 function updateQna(e) {
   if (!checkToken(e)) return forbidden();
+  const ctx = getRoleContext(e.sessionUser || {});
+  if (!ctx.isSuper) return forbidden();
   const id = getParam(e, 'id');
   if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
@@ -901,6 +1070,8 @@ function updateQna(e) {
 
 function deleteQna(e) {
   if (!checkToken(e)) return forbidden();
+  const ctx = getRoleContext(e.sessionUser || {});
+  if (!ctx.isSuper) return forbidden();
   const id = getParam(e, 'id');
   if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
@@ -922,7 +1093,9 @@ function listBezetting(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet bezetting tidak ditemukan' });
   const params = e.parameter || {};
-  const cached = getCachedResponse('bezetting_list', params);
+  const sessionUser = e.sessionUser || {};
+  const cacheParams = { ...params, __scope: getSessionScope(sessionUser) };
+  const cached = getCachedResponse('bezetting_list', cacheParams);
   if (cached) return cached;
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 30000));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
@@ -945,10 +1118,11 @@ function listBezetting(e) {
       rumpuns: [],
       jabatans: [],
     };
-    return storeCachedResponse('bezetting_list', params, response, BEZETTING_CACHE_TTL);
+    return storeCachedResponse('bezetting_list', cacheParams, response, BEZETTING_CACHE_TTL);
   }
   const [header, ...rowsRaw] = values;
   let list = rowsRaw.map(r => toBezettingRecord(header, r)).filter(r => r.kode || r.no);
+  list = filterBezettingByRole(list, sessionUser);
 
   const matchWilayah = (value, query) => {
     if (!query) return true;
@@ -985,7 +1159,7 @@ function listBezetting(e) {
     rumpuns,
     jabatans,
   };
-  return storeCachedResponse('bezetting_list', params, response, BEZETTING_CACHE_TTL);
+  return storeCachedResponse('bezetting_list', cacheParams, response, BEZETTING_CACHE_TTL);
 }
 
 function createBezetting(e) {
@@ -993,6 +1167,21 @@ function createBezetting(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet bezetting tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = getUkpdWilayahMap();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.ukpd || '').trim();
+      if (!ukpdName) return json({ ok: false, error: 'UKPD wajib' });
+      const wilayahVal = map[norm(ukpdName)] || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+      body.wilayah = wilayahVal;
+    } else {
+      body.ukpd = sessionUser.namaUkpd || sessionUser.username || body.ukpd;
+      if (sessionUser.wilayah) body.wilayah = sessionUser.wilayah;
+    }
+  }
   const kode = body.kode || `BZ-${Date.now()}`;
   const rowData = { ...body, kode };
   const row = BEZETTING_COLS.map(k => rowData[k] || '');
@@ -1013,6 +1202,22 @@ function updateBezetting(e) {
   const idx = findRowIndexByHeader(header, rows, 'kode', 6, kode);
   if (idx < 0) return json({ ok: false, error: 'Kode tidak ditemukan' });
   const rowNumber = idx + 2;
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const record = toBezettingRecord(header, rows[idx]);
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, record.ukpd, record.wilayah, map)) return forbidden();
+    if (ctx.isWilayah) {
+      const ukpdName = String(body.ukpd || record.ukpd || '').trim();
+      const wilayahVal = map[norm(ukpdName)] || record.wilayah || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) return forbidden();
+      body.wilayah = wilayahVal;
+    } else {
+      body.ukpd = sessionUser.namaUkpd || sessionUser.username || record.ukpd;
+      if (sessionUser.wilayah) body.wilayah = sessionUser.wilayah;
+    }
+  }
   const rowData = { ...body, kode };
   const payload = BEZETTING_COLS.map(k => rowData[k] || '');
   sheet.getRange(rowNumber, 1, 1, BEZETTING_COLS.length).setValues([payload]);
@@ -1030,6 +1235,13 @@ function deleteBezetting(e) {
   const [header, ...rows] = values;
   const idx = findRowIndexByHeader(header, rows, 'kode', 6, kode);
   if (idx < 0) return json({ ok: false, error: 'Kode tidak ditemukan' });
+  const sessionUser = e.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const record = toBezettingRecord(header, rows[idx]);
+    const map = getUkpdWilayahMap();
+    if (!isUkpdAllowed(ctx, record.ukpd, record.wilayah, map)) return forbidden();
+  }
   sheet.deleteRow(idx + 2);
   bumpCacheVersion();
   return json({ ok: true, data: { kode } });
@@ -1081,7 +1293,7 @@ function sanitizeCacheParams(params) {
   const clean = {};
   Object.keys(raw).forEach((key) => {
     const lower = String(key || '').toLowerCase();
-    if (!lower || lower === 'key' || lower === 'nocache' || lower === 'cache') return;
+    if (!lower || lower === 'key' || lower === 'nocache' || lower === 'cache' || lower === 'session') return;
     clean[key] = raw[key];
   });
   return clean;
@@ -1115,6 +1327,118 @@ function storeCachedResponse(action, params, response, ttlSeconds) {
     CacheService.getScriptCache().put(key, JSON.stringify(response), ttlSeconds);
   } catch (_) { /* ignore */ }
   return json(response);
+}
+
+function generateSessionToken() {
+  const raw = `${Utilities.getUuid()}-${Date.now()}-${Math.random()}`;
+  return digestHex(raw).slice(0, 40);
+}
+
+function getSessionToken(e) {
+  const params = e?.parameter || {};
+  const body = e?.body || parseBody(e) || {};
+  return String(params.session || body.session || '').trim();
+}
+
+function getSessionCacheKey(token) {
+  return `${SESSION_PREFIX}${token}`;
+}
+
+function storeSession(token, user) {
+  if (!token) return;
+  try {
+    CacheService.getScriptCache().put(getSessionCacheKey(token), JSON.stringify(user || {}), SESSION_TTL);
+  } catch (_) { /* ignore */ }
+}
+
+function readSession(token) {
+  if (!token) return null;
+  const cache = CacheService.getScriptCache();
+  const raw = cache.get(getSessionCacheKey(token));
+  if (!raw) return null;
+  try {
+    const user = JSON.parse(raw);
+    cache.put(getSessionCacheKey(token), raw, SESSION_TTL);
+    return user || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function clearSession(token) {
+  if (!token) return;
+  try { CacheService.getScriptCache().remove(getSessionCacheKey(token)); } catch (_) { /* ignore */ }
+}
+
+function getRoleContext(user) {
+  const roleRaw = norm(user?.role || '');
+  const isSuper = roleRaw.includes('super') || roleRaw.includes('dinkes');
+  const isWilayah = roleRaw.includes('wilayah');
+  const ukpd = norm(user?.namaUkpd || user?.username || '');
+  const wilayah = norm(user?.wilayah || '');
+  return { role: roleRaw, isSuper, isWilayah, ukpd, wilayah };
+}
+
+function isUkpdAllowed(ctx, ukpdName, wilayahValue, map) {
+  if (!ctx || ctx.isSuper) return true;
+  if (ctx.isWilayah) {
+    const w = norm(wilayahValue || (map && map[norm(ukpdName)]) || '');
+    return w && ctx.wilayah && w === ctx.wilayah;
+  }
+  return norm(ukpdName) && norm(ukpdName) === ctx.ukpd;
+}
+
+function getSessionScope(user) {
+  const ctx = getRoleContext(user || {});
+  return [ctx.role || '-', ctx.ukpd || '-', ctx.wilayah || '-'].join('|');
+}
+
+function filterPegawaiByRole(records, user) {
+  const ctx = getRoleContext(user || {});
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => {
+      const wukpd = norm(r.wilayah_ukpd || '');
+      const unitName = norm(r.nama_ukpd || '');
+      return wukpd ? wukpd.includes(ctx.wilayah) : unitName.includes(ctx.wilayah);
+    });
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.nama_ukpd || '') === ctx.ukpd);
+}
+
+function filterMutasiByRole(records, user) {
+  const ctx = getRoleContext(user || {});
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => {
+      const wasal = norm(r.wilayah_asal || '');
+      const wtujuan = norm(r.wilayah_tujuan || '');
+      return (wasal && wasal === ctx.wilayah) || (wtujuan && wtujuan === ctx.wilayah);
+    });
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.nama_ukpd || '') === ctx.ukpd);
+}
+
+function filterPemutusanByRole(records, user) {
+  const ctx = getRoleContext(user || {});
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => norm(r.wilayah || '') === ctx.wilayah);
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.nama_ukpd || '') === ctx.ukpd);
+}
+
+function filterBezettingByRole(records, user) {
+  const ctx = getRoleContext(user || {});
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => norm(r.wilayah || '') === ctx.wilayah);
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.ukpd || '') === ctx.ukpd);
 }
 
 function norm(val = '') {

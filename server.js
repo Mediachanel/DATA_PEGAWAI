@@ -7,6 +7,13 @@ import process from 'process';
 import { Readable } from 'stream';
 
 const PORT = process.env.PORT || 5002;
+const HOST = process.env.HOST || '127.0.0.1';
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(v => v.trim())
+  .filter(Boolean);
+const LOGIN_WINDOW_MS = Math.max(60000, parseInt(process.env.LOGIN_WINDOW_MS, 10) || 5 * 60 * 1000);
+const LOGIN_MAX_ATTEMPTS = Math.max(5, parseInt(process.env.LOGIN_MAX_ATTEMPTS, 10) || 10);
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw';
 const RANGE = process.env.RANGE || 'DATA PEGAWAI!A:AC'; // 29 kolom (tambah wilayah_ukpd)
 const USER_RANGE = process.env.USER_RANGE || 'username!A:E'; // Nama UKPD | Username | password | hak akses | wilayah
@@ -148,6 +155,133 @@ function isStrongPassword(password = '') {
   const hasNumber = /[0-9]/.test(password);
   const hasSymbol = /[^A-Za-z0-9]/.test(password);
   return hasUpper && hasLower && hasNumber && hasSymbol;
+}
+
+function createSession(user) {
+  const token = crypto.randomBytes(24).toString('hex');
+  sessionStore.set(token, { user, expiresAt: Date.now() + SESSION_TTL });
+  return token;
+}
+
+function getSession(token = '') {
+  const raw = String(token || '').trim();
+  if (!raw) return null;
+  const record = sessionStore.get(raw);
+  if (!record) return null;
+  if (Date.now() > record.expiresAt) {
+    sessionStore.delete(raw);
+    return null;
+  }
+  record.expiresAt = Date.now() + SESSION_TTL;
+  sessionStore.set(raw, record);
+  return record.user || null;
+}
+
+function clearSession(token = '') {
+  const raw = String(token || '').trim();
+  if (!raw) return;
+  sessionStore.delete(raw);
+}
+
+const loginAttempts = new Map();
+
+function getClientKey(req, username = '') {
+  const ipRaw = req.headers['x-forwarded-for'] || req.ip || '';
+  const ip = String(ipRaw).split(',')[0].trim() || 'unknown';
+  const userKey = String(username || '').trim().toLowerCase();
+  return `${ip}|${userKey}`;
+}
+
+function isRateLimited(key) {
+  const entry = loginAttempts.get(key);
+  if (!entry) return false;
+  const now = Date.now();
+  if (now > entry.resetAt) {
+    loginAttempts.delete(key);
+    return false;
+  }
+  return entry.count >= LOGIN_MAX_ATTEMPTS;
+}
+
+function recordLoginAttempt(key, success) {
+  if (success) {
+    loginAttempts.delete(key);
+    return;
+  }
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return;
+  }
+  entry.count += 1;
+  loginAttempts.set(key, entry);
+}
+
+function getRoleContext(user = {}) {
+  const roleRaw = norm(user.role || '');
+  const isSuper = roleRaw.includes('super') || roleRaw.includes('dinkes');
+  const isWilayah = roleRaw.includes('wilayah');
+  const ukpd = norm(user.namaUkpd || user.username || '');
+  const wilayah = norm(user.wilayah || '');
+  return { role: roleRaw, isSuper, isWilayah, ukpd, wilayah };
+}
+
+function isUkpdAllowed(ctx, ukpdName, wilayahValue, map) {
+  if (!ctx || ctx.isSuper) return true;
+  if (ctx.isWilayah) {
+    const w = norm(wilayahValue || (map && map[norm(ukpdName)]) || '');
+    return w && ctx.wilayah && w === ctx.wilayah;
+  }
+  return norm(ukpdName) && norm(ukpdName) === ctx.ukpd;
+}
+
+function filterPegawaiByRole(records = [], user = {}) {
+  const ctx = getRoleContext(user);
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => {
+      const wukpd = norm(r.wilayah_ukpd || '');
+      const unitName = norm(r.nama_ukpd || '');
+      return wukpd ? wukpd.includes(ctx.wilayah) : unitName.includes(ctx.wilayah);
+    });
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.nama_ukpd || '') === ctx.ukpd);
+}
+
+function filterMutasiByRole(records = [], user = {}) {
+  const ctx = getRoleContext(user);
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => {
+      const wasal = norm(r.wilayah_asal || '');
+      const wtujuan = norm(r.wilayah_tujuan || '');
+      return (wasal && wasal === ctx.wilayah) || (wtujuan && wtujuan === ctx.wilayah);
+    });
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.nama_ukpd || '') === ctx.ukpd);
+}
+
+function filterPemutusanByRole(records = [], user = {}) {
+  const ctx = getRoleContext(user);
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => norm(r.wilayah || '') === ctx.wilayah);
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.nama_ukpd || '') === ctx.ukpd);
+}
+
+function filterBezettingByRole(records = [], user = {}) {
+  const ctx = getRoleContext(user);
+  if (ctx.isSuper) return records;
+  if (ctx.isWilayah && ctx.wilayah) {
+    return records.filter(r => norm(r.wilayah || '') === ctx.wilayah);
+  }
+  if (!ctx.ukpd) return [];
+  return records.filter(r => norm(r.ukpd || '') === ctx.ukpd);
 }
 const normalizeHeaderKey = (val = '') => val.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
 
@@ -312,9 +446,13 @@ const sheets = google.sheets({ version: 'v4', auth });
 const drive = google.drive({ version: 'v3', auth });
 const PEGAWAI_CACHE_TTL = Math.max(5000, parseInt(process.env.PEGAWAI_CACHE_TTL, 10) || 45000);
 const BEZETTING_CACHE_TTL = Math.max(5000, parseInt(process.env.BEZETTING_CACHE_TTL, 10) || 60000);
+const SESSION_TTL = Math.max(60000, parseInt(process.env.SESSION_TTL_MS, 10) || 10 * 60 * 1000);
+const LOCAL_API_KEY = process.env.LOCAL_API_KEY || process.env.PROXY_KEY || '';
 const pegawaiCache = { at: 0, header: [], records: [], inflight: null, version: 0 };
 const bezettingCache = { at: 0, records: [], inflight: null, version: 0 };
+const sessionStore = new Map();
 const app = express();
+app.disable('x-powered-by');
 const fetchFn = (...args) => (global.fetch ? global.fetch(...args) : import('node-fetch').then(({ default: f }) => f(...args)));
 // perbesar batas body untuk upload base64
 app.use(express.text({ type: 'text/plain', limit: '20mb' }));
@@ -328,10 +466,62 @@ app.use((req, _res, next) => {
 
 // CORS
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.length) {
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+    }
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Proxy-Key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Proxy-Key, X-Session');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=()');
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
+app.use((req, res, next) => {
+  if (!LOCAL_API_KEY) return next();
+  const incoming = req.headers['x-proxy-key'] || '';
+  if (incoming !== LOCAL_API_KEY) return res.status(401).json({ ok: false, error: 'forbidden' });
+  next();
+});
+
+const isPublishedQnaRequest = (req) => {
+  const statusParam = (req.query?.status || req.body?.status || '').toString().trim();
+  if (!statusParam) return false;
+  const statuses = statusParam.split(',').map(norm).filter(Boolean);
+  return statuses.length === 1 && statuses[0] === 'published';
+};
+
+const isPublicRequest = (req) => {
+  if (req.path === '/health' || req.path === '/login') return true;
+  if (req.path === '/qna' && req.method === 'GET') return isPublishedQnaRequest(req);
+  if (req.path !== '/') return false;
+  const action = (req.query?.action || req.body?.action || '').toString().trim().toLowerCase();
+  if (action === 'login' || action === 'health') return true;
+  if (action === 'qna_list') return isPublishedQnaRequest(req);
+  return false;
+};
+
+app.use((req, res, next) => {
+  if (isPublicRequest(req)) return next();
+  const token = (req.query?.session || req.body?.session || req.headers['x-session'] || '').toString().trim();
+  const user = getSession(token);
+  if (!user) return res.status(401).json({ ok: false, error: 'unauthorized' });
+  req.sessionUser = user;
   next();
 });
 
@@ -433,7 +623,11 @@ app.all('/', async (req, res) => {
   delete payload.action;
 
   const baseUrl = `http://127.0.0.1:${PORT}`;
-  const headers = { 'Content-Type': 'application/json' };
+  const incomingKey = req.headers['x-proxy-key'] || '';
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(incomingKey ? { 'X-Proxy-Key': incomingKey } : (LOCAL_API_KEY ? { 'X-Proxy-Key': LOCAL_API_KEY } : {}))
+  };
 
   switch (action) {
     case 'list': {
@@ -461,6 +655,9 @@ app.all('/', async (req, res) => {
     }
     case 'login': {
       return forwardTo(`${baseUrl}/login`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
+    }
+    case 'logout': {
+      return forwardTo(`${baseUrl}/logout`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
     }
     case 'password_change': {
       return forwardTo(`${baseUrl}/password`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
@@ -600,6 +797,23 @@ app.post('/upload', async (req, res) => {
 
 app.post('/pegawai', async (req, res) => {
   const d = req.body || {};
+  const sessionUser = req.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper) {
+    const map = await getUkpdWilayahMap();
+    if (ctx.isWilayah) {
+      const ukpdName = String(d.nama_ukpd || '').trim();
+      if (!ukpdName) return res.status(400).json({ ok: false, error: 'Nama UKPD wajib' });
+      const wilayahVal = map[norm(ukpdName)] || '';
+      if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+      d.wilayah_ukpd = wilayahVal;
+    } else {
+      d.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || d.nama_ukpd;
+      if (sessionUser.wilayah) d.wilayah_ukpd = sessionUser.wilayah;
+    }
+  }
   const row = COLS.map(k => d[k] || '');
   try {
     const result = await sheets.spreadsheets.values.append({
@@ -618,6 +832,7 @@ app.post('/pegawai', async (req, res) => {
 
 app.get('/pegawai', async (req, res) => {
   try {
+    const sessionUser = req.sessionUser || {};
     const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20000, 30000));
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     const term = norm(req.query.search);
@@ -628,7 +843,7 @@ app.get('/pegawai', async (req, res) => {
     const lite = ['1', 'true', 'yes'].includes(norm(req.query.lite));
 
     const baseRecords = await getPegawaiRecords();
-    let rows = baseRecords;
+    let rows = filterPegawaiByRole(baseRecords, sessionUser);
 
     rows = rows.filter(r => {
       const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => norm(v).includes(term));
@@ -657,10 +872,14 @@ app.get('/pegawai', async (req, res) => {
 app.get('/pegawai/:id', async (req, res) => {
   const id = req.params.id;
   try {
+    const sessionUser = req.sessionUser || {};
     const records = await getPegawaiRecords();
     if (!records.length) return res.status(404).json({ ok: false, error: 'Data kosong' });
     const found = records.find(r => r.id === id || r.nip === id || r.nik === id);
     if (!found) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
+    if (!filterPegawaiByRole([found], sessionUser).length) {
+      return res.status(403).json({ ok: false, error: 'forbidden' });
+    }
     res.json({ ok: true, data: found });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -684,6 +903,27 @@ app.put('/pegawai/:id', async (req, res) => {
       return nipVal === id || nikVal === id;
     });
     if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP/NIK) tidak ditemukan' });
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    const currentRow = rows[idx] || [];
+    const current = toRecord(header, currentRow);
+    if (!ctx.isSuper) {
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, current.nama_ukpd, current.wilayah_ukpd, map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+      if (ctx.isWilayah) {
+        const ukpdName = String(d.nama_ukpd || current.nama_ukpd || '').trim();
+        const wilayahVal = map[norm(ukpdName)] || current.wilayah_ukpd || '';
+        if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+          return res.status(403).json({ ok: false, error: 'forbidden' });
+        }
+        d.wilayah_ukpd = wilayahVal;
+      } else {
+        d.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
+        if (sessionUser.wilayah) d.wilayah_ukpd = sessionUser.wilayah;
+      }
+    }
     const rowNumber = idx + 1; // 1-based
     const payload = COLS.map(k => d[k] || '');
     await sheets.spreadsheets.values.update({
@@ -714,6 +954,15 @@ app.delete('/pegawai/:id', async (req, res) => {
       return nipVal === id || nikVal === id;
     });
     if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP/NIK) tidak ditemukan' });
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const record = toRecord(header, rows[idx]);
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, record.nama_ukpd, record.wilayah_ukpd, map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+    }
     const sheetId = await getSheetIdByName(SHEET_NAME);
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -736,6 +985,10 @@ app.post('/login', async (req, res) => {
   const bodyPayload = req.body || {};
   const { username, password } = bodyPayload;
   if (!username || !password) return res.status(400).json({ ok: false, error: 'Username dan password wajib' });
+  const attemptKey = getClientKey(req, username);
+  if (isRateLimited(attemptKey)) {
+    return res.status(429).json({ ok: false, error: 'Terlalu banyak percobaan login. Coba lagi nanti.' });
+  }
   try {
     const result = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: USER_RANGE });
     const values = result.data.values || [];
@@ -757,7 +1010,11 @@ app.post('/login', async (req, res) => {
     const uname = username.trim().toLowerCase();
     const pword = password.trim();
     const found = users.find(u => u.username.toLowerCase() === uname && verifyPassword(pword, u.password));
-    if (!found) return res.status(401).json({ ok: false, error: 'Username atau password salah' });
+    if (!found) {
+      recordLoginAttempt(attemptKey, false);
+      return res.status(401).json({ ok: false, error: 'Username atau password salah' });
+    }
+    recordLoginAttempt(attemptKey, true);
     if (!isHashedPassword(found.password)) {
       const newHash = hashPassword(pword);
       const sheetName = USER_RANGE.split('!')[0];
@@ -770,10 +1027,23 @@ app.post('/login', async (req, res) => {
         requestBody: { values: [[newHash]] }
       });
     }
-    return res.json({ ok: true, user: { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah } });
+    const user = { username: found.username, role: found.role, namaUkpd: found.namaUkpd, wilayah: found.wilayah };
+    const sessionToken = createSession(user);
+    return res.json({
+      ok: true,
+      user,
+      session_token: sessionToken,
+      session_expires_in: Math.floor(SESSION_TTL / 1000)
+    });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+app.post('/logout', (req, res) => {
+  const token = (req.body?.session || req.query?.session || req.headers['x-session'] || '').toString().trim();
+  clearSession(token);
+  res.json({ ok: true });
 });
 
 app.post('/password', async (req, res) => {
@@ -783,6 +1053,11 @@ app.post('/password', async (req, res) => {
   const newPassword = (bodyPayload.new_password || '').trim();
   if (!username || !currentPassword || !newPassword) {
     return res.status(400).json({ ok: false, error: 'Username, password lama, dan password baru wajib' });
+  }
+  const sessionUser = req.sessionUser || {};
+  const ctx = getRoleContext(sessionUser);
+  if (!ctx.isSuper && String(sessionUser.username || '').toLowerCase() !== username.toLowerCase()) {
+    return res.status(403).json({ ok: false, error: 'forbidden' });
   }
   if (!isStrongPassword(newPassword)) {
     return res.status(400).json({ ok: false, error: 'Password baru belum memenuhi kriteria keamanan' });
@@ -820,6 +1095,7 @@ app.post('/password', async (req, res) => {
 /* ==== Usulan Mutasi (sheet USULAN_MUTASI) ==== */
 app.get('/mutasi', async (req, res) => {
   try {
+    const sessionUser = req.sessionUser || {};
     const term = (req.query.search || '').toLowerCase().trim();
     const status = (req.query.status || '').toLowerCase().trim();
     const ukpd = (req.query.ukpd || '').toLowerCase().trim();
@@ -836,7 +1112,7 @@ app.get('/mutasi', async (req, res) => {
     const values = result.data.values || [];
     const [header, ...rows] = values;
     const ukpdWilayahMap = await getUkpdWilayahMap();
-    const list = rows.map(r => {
+    let list = rows.map(r => {
       const rec = toMutasiRecord(header, r);
       const ukpdAsal = norm(rec.nama_ukpd);
       const ukpdTujuan = norm(rec.ukpd_tujuan);
@@ -844,6 +1120,8 @@ app.get('/mutasi', async (req, res) => {
       if (!rec.wilayah_tujuan) rec.wilayah_tujuan = ukpdWilayahMap[ukpdTujuan] || '';
       return rec;
     }).filter(r => r.id);
+
+    list = filterMutasiByRole(list, sessionUser);
 
     const baseFiltered = list.filter(r => {
       const matchTerm = !term || [r.nip, r.nama_pegawai].some(v => (v || '').toLowerCase().includes(term));
@@ -882,6 +1160,7 @@ app.get('/mutasi', async (req, res) => {
 app.get('/mutasi/:id', async (req, res) => {
   const id = req.params.id;
   try {
+    const sessionUser = req.sessionUser || {};
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: MUTASI_RANGE,
@@ -890,9 +1169,20 @@ app.get('/mutasi/:id', async (req, res) => {
     });
     const values = result.data.values || [];
     const [header, ...rows] = values;
-    const list = rows.map(r => toMutasiRecord(header, r));
+    const ukpdWilayahMap = await getUkpdWilayahMap();
+    const list = rows.map(r => {
+      const rec = toMutasiRecord(header, r);
+      const ukpdAsal = norm(rec.nama_ukpd);
+      const ukpdTujuan = norm(rec.ukpd_tujuan);
+      if (!rec.wilayah_asal) rec.wilayah_asal = ukpdWilayahMap[ukpdAsal] || '';
+      if (!rec.wilayah_tujuan) rec.wilayah_tujuan = ukpdWilayahMap[ukpdTujuan] || '';
+      return rec;
+    });
     const found = list.find(r => r.id === id);
     if (!found) return res.status(404).json({ ok: false, error: 'ID mutasi tidak ditemukan' });
+    if (!filterMutasiByRole([found], sessionUser).length) {
+      return res.status(403).json({ ok: false, error: 'forbidden' });
+    }
     res.json({ ok: true, data: found });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -902,6 +1192,21 @@ app.get('/mutasi/:id', async (req, res) => {
 app.post('/mutasi', async (req, res) => {
   try {
     const d = req.body || {};
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const map = await getUkpdWilayahMap();
+      if (ctx.isWilayah) {
+        const ukpdName = String(d.nama_ukpd || '').trim();
+        if (!ukpdName) return res.status(400).json({ ok: false, error: 'Nama UKPD wajib' });
+        const wilayahVal = map[norm(ukpdName)] || '';
+        if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+          return res.status(403).json({ ok: false, error: 'forbidden' });
+        }
+      } else {
+        d.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || d.nama_ukpd;
+      }
+    }
     const id = d.id || `UM-${Date.now()}`;
     const nowIso = new Date().toISOString();
     const rowData = {
@@ -936,6 +1241,7 @@ app.post('/mutasi', async (req, res) => {
 app.put('/mutasi/:id', async (req, res) => {
   const id = req.params.id;
   try {
+    const body = req.body || {};
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: MUTASI_RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
@@ -945,7 +1251,24 @@ app.put('/mutasi/:id', async (req, res) => {
     const rowNumber = idx + 2; // +1 header
     const currentRow = data[idx] || [];
     const current = toMutasiRecord(safeHeader, currentRow);
-    const payloadData = { ...current, ...(req.body || {}), id };
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, current.nama_ukpd, map[norm(current.nama_ukpd)] || '', map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+      if (ctx.isWilayah) {
+        const ukpdName = String(body.nama_ukpd || current.nama_ukpd || '').trim();
+        const wilayahVal = map[norm(ukpdName)] || '';
+        if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+          return res.status(403).json({ ok: false, error: 'forbidden' });
+        }
+      } else {
+        body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
+      }
+    }
+    const payloadData = { ...current, ...body, id };
     if (!payloadData.updated_at) payloadData.updated_at = new Date().toISOString();
     const baseRow = currentRow.slice();
     while (baseRow.length < safeHeader.length) baseRow.push('');
@@ -971,6 +1294,16 @@ app.delete('/mutasi/:id', async (req, res) => {
     const rows = values.data.values || [];
     const idx = rows.findIndex(r => (r[0] || '').toString() === id);
     if (idx < 1) return res.status(404).json({ ok: false, error: 'ID mutasi tidak ditemukan' });
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const header = rows[0] || MUTASI_COLS;
+      const record = toMutasiRecord(header, rows[idx] || []);
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, record.nama_ukpd, map[norm(record.nama_ukpd)] || '', map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+    }
     const sheetId = await getSheetIdByName(MUTASI_RANGE.split('!')[0]);
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -991,6 +1324,8 @@ app.delete('/mutasi/:id', async (req, res) => {
 /* ==== Usulan Pemutusan JF (sheet USULAN_PEMUTUSAN_JF) ==== */
 app.get('/pemutusan-jf', async (req, res) => {
   try {
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
     const term = norm(req.query.search);
     const status = norm(req.query.status);
     const ukpdQuery = norm(req.query.ukpd);
@@ -1002,9 +1337,16 @@ app.get('/pemutusan-jf', async (req, res) => {
     let list = rows.map(r => toPemutusanRecord(header, r)).filter(r => r.id);
 
     let mapWilayah = null;
-    if (wilayahQuery) {
+    if (wilayahQuery || ctx.isWilayah) {
       mapWilayah = await getUkpdWilayahMap(); // { ukpd_lower: wilayah_lower }
     }
+    if (mapWilayah) {
+      list = list.map((rec) => {
+        if (!rec.wilayah) rec.wilayah = mapWilayah[norm(rec.nama_ukpd)] || '';
+        return rec;
+      });
+    }
+    list = filterPemutusanByRole(list, sessionUser);
 
     list = list.filter(r => {
       const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
@@ -1032,6 +1374,21 @@ app.get('/pemutusan-jf', async (req, res) => {
 app.post('/pemutusan-jf', async (req, res) => {
   try {
     const d = req.body || {};
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const map = await getUkpdWilayahMap();
+      if (ctx.isWilayah) {
+        const ukpdName = String(d.nama_ukpd || '').trim();
+        if (!ukpdName) return res.status(400).json({ ok: false, error: 'Nama UKPD wajib' });
+        const wilayahVal = map[norm(ukpdName)] || '';
+        if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+          return res.status(403).json({ ok: false, error: 'forbidden' });
+        }
+      } else {
+        d.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || d.nama_ukpd;
+      }
+    }
     const id = d.id || `PJ-${Date.now()}`;
     const nowIso = new Date().toISOString();
     const rowData = {
@@ -1066,6 +1423,7 @@ app.post('/pemutusan-jf', async (req, res) => {
 app.put('/pemutusan-jf/:id', async (req, res) => {
   const id = req.params.id;
   try {
+    const body = req.body || {};
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: PEMUTUSAN_RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
@@ -1075,7 +1433,24 @@ app.put('/pemutusan-jf/:id', async (req, res) => {
     const rowNumber = idx + 2; // +1 header
     const currentRow = data[idx] || [];
     const current = toPemutusanRecord(safeHeader, currentRow);
-    const dataPayload = { ...current, ...(req.body || {}), id };
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, current.nama_ukpd, map[norm(current.nama_ukpd)] || '', map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+      if (ctx.isWilayah) {
+        const ukpdName = String(body.nama_ukpd || current.nama_ukpd || '').trim();
+        const wilayahVal = map[norm(ukpdName)] || '';
+        if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+          return res.status(403).json({ ok: false, error: 'forbidden' });
+        }
+      } else {
+        body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
+      }
+    }
+    const dataPayload = { ...current, ...body, id };
     if (!dataPayload.updated_at) dataPayload.updated_at = new Date().toISOString();
     const baseRow = currentRow.slice();
     while (baseRow.length < safeHeader.length) baseRow.push('');
@@ -1101,6 +1476,16 @@ app.delete('/pemutusan-jf/:id', async (req, res) => {
     const rows = values.data.values || [];
     const idx = rows.findIndex(r => (r[0] || '').toString() === id);
     if (idx < 1) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const header = rows[0] || PEMUTUSAN_COLS;
+      const record = toPemutusanRecord(header, rows[idx] || []);
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, record.nama_ukpd, map[norm(record.nama_ukpd)] || '', map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+    }
     const sheetId = await getSheetIdByName(PEMUTUSAN_RANGE.split('!')[0]);
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -1119,12 +1504,17 @@ app.delete('/pemutusan-jf/:id', async (req, res) => {
 /* ==== QnA (sheet Q n A) ==== */
 app.get('/qna', async (req, res) => {
   try {
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
     const term = norm(req.query.search);
     const statusParam = norm(req.query.status);
     const category = norm(req.query.category);
-    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20000, 50000));
-    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     const statusList = statusParam ? statusParam.split(',').map(norm).filter(Boolean) : [];
+    const isPublic = !ctx.isSuper && statusList.length === 1 && statusList[0] === 'published';
+    if (!ctx.isSuper && !isPublic) return res.status(403).json({ ok: false, error: 'forbidden' });
+    const maxLimit = ctx.isSuper ? 50000 : 200;
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20000, maxLimit));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -1169,6 +1559,9 @@ app.get('/qna', async (req, res) => {
 
 app.post('/qna', async (req, res) => {
   try {
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) return res.status(403).json({ ok: false, error: 'forbidden' });
     const d = req.body || {};
     const id = d.id || `QNA-${Date.now()}`;
     const nowIso = new Date().toISOString();
@@ -1204,6 +1597,9 @@ app.post('/qna', async (req, res) => {
 app.put('/qna/:id', async (req, res) => {
   const id = req.params.id;
   try {
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) return res.status(403).json({ ok: false, error: 'forbidden' });
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: QNA_RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
@@ -1237,6 +1633,9 @@ app.put('/qna/:id', async (req, res) => {
 app.delete('/qna/:id', async (req, res) => {
   const id = req.params.id;
   try {
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) return res.status(403).json({ ok: false, error: 'forbidden' });
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: QNA_RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
@@ -1265,6 +1664,7 @@ app.delete('/qna/:id', async (req, res) => {
 /* ==== Bezetting (sheet bezetting) ==== */
 app.get('/bezetting', async (req, res) => {
   try {
+    const sessionUser = req.sessionUser || {};
     const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 20000, 30000));
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
     const term = norm(req.query.search);
@@ -1278,6 +1678,7 @@ app.get('/bezetting', async (req, res) => {
     let list = records.filter(r => r.kode || r.no);
 
     // Role filter
+    list = filterBezettingByRole(list, sessionUser);
     const matchWilayah = (value, query) => {
       if (!query) return true;
       const v = norm(value);
@@ -1313,6 +1714,23 @@ app.get('/bezetting', async (req, res) => {
 app.post('/bezetting', async (req, res) => {
   try {
     const d = req.body || {};
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const map = await getUkpdWilayahMap();
+      if (ctx.isWilayah) {
+        const ukpdName = String(d.ukpd || '').trim();
+        if (!ukpdName) return res.status(400).json({ ok: false, error: 'Nama UKPD wajib' });
+        const wilayahVal = map[norm(ukpdName)] || '';
+        if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+          return res.status(403).json({ ok: false, error: 'forbidden' });
+        }
+        d.wilayah = wilayahVal;
+      } else {
+        d.ukpd = sessionUser.namaUkpd || sessionUser.username || d.ukpd;
+        if (sessionUser.wilayah) d.wilayah = sessionUser.wilayah;
+      }
+    }
     const kode = d.kode || `BZ-${Date.now()}`;
     const payloadData = { ...d, kode };
     const row = BEZETTING_COLS.map(k => payloadData[k] || '');
@@ -1333,6 +1751,7 @@ app.post('/bezetting', async (req, res) => {
 app.put('/bezetting/:kode', async (req, res) => {
   const kode = req.params.kode;
   try {
+    const body = req.body || {};
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: BEZETTING_RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
@@ -1341,7 +1760,27 @@ app.put('/bezetting/:kode', async (req, res) => {
     const idx = data.findIndex(r => norm(idxKode >= 0 ? r[idxKode] : r[6]) === norm(kode));
     if (idx < 0) return res.status(404).json({ ok: false, error: 'Kode tidak ditemukan' });
     const rowNumber = idx + 2;
-    const payloadData = { ...(req.body || {}), kode };
+    const current = toBezettingRecord(header, data[idx] || []);
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, current.ukpd, current.wilayah, map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+      if (ctx.isWilayah) {
+        const ukpdName = String(body.ukpd || current.ukpd || '').trim();
+        const wilayahVal = map[norm(ukpdName)] || current.wilayah || '';
+        if (!wilayahVal || norm(wilayahVal) !== ctx.wilayah) {
+          return res.status(403).json({ ok: false, error: 'forbidden' });
+        }
+        body.wilayah = wilayahVal;
+      } else {
+        body.ukpd = sessionUser.namaUkpd || sessionUser.username || current.ukpd;
+        if (sessionUser.wilayah) body.wilayah = sessionUser.wilayah;
+      }
+    }
+    const payloadData = { ...body, kode };
     const payload = BEZETTING_COLS.map(k => payloadData[k] || '');
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -1366,6 +1805,15 @@ app.delete('/bezetting/:kode', async (req, res) => {
     const idxKode = hNorm.indexOf('kode');
     const idx = rows.findIndex(r => norm(idxKode >= 0 ? r[idxKode] : r[6]) === norm(kode));
     if (idx < 1) return res.status(404).json({ ok: false, error: 'Kode tidak ditemukan' });
+    const sessionUser = req.sessionUser || {};
+    const ctx = getRoleContext(sessionUser);
+    if (!ctx.isSuper) {
+      const record = toBezettingRecord(header, rows[idx] || []);
+      const map = await getUkpdWilayahMap();
+      if (!isUkpdAllowed(ctx, record.ukpd, record.wilayah, map)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' });
+      }
+    }
     const sheetId = await getSheetIdByName(BEZETTING_RANGE.split('!')[0]);
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -1624,7 +2072,7 @@ if (shouldMigratePasswords) {
       process.exit(1);
     });
 } else {
-  app.listen(PORT, () => {
-    console.log(`API listening on http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`API listening on http://${HOST}:${PORT}`);
   });
 }

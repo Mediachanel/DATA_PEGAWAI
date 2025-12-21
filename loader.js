@@ -14,7 +14,8 @@
     fetchWrapped: false,
     apiBase: '',
     shownAt: 0,
-    lastMessage: ''
+    lastMessage: '',
+    redirecting: false
   };
 
   const ensureStyle = () => {
@@ -247,6 +248,106 @@
     return target.includes('action=');
   };
 
+  const getAuthUser = () => {
+    try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; }
+  };
+
+  const clearAuthUser = () => {
+    try { localStorage.removeItem('authUser'); } catch (_) { /* ignore */ }
+  };
+
+  const getBasePath = () => {
+    const parts = location.pathname.split('/').filter(Boolean);
+    return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+  };
+
+  const ensureHeader = (init, key, value) => {
+    if (!init.headers) {
+      init.headers = { [key]: value };
+      return;
+    }
+    if (init.headers instanceof Headers) {
+      if (!init.headers.has(key)) init.headers.set(key, value);
+      return;
+    }
+    if (Array.isArray(init.headers)) {
+      const exists = init.headers.some(([k]) => String(k).toLowerCase() === key.toLowerCase());
+      if (!exists) init.headers.push([key, value]);
+      return;
+    }
+    if (!Object.prototype.hasOwnProperty.call(init.headers, key)) init.headers[key] = value;
+  };
+
+  const appendSessionToUrl = (url, session) => {
+    if (!session) return url;
+    if (url.includes('session=')) return url;
+    const joiner = url.includes('?') ? '&' : '?';
+    return `${url}${joiner}session=${encodeURIComponent(session)}`;
+  };
+
+  const injectSession = (url, init) => {
+    const authUser = getAuthUser();
+    const session = authUser?.session;
+    if (!session) return { url, init };
+    const nextInit = init ? { ...init } : {};
+    const method = (nextInit.method || 'GET').toUpperCase();
+    if (method === 'GET' || method === 'HEAD') {
+      return { url: appendSessionToUrl(url, session), init: nextInit };
+    }
+
+    const body = nextInit.body;
+    if (body instanceof FormData) {
+      if (!body.has('session')) body.append('session', session);
+      nextInit.body = body;
+      return { url, init: nextInit };
+    }
+    if (body instanceof URLSearchParams) {
+      if (!body.has('session')) body.append('session', session);
+      nextInit.body = body;
+      return { url, init: nextInit };
+    }
+    if (typeof body === 'string') {
+      try {
+        const data = JSON.parse(body);
+        if (data && typeof data === 'object' && !Array.isArray(data) && !Object.prototype.hasOwnProperty.call(data, 'session')) {
+          data.session = session;
+          nextInit.body = JSON.stringify(data);
+          ensureHeader(nextInit, 'Content-Type', 'application/json');
+        }
+        return { url, init: nextInit };
+      } catch (_) {
+        if (!body.includes('session=')) {
+          const joiner = body && body.includes('=') ? '&' : '';
+          nextInit.body = `${body}${joiner}session=${encodeURIComponent(session)}`;
+        }
+        return { url, init: nextInit };
+      }
+    }
+    if (body && typeof body === 'object') {
+      if (!Object.prototype.hasOwnProperty.call(body, 'session')) {
+        nextInit.body = JSON.stringify({ ...body, session });
+        ensureHeader(nextInit, 'Content-Type', 'application/json');
+      }
+      return { url, init: nextInit };
+    }
+
+    nextInit.body = JSON.stringify({ session });
+    ensureHeader(nextInit, 'Content-Type', 'application/json');
+    return { url, init: nextInit };
+  };
+
+  const handleUnauthorized = (response) => {
+    if (!response) return response;
+    if (response.status === 401 || response.status === 403) {
+      if (!state.redirecting) {
+        state.redirecting = true;
+        clearAuthUser();
+        window.location.href = getBasePath();
+      }
+    }
+    return response;
+  };
+
   const wrapFetch = (apiBase) => {
     if (apiBase) state.apiBase = apiBase;
     if (state.fetchWrapped) return;
@@ -256,11 +357,12 @@
     window.fetch = (input, init) => {
       const url = getUrl(input);
       if (!isApiRequest(url)) return originalFetch(input, init);
+      const next = injectSession(url, init);
       start();
-      return originalFetch(input, init).then(
+      return originalFetch(next.url || url, next.init || init).then(
         (response) => {
           done();
-          return response;
+          return handleUnauthorized(response);
         },
         (error) => {
           done();
@@ -272,19 +374,14 @@
 
   const initIdleLogout = () => {
     let idleTimer = null;
-    const authUser = (() => {
-      try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; }
-    })();
+    const authUser = getAuthUser();
     if (!authUser) return;
-    const base = (() => {
-      const parts = location.pathname.split('/').filter(Boolean);
-      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
-    })();
+    const base = getBasePath();
     const IDLE_MS = 10 * 60 * 1000;
     const resetIdle = () => {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
-        try { localStorage.removeItem('authUser'); } catch (_) { /* ignore */ }
+        clearAuthUser();
         window.location.href = base;
       }, IDLE_MS);
     };

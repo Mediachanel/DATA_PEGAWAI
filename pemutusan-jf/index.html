@@ -474,6 +474,24 @@
     function setStatus(msg){ if (statusBar) statusBar.textContent = 'Status: ' + msg; }
     function doLogout(){ localStorage.removeItem('authUser'); window.location.href = BASE; }
 
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function safeUrl(value){
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      const lower = raw.toLowerCase();
+      if (lower.startsWith('http://') || lower.startsWith('https://')) return raw;
+      return '';
+    }
+
+    function formatMultiline(value){
+      return escapeHtml(value || '').replace(/\n/g, '<br>');
+    }
+
     function showModal(el){
       el.classList.add('show');
       modalBackdrop.classList.add('show');
@@ -723,7 +741,7 @@
     }
 
     function buildUkpdFilter(list){
-      const opts = ['<option value="">Semua</option>', ...(list||[]).map(u=>`<option value="${u}">${u}</option>`)];
+      const opts = ['<option value="">Semua</option>', ...(list||[]).map(u=>{ const safe = escapeHtml(u); return `<option value="${safe}">${safe}</option>`; })];
       ukpdFilter.innerHTML = opts.join('');
       if (!isSuper && !isWilayahAdmin){
         ukpdFilter.value = loginUkpd;
@@ -757,35 +775,50 @@
       if (!slice.length){
         tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--muted); padding:16px;">Tidak ada data</td></tr>';
       } else {
-        tableBody.innerHTML = slice.map((r,idx)=>`
+        tableBody.innerHTML = slice.map((r,idx)=>{
+          const safeId = escapeHtml(r.id || '');
+          const nama = escapeHtml(r.nama_pegawai || '-');
+          const nip = escapeHtml(r.nip || '-');
+          const pangkat = escapeHtml(getPangkat(r) || '-');
+          const jabatan = escapeHtml(getJabatan(r) || '-');
+          const jabatanBaru = escapeHtml(r.jabatan_baru || '-');
+          const angkaKredit = escapeHtml(r.angka_kredit || '-');
+          const ukpd = escapeHtml(getNamaUkpd(r) || '-');
+          const nomorSurat = escapeHtml(r.nomor_surat || '-');
+          const tanggalSurat = escapeHtml(formatDate(r.tanggal_surat));
+          const berkasUrl = safeUrl(r.berkas_path);
+          const berkasLink = berkasUrl ? `<a href="${escapeHtml(berkasUrl)}" target="_blank" rel="noopener">Berkas</a>` : '-';
+          const berkasMenu = berkasUrl ? `<a href="${escapeHtml(berkasUrl)}" target="_blank" rel="noopener">Buka Berkas</a>` : '';
+          return `
           <tr>
             <td>${start + idx + 1}</td>
             <td>${badgeStatus(r.status)}</td>
             <td class="actions">
-              <button class="ghost dropdown-toggle" data-id="${r.id||''}">Aksi v</button>
+              <button class="ghost dropdown-toggle" data-id="${safeId}">Aksi v</button>
               <div class="dropdown-menu">
-                <button data-action="view" data-id="${r.id||''}">Lihat</button>
-                <button data-action="edit" data-id="${r.id||''}">Ubah</button>
-                <button data-action="delete" data-id="${r.id||''}">Hapus</button>
-                ${r.berkas_path ? `<a href="${r.berkas_path}" target="_blank" rel="noopener">Buka Berkas</a>` : ''}
+                <button data-action="view" data-id="${safeId}">Lihat</button>
+                <button data-action="edit" data-id="${safeId}">Ubah</button>
+                <button data-action="delete" data-id="${safeId}">Hapus</button>
+                ${berkasMenu}
               </div>
             </td>
             <td>
-              <div style="font-weight:800;">${r.nama_pegawai||'-'}</div>
-              <div style="color:var(--muted); font-size:12px;">NIP: ${r.nip||'-'}</div>
-              <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${getPangkat(r) || '-'}</div>
+              <div style="font-weight:800;">${nama}</div>
+              <div style="color:var(--muted); font-size:12px;">NIP: ${nip}</div>
+              <div style="color:var(--muted); font-size:12px;">Pangkat/Gol: ${pangkat}</div>
             </td>
-            <td>${getJabatan(r) || '-'}</td>
-            <td>${r.jabatan_baru||'-'}</td>
-            <td>${r.angka_kredit||'-'}</td>
+            <td>${jabatan}</td>
+            <td>${jabatanBaru}</td>
+            <td>${angkaKredit}</td>
             <td>
-              <div style="font-weight:700;">${getNamaUkpd(r) || '-'}</div>
+              <div style="font-weight:700;">${ukpd}</div>
             </td>
-            <td>${r.nomor_surat||'-'}</td>
-            <td>${formatDate(r.tanggal_surat)}</td>
-            <td>${r.berkas_path ? `<a href="${r.berkas_path}" target="_blank" rel="noopener">Berkas</a>` : '-'}</td>
+            <td>${nomorSurat}</td>
+            <td>${tanggalSurat}</td>
+            <td>${berkasLink}</td>
           </tr>
-        `).join('');
+          `;
+        }).join('');
       }
       pageNow.textContent = page;
       pageTotal.textContent = Math.max(1, Math.ceil((filtered.length || 0) / per));
@@ -844,6 +877,7 @@
     }
 
     function fillView(row){
+      const berkasUrl = safeUrl(row.berkas_path);
       const pairs = [
         ['ID', row.id],
         ['Status', row.status],
@@ -860,14 +894,16 @@
         ['Hal', row.hal],
         ['Pimpinan', row.pimpinan],
         ['Asal Surat', row.asal_surat],
-        ['Berkas', row.berkas_path ? `<a href="${row.berkas_path}" target="_blank" rel="noopener">Buka Berkas</a>` : '-'],
+        ['Berkas', berkasUrl ? `<a href="${escapeHtml(berkasUrl)}" target="_blank" rel="noopener">Buka Berkas</a>` : '-', true],
         ['Dibuat Oleh', row.created_by_ukpd],
         ['Dibuat Pada', formatDate(row.created_at)],
         ['Diupdate Pada', formatDate(row.updated_at)]
       ];
-      detailGrid.innerHTML = pairs.map(([l,v])=>`
-        <div class="detail-card"><div class="detail-label">${l}</div><div class="detail-value">${v || '-'}</div></div>
-      `).join('');
+      detailGrid.innerHTML = pairs.map(([l,v,isHtml])=>{
+        const safeLabel = escapeHtml(l);
+        const safeValue = isHtml ? (v || '-') : escapeHtml(v || '-');
+        return `<div class="detail-card"><div class="detail-label">${safeLabel}</div><div class="detail-value">${safeValue}</div></div>`;
+      }).join('');
       detailAlasan.textContent = row.alasan_pemutusan || '-';
       detailKeterangan.textContent = row.keterangan || '-';
     }

@@ -421,13 +421,18 @@
     const LIST_JENIS_PEGAWAI = ['PNS','PPPK','NON ASN','PJLP'];
 
     function setStatus(msg){ statusEl.textContent = 'Status: ' + msg; }
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
     function showToast(message, type = 'success'){
       const container = document.getElementById('toast-container');
       if (!container) return;
       const toast = document.createElement('div');
       const title = type === 'error' ? 'Gagal' : 'Berhasil';
       toast.className = `toast ${type}`;
-      toast.innerHTML = `<div class="toast-title">${title}</div><div class="toast-msg">${message}</div>`;
+      toast.innerHTML = `<div class="toast-title">${escapeHtml(title)}</div><div class="toast-msg">${escapeHtml(message)}</div>`;
       container.appendChild(toast);
       setTimeout(() => {
         toast.classList.add('hide');
@@ -466,7 +471,7 @@
     }
 
     function initSelectOptions(){
-      const setOpts = (el, list, placeholder = 'Pilih')=>{ if (!el) return; el.innerHTML = `<option value=\"\">${placeholder}</option>` + list.map(v=>`<option value=\"${v}\">${v}</option>`).join(''); };
+      const setOpts = (el, list, placeholder = 'Pilih')=>{ if (!el) return; el.innerHTML = `<option value=\"\">${escapeHtml(placeholder)}</option>` + list.map(v=>{ const safe = escapeHtml(v); return `<option value=\"${safe}\">${safe}</option>`; }).join(''); };
       setOpts(selectStatusRumpun, LIST_STATUS_RUMPUN);
       setOpts(selectJenisKontrak, LIST_JENIS_KONTRAK);
       setOpts(selectAgama, LIST_AGAMA);
@@ -567,7 +572,7 @@
 
     function populateFilters(body, dataRows){
       const units = (body?.units && body.units.length ? body.units : Array.from(new Set(dataRows.map(d => d.nama_ukpd).filter(Boolean)))).sort();
-      unitFilter.innerHTML = '<option value="">Pilih UKPD</option>' + units.map(u => `<option value="${u}">${u}</option>`).join('');
+      unitFilter.innerHTML = '<option value="">Pilih UKPD</option>' + units.map(u => { const safe = escapeHtml(u); return `<option value="${safe}">${safe}</option>`; }).join('');
       if (!isSuper && !isWilayahAdmin) {
         unitFilter.value = loginUkpd;
         unitFilter.disabled = true;
@@ -576,11 +581,11 @@
         if (!unitFilter.value) unitFilter.value = '';
       }
       const jabs = (body?.jabs && body.jabs.length ? body.jabs : Array.from(new Set(dataRows.map(d => d.nama_jabatan_orb).filter(Boolean)))).sort();
-      jabatanFilter.innerHTML = '<option value="">Pilih Jabatan</option>' + jabs.map(u => `<option value="${u}">${u}</option>`).join('');
+      jabatanFilter.innerHTML = '<option value="">Pilih Jabatan</option>' + jabs.map(u => { const safe = escapeHtml(u); return `<option value="${safe}">${safe}</option>`; }).join('');
       const statuses = (body?.statuses && body.statuses.length ? body.statuses : Array.from(new Set(dataRows.map(d => d.nama_jenis_pegawai || d.nama_status_aktif).filter(Boolean)))).sort();
       const activeSet = new Set(Array.from(chipStatus.querySelectorAll('.chip.active')).map(c=>c.dataset.status));
       statusTags = statuses;
-      chipStatus.innerHTML = statuses.map(s => `<div class="chip" data-status="${s}">${s}</div>`).join('');
+      chipStatus.innerHTML = statuses.map(s => { const safe = escapeHtml(s); return `<div class="chip" data-status="${safe}">${safe}</div>`; }).join('');
       chipStatus.querySelectorAll('.chip').forEach(chip=>{ if (activeSet.has(chip.dataset.status)) chip.classList.add('active'); });
       chipStatus.onclick = (e)=>{
         const chip = e.target.closest('.chip');
@@ -613,7 +618,7 @@
       cards.forEach(c=>{
         const div = document.createElement('div');
         div.className = 'stat';
-        div.innerHTML = `<div class="title">${c.title}</div><div class="value">${c.value}</div>`;
+        div.innerHTML = `<div class="title">${escapeHtml(c.title)}</div><div class="value">${escapeHtml(c.value)}</div>`;
         statsEl.appendChild(div);
       });
     }
@@ -638,29 +643,31 @@
         const tr = document.createElement('tr');
         const rowId = r.id || r.nip || r.nik || '';
         const missing = missingFields(r);
-        const warnBadge = missing.length ? `<span class="warn-badge" title="Belum lengkap: ${missing.join(', ')}" data-missing="${missing.join('|')}">⚠ Lengkapi</span>` : '';
+        const missingText = missing.join(', ');
+        const warnBadge = missing.length ? `<span class="warn-badge" title="Belum lengkap: ${escapeHtml(missingText)}" data-missing="${escapeHtml(missing.join('|'))}">⚠ Lengkapi</span>` : '';
+        const safeRowId = escapeHtml(rowId);
         tr.innerHTML = `
           <td>${(currentPage - 1) * size + idx + 1}</td>
-          <td>${r.nip}</td>
-          <td>${r.nik}</td>
-          <td>${r.nama_pegawai || '-'}${warnBadge}</td>
-          <td>${r.nama_jabatan_orb}</td>
-          <td>${r.nama_status_rumpun || '-'}</td>
-          <td>${r.nama_jenis_pegawai || '-'}</td>
-          <td>${r.nama_ukpd || '-'}</td>
-            <td>${r.nama_status_aktif || '-'}</td>
+          <td>${escapeHtml(r.nip || '-')}</td>
+          <td>${escapeHtml(r.nik || '-')}</td>
+          <td>${escapeHtml(r.nama_pegawai || '-')}${warnBadge}</td>
+          <td>${escapeHtml(r.nama_jabatan_orb || '-')}</td>
+          <td>${escapeHtml(r.nama_status_rumpun || '-')}</td>
+          <td>${escapeHtml(r.nama_jenis_pegawai || '-')}</td>
+          <td>${escapeHtml(r.nama_ukpd || '-')}</td>
+            <td>${escapeHtml(r.nama_status_aktif || '-')}</td>
             <td class="actions">
-              <button class="icon-btn icon-view" type="button" title="Lihat Profil" aria-label="Lihat Profil" data-id="${rowId}" data-action="view">
+              <button class="icon-btn icon-view" type="button" title="Lihat Profil" aria-label="Lihat Profil" data-id="${safeRowId}" data-action="view">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M12 5c5 0 9.27 3.11 11 7-1.73 3.89-6 7-11 7S2.73 15.89 1 12c1.73-3.89 6-7 11-7Zm0 2c-3.76 0-7.09 2.2-8.74 5 1.65 2.8 4.98 5 8.74 5s7.09-2.2 8.74-5C19.09 9.2 15.76 7 12 7Zm0 2.5A2.5 2.5 0 1 1 9.5 12 2.5 2.5 0 0 1 12 9.5Z"></path>
                 </svg>
               </button>
-              <button class="icon-btn icon-edit" type="button" title="Edit" aria-label="Edit" data-id="${rowId}" data-action="edit">
+              <button class="icon-btn icon-edit" type="button" title="Edit" aria-label="Edit" data-id="${safeRowId}" data-action="edit">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M3 17.25V21h3.75l11.06-11.06-3.75-3.75L3 17.25Zm2.06 2.69H5v-0.94l9.06-9.06.94.94-9.06 9.06Zm12.02-11.08-.94.94-3.75-3.75.94-.94a1 1 0 0 1 1.41 0l2.34 2.34a1 1 0 0 1 0 1.41Z"></path>
                 </svg>
               </button>
-              <button class="icon-btn icon-delete" type="button" title="Hapus" aria-label="Hapus" data-id="${rowId}" data-action="delete">
+              <button class="icon-btn icon-delete" type="button" title="Hapus" aria-label="Hapus" data-id="${safeRowId}" data-action="delete">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <path d="M6 7h12l-1 13H7L6 7Zm3-3h6l1 1h4v2H4V5h4l1-1Zm1 5v9h2V9H10Zm4 0v9h2V9H14Z"></path>
                 </svg>

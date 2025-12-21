@@ -471,7 +471,10 @@
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Login gagal');
         if (body.user) {
-          localStorage.setItem('authUser', JSON.stringify(body.user));
+          const user = { ...body.user };
+          if (body.session_token) user.session = body.session_token;
+          if (body.session_expires_in) user.session_expires_in = body.session_expires_in;
+          localStorage.setItem('authUser', JSON.stringify(user));
         }
         setStatus('Login berhasil. Membuka dashboard...');
         window.location.href = BASE + 'dashboard/';

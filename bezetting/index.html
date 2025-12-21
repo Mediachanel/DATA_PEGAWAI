@@ -240,6 +240,12 @@
 
     function doLogout(){ localStorage.removeItem('authUser'); window.location.href = BASE; }
 
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
     function applyRoleFilter(data){
       if (isSuper) return data;
       if (isWilayahAdmin && loginWilayah){
@@ -285,7 +291,7 @@
       const prevStatus = statusFilter.value;
       const uniqSort = (arr=[]) => Array.from(new Set(arr.filter(Boolean))).sort();
       const setOpts = (el, list, placeholder) => {
-        const opts = ['<option value="">'+placeholder+'</option>', ...uniqSort(list).map(v=>`<option value="${v}">${v}</option>`)].join('');
+        const opts = ['<option value="">'+escapeHtml(placeholder)+'</option>', ...uniqSort(list).map(v=>{ const safe = escapeHtml(v); return `<option value="${safe}">${safe}</option>`; })].join('');
         el.innerHTML = opts;
       };
       setOpts(ukpdFilter, body.ukpds || rows.map(r=>r.ukpd), 'Semua');
@@ -329,22 +335,22 @@
         tableBody.innerHTML = slice.map((r,idx)=>`
           <tr>
             <td>${start + idx + 1}</td>
-            <td>${r.bidang || '-'}</td>
-            <td>${r.subbidang || '-'}</td>
-            <td>${r.nama_jabatan_pergub || '-'}</td>
-            <td>${r.nama_jabatan_permenpan || '-'}</td>
-            <td>${r.rumpun_jabatan || '-'}</td>
-            <td>${r.kode || '-'}</td>
-            <td>${r.abk || '-'}</td>
-            <td>${r.eksisting || '-'}</td>
-            <td>${r.selisih || '-'}</td>
-            <td>${r.nama_pegawai || '-'}</td>
-            <td>${r.nip || '-'}</td>
-            <td>${r.nrk || '-'}</td>
-            <td>${r.status_formasi || '-'}</td>
-            <td>${r.pendidikan || '-'}</td>
-            <td>${r.ukpd || '-'}</td>
-            <td>${r.wilayah || '-'}</td>
+            <td>${escapeHtml(r.bidang || '-')}</td>
+            <td>${escapeHtml(r.subbidang || '-')}</td>
+            <td>${escapeHtml(r.nama_jabatan_pergub || '-')}</td>
+            <td>${escapeHtml(r.nama_jabatan_permenpan || '-')}</td>
+            <td>${escapeHtml(r.rumpun_jabatan || '-')}</td>
+            <td>${escapeHtml(r.kode || '-')}</td>
+            <td>${escapeHtml(r.abk || '-')}</td>
+            <td>${escapeHtml(r.eksisting || '-')}</td>
+            <td>${escapeHtml(r.selisih || '-')}</td>
+            <td>${escapeHtml(r.nama_pegawai || '-')}</td>
+            <td>${escapeHtml(r.nip || '-')}</td>
+            <td>${escapeHtml(r.nrk || '-')}</td>
+            <td>${escapeHtml(r.status_formasi || '-')}</td>
+            <td>${escapeHtml(r.pendidikan || '-')}</td>
+            <td>${escapeHtml(r.ukpd || '-')}</td>
+            <td>${escapeHtml(r.wilayah || '-')}</td>
           </tr>
         `).join('');
       }

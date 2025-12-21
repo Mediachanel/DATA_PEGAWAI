@@ -405,6 +405,12 @@ document.body.classList.toggle('role-super', isSuper);
 
     function cleanLabel(v){ return (v || '').trim() || '(Tidak Tercatat)'; }
 
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
     function applyRoleFilter(data){
       if (isSuper) return data;
       if (isWilayahAdmin && loginWilayah){
@@ -766,10 +772,11 @@ document.body.classList.toggle('role-super', isSuper);
       rows.forEach((r, idx)=>{
         const tr = document.createElement('tr');
         if (r.isGroup){
+          const wilayahText = escapeHtml(r.wilayah || '-');
           tr.className = 'bg-slate-50 font-semibold border-b border-slate-100';
           tr.innerHTML = `
             <td class="px-3 py-2 text-center text-slate-500">-</td>
-            <td class="px-3 py-2">Wilayah: ${r.wilayah || '-'}</td>
+            <td class="px-3 py-2">Wilayah: ${wilayahText}</td>
             <td class="px-3 py-2 text-center">${(r.PNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
@@ -779,11 +786,13 @@ document.body.classList.toggle('role-super', isSuper);
           `;
         } else {
           totalP += r.PNS || 0; totalC += r.CPNS || 0; totalP3 += r.PPPK || 0; totalPro += r.PROFESIONAL || 0; totalJ += r.PJLP || 0; totalAll += r.total || 0;
+          const unitText = escapeHtml(r.unit || '-');
+          const noText = escapeHtml(r.no || idx + 1);
           tr.className = 'border-b border-slate-100';
           tr.dataset.unit = (r.unit || '').toLowerCase();
           tr.innerHTML = `
-            <td class="px-3 py-2 text-center">${r.no || idx + 1}</td>
-            <td class="px-3 py-2">${r.unit || '-'}</td>
+            <td class="px-3 py-2 text-center">${noText}</td>
+            <td class="px-3 py-2">${unitText}</td>
             <td class="px-3 py-2 text-center">${(r.PNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
