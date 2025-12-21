@@ -12,7 +12,7 @@
 - File: `server.js`
 - Port: 5002 (dipakai bila menjalankan backend Node; front-end default kini langsung ke Web App Apps Script)
 - Spreadsheet ID: `1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw`
-- Sheet data: `DATA PEGAWAI!A:AC` (29 kolom)
+- Sheet data: `DATA PEGAWAI!A:AD` (30 kolom)
 - Sheet login: `username!A:E` (Nama UKPD, Username, Password, Hak akses, Wilayah)
 - Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
 
@@ -20,7 +20,7 @@
 - Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`, `/DATA_PEGAWAI/pemutusan-jf/`, `/DATA_PEGAWAI/bezetting/`, `/DATA_PEGAWAI/ubah-password/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
 - Header/sidebar/footer di-root (`header.html`, `sidebar.html`, `footer.html`) diambil dengan BASE dinamis; logo/favikon juga di-set ulang via BASE + `foto/Dinkes.png`.
 
-### Kolom data (urutan A:AC)
+### Kolom data (urutan A:AD)
 1. nama_pegawai
 2. npwp
 3. no_bpjs
@@ -30,26 +30,27 @@
 7. nama_status_rumpun
 8. jenis_kontrak
 9. nip
-10. nik
-11. jenis_kelamin
-12. tmt_kerja_ukpd
-13. tempat_lahir
-14. tanggal_lahir
-15. agama
-16. jenjang_pendidikan
-17. jurusan_pendidikan
-18. no_tlp
-19. email
-20. nama_ukpd
-21. wilayah_ukpd
-22. golongan_darah
-23. gelar_depan
-24. gelar_belakang
-25. status_pernikahan
-26. nama_jenis_pegawai
-27. catatan_revisi_biodata
-28. alamat_ktp
-29. alamat_domisili
+10. jenis_kelamin
+11. tmt_kerja_ukpd
+12. tempat_lahir
+13. tanggal_lahir
+14. agama
+15. jenjang_pendidikan
+16. jurusan_pendidikan
+17. no_tlp
+18. email
+19. nama_ukpd
+20. wilayah_ukpd
+21. golongan_darah
+22. gelar_depan
+23. gelar_belakang
+24. status_pernikahan
+25. nama_jenis_pegawai
+26. catatan_revisi_biodata
+27. alamat_ktp
+28. alamat_domisili
+29. created_at
+30. updated_at
 
 ### Usulan Mutasi (USULAN_MUTASI!A:AC, 29 kolom)
 1. id
@@ -247,5 +248,5 @@ Keamanan:
 ## Perubahan utama yang dilakukan
 - Menyesuaikan layout sesuai contoh Dinkes: dashboard dan data pegawai dengan sidebar/header konsisten, stat cards, filter bar, tabel.
 - Menambah pagination di front-end dan query filter di backend.
-- Memperbaiki mapping kolom (trim header + fallback index) agar `nama_ukpd`, NIP/NIK, dll. terbaca.
+- Memperbaiki mapping kolom (trim header + fallback index) agar `nama_ukpd`, NIP, dll. terbaca.
 - API_BASE di repo saat ini diarahkan ke Cloudflare Worker; ganti bila memakai backend lain (Render/ngrok/localhost).

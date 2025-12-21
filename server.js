@@ -15,7 +15,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
 const LOGIN_WINDOW_MS = Math.max(60000, parseInt(process.env.LOGIN_WINDOW_MS, 10) || 5 * 60 * 1000);
 const LOGIN_MAX_ATTEMPTS = Math.max(5, parseInt(process.env.LOGIN_MAX_ATTEMPTS, 10) || 10);
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw';
-const RANGE = process.env.RANGE || 'DATA PEGAWAI!A:AE'; // 31 kolom (tambah wilayah_ukpd + timestamp)
+const RANGE = process.env.RANGE || 'DATA PEGAWAI!A:AD'; // 30 kolom (tambah wilayah_ukpd + timestamp)
 const USER_RANGE = process.env.USER_RANGE || 'username!A:E'; // Nama UKPD | Username | password | hak akses | wilayah
 const SHEET_NAME = RANGE.split('!')[0];
 const WEB_APP_BASE = process.env.WEB_APP_BASE || 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
@@ -23,7 +23,7 @@ const DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID || '1KwmIGbrz8KQ40PveoB6wY7w
 
 const COLS = [
   'nama_pegawai','npwp','no_bpjs','nama_jabatan_orb','nama_jabatan_prb','nama_status_aktif','nama_status_rumpun',
-  'jenis_kontrak','nip','nik','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
+  'jenis_kontrak','nip','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
   'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili',
   'created_at','updated_at'
@@ -637,7 +637,7 @@ app.all('/', async (req, res) => {
       return forwardTo(url, { method: 'GET', headers }, res);
     }
     case 'get': {
-      const id = (req.query?.id || payload.id || payload.nip || payload.nik || '').toString().trim();
+      const id = (req.query?.id || payload.id || payload.nip || '').toString().trim();
       if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
       return forwardTo(`${baseUrl}/pegawai/${encodeURIComponent(id)}`, { method: 'GET', headers }, res);
     }
@@ -645,12 +645,12 @@ app.all('/', async (req, res) => {
       return forwardTo(`${baseUrl}/pegawai`, { method: 'POST', headers, body: JSON.stringify(payload) }, res);
     }
     case 'update': {
-      const id = (req.query?.id || payload.id || payload.nip || payload.nik || '').toString().trim();
+      const id = (req.query?.id || payload.id || payload.nip || '').toString().trim();
       if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
       return forwardTo(`${baseUrl}/pegawai/${encodeURIComponent(id)}`, { method: 'PUT', headers, body: JSON.stringify(payload) }, res);
     }
     case 'delete': {
-      const id = (req.query?.id || payload.id || payload.nip || payload.nik || '').toString().trim();
+      const id = (req.query?.id || payload.id || payload.nip || '').toString().trim();
       if (!id) return res.status(400).json({ ok: false, error: 'ID wajib' });
       return forwardTo(`${baseUrl}/pegawai/${encodeURIComponent(id)}`, { method: 'DELETE', headers }, res);
     }
@@ -850,7 +850,7 @@ app.get('/pegawai', async (req, res) => {
     let rows = filterPegawaiByRole(baseRecords, sessionUser);
 
     rows = rows.filter(r => {
-      const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => norm(v).includes(term));
+      const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => norm(v).includes(term));
       const unitVal = norm(r.nama_ukpd);
       const matchUnit = !unit || unitVal === unit;
       const matchJab = !jab || norm(r.nama_jabatan_orb).includes(jab);
@@ -879,7 +879,7 @@ app.get('/pegawai/:id', async (req, res) => {
     const sessionUser = req.sessionUser || {};
     const records = await getPegawaiRecords();
     if (!records.length) return res.status(404).json({ ok: false, error: 'Data kosong' });
-    const found = records.find(r => r.id === id || r.nip === id || r.nik === id);
+    const found = records.find(r => r.id === id || r.nip === id);
     if (!found) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
     if (!filterPegawaiByRole([found], sessionUser).length) {
       return res.status(403).json({ ok: false, error: 'forbidden' });
@@ -900,13 +900,11 @@ app.put('/pegawai/:id', async (req, res) => {
     const [header, ...data] = rows;
     const h = header || [];
     const idxNip = h.findIndex(x => (x || '').toLowerCase().trim() === 'nip');
-    const idxNik = h.findIndex(x => (x || '').toLowerCase().trim() === 'nik');
     const idx = rows.findIndex(r => {
       const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
-      const nikVal = (idxNik >= 0 ? r[idxNik] : '') || '';
-      return nipVal === id || nikVal === id;
+      return nipVal === id;
     });
-    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP/NIK) tidak ditemukan' });
+    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP) tidak ditemukan' });
     const sessionUser = req.sessionUser || {};
     const ctx = getRoleContext(sessionUser);
     const currentRow = rows[idx] || [];
@@ -955,13 +953,11 @@ app.delete('/pegawai/:id', async (req, res) => {
     const header = rows[0] || [];
     const h = header || [];
     const idxNip = h.findIndex(x => (x || '').toLowerCase().trim() === 'nip');
-    const idxNik = h.findIndex(x => (x || '').toLowerCase().trim() === 'nik');
     const idx = rows.findIndex(r => {
       const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
-      const nikVal = (idxNik >= 0 ? r[idxNik] : '') || '';
-      return nipVal === id || nikVal === id;
+      return nipVal === id;
     });
-    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP/NIK) tidak ditemukan' });
+    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP) tidak ditemukan' });
     const sessionUser = req.sessionUser || {};
     const ctx = getRoleContext(sessionUser);
     if (!ctx.isSuper) {
@@ -1852,7 +1848,7 @@ function toRecord(header, row) {
     || get('pangkat/gol')
     || get('pangkat');
   return {
-    id: get('nip', 8) || get('nik', 9) || '',
+    id: get('id') || get('nip', 8) || '',
     nama_pegawai: get('nama_pegawai', 0),
     npwp: get('npwp', 1),
     no_bpjs: get('no_bpjs', 2),
@@ -1862,17 +1858,16 @@ function toRecord(header, row) {
     nama_status_rumpun: get('nama_status_rumpun', 6),
     jenis_kontrak: get('jenis_kontrak', 7),
     nip: get('nip', 8),
-    nik: get('nik', 9),
-    jenis_kelamin: get('jenis_kelamin', 10),
-    tmt_kerja_ukpd: get('tmt_kerja_ukpd', 11),
-    tempat_lahir: get('tempat_lahir', 12),
-    tanggal_lahir: get('tanggal_lahir', 13),
-    agama: get('agama', 14),
-    jenjang_pendidikan: get('jenjang_pendidikan', 15),
-    jurusan_pendidikan: get('jurusan_pendidikan', 16),
-    no_tlp: get('no_tlp', 17),
-    email: get('email', 18),
-    nama_ukpd: get('nama_ukpd', 19),
+    jenis_kelamin: get('jenis_kelamin', 9),
+    tmt_kerja_ukpd: get('tmt_kerja_ukpd', 10),
+    tempat_lahir: get('tempat_lahir', 11),
+    tanggal_lahir: get('tanggal_lahir', 12),
+    agama: get('agama', 13),
+    jenjang_pendidikan: get('jenjang_pendidikan', 14),
+    jurusan_pendidikan: get('jurusan_pendidikan', 15),
+    no_tlp: get('no_tlp', 16),
+    email: get('email', 17),
+    nama_ukpd: get('nama_ukpd', 18),
     golongan_darah: get('golongan_darah', 20),
     pangkat_golongan: pangkatGolongan,
     gelar_depan: get('gelar_depan', 21),
@@ -1882,10 +1877,10 @@ function toRecord(header, row) {
     catatan_revisi_biodata: get('catatan_revisi_biodata', 25),
     alamat_ktp: get('alamat_ktp', 26),
     alamat_domisili: get('alamat_domisili', 27),
-    created_at: get('created_at', 29),
-    updated_at: get('updated_at', 30),
-    wilayah_ukpd: get('wilayah_ukpd', 20),
-    unit: get('nama_ukpd', 19),
+    created_at: get('created_at', 28),
+    updated_at: get('updated_at', 29),
+    wilayah_ukpd: get('wilayah_ukpd', 19),
+    unit: get('nama_ukpd', 18),
     jabatan: get('nama_jabatan_orb', 3),
     statusKaryawan: get('nama_status_aktif', 5),
     aktif: get('nama_status_aktif', 5)

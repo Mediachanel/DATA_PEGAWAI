@@ -6,10 +6,10 @@ const MUTASI_SHEET = 'USULAN_MUTASI';
 const PEMUTUSAN_SHEET = 'USULAN_PEMUTUSAN_JF';
 const QNA_SHEET = 'Q n A';
 const BEZETTING_SHEET = 'bezetting';
-// Urutan kolom data pegawai (A:AE) termasuk wilayah_ukpd + timestamp
+// Urutan kolom data pegawai (A:AD) termasuk wilayah_ukpd + timestamp
 const COLS = [
   'nama_pegawai','npwp','no_bpjs','nama_jabatan_orb','nama_jabatan_prb','nama_status_aktif','nama_status_rumpun',
-  'jenis_kontrak','nip','nik','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
+  'jenis_kontrak','nip','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
   'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili',
   'created_at','updated_at'
@@ -226,7 +226,7 @@ function listPegawai(e) {
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
 
   const filtered = scopedRecords.filter(r => {
-    const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => (v || '').toLowerCase().includes(term));
+    const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
     const matchUnit = !unit || (r.nama_ukpd || '').toLowerCase().trim() === unit;
     const matchWilayah = !wilayah || (r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
     const matchJab = !jab || (r.nama_jabatan_orb || '').toLowerCase().includes(jab);
@@ -277,7 +277,7 @@ function dashboardStats(e) {
   const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.id);
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
   const filtered = scopedRecords.filter(r => {
-    const matchTerm = !term || [r.nama_pegawai, r.nip, r.nik].some(v => (v || '').toLowerCase().includes(term));
+    const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
     const matchUnit = !unit || (r.nama_ukpd || '').toLowerCase().trim() === unit;
     const matchWilayah = !wilayah || (r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
     const matchJab = !jab || (r.nama_jabatan_orb || '').toLowerCase().includes(jab);
@@ -478,7 +478,7 @@ function createPegawai(e) {
   });
   sheet.appendRow(row);
   bumpCacheVersion();
-  return json({ ok: true, data: { id: body.id || body.nip || body.nik || '' } });
+  return json({ ok: true, data: { id: body.id || body.nip || '' } });
 }
 
 function updatePegawai(e) {
@@ -1709,7 +1709,7 @@ function rowToObject(keys, row) {
 
 function getIdParam(e) {
   const body = e.body || parseBody(e) || {};
-  return String(e?.parameter?.id || body.id || body.nip || body.nik || '').trim();
+  return String(e?.parameter?.id || body.id || body.nip || '').trim();
 }
 
 function getParam(e, name) {
@@ -1720,7 +1720,7 @@ function getParam(e, name) {
 function toRecord(header, row) {
   const keys = (header || []).map(normalizePegawaiHeader);
   const obj = rowToObject(keys, row);
-  const idVal = obj.id || obj.nip || obj.nik || '';
+  const idVal = obj.id || obj.nip || '';
   const pangkatGolongan = obj.pangkat_golongan
     || obj['pangkat/golongan']
     || obj['pangkat golongan']
@@ -1871,12 +1871,10 @@ function findRowIndexById(header, rows, id) {
   const h = (header || []).map(normalizePegawaiHeader);
   const idxId = h.indexOf('id');
   const idxNip = h.indexOf('nip');
-  const idxNik = h.indexOf('nik');
   return rows.findIndex(r => {
     const idVal = (idxId >= 0 ? r[idxId] : '')?.toString?.() || '';
     const nipVal = (idxNip >= 0 ? r[idxNip] : '')?.toString?.() || '';
-    const nikVal = (idxNik >= 0 ? r[idxNik] : '')?.toString?.() || '';
-    return (idVal && idVal === id) || (nipVal && nipVal === id) || (nikVal && nikVal === id);
+    return (idVal && idVal === id) || (nipVal && nipVal === id);
   });
 }
 

@@ -57,12 +57,12 @@
     .status { margin-top: 10px; padding: 10px; border-radius: 10px; background: #f5f8ff; border: 1px solid #e6ecf4; color: #3b5ecc; font-weight: 700; font-size: 13px; }
     .muted { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
-    .faq-section { max-width: 1100px; margin: 18px auto 0; display: grid; gap: 16px; }
+    .faq-section { max-width: 1100px; margin: 20px auto 0; display: grid; gap: 16px; }
     .faq-card {
-      background: linear-gradient(180deg, #ffffff, #f7f9ff);
+      background: linear-gradient(160deg, rgba(255,255,255,0.95), #f6f7ff);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 18px;
+      border-radius: 22px;
+      padding: 20px;
       box-shadow: var(--shadow);
       position: relative;
       overflow: hidden;
@@ -70,50 +70,125 @@
     .faq-card::before{
       content: "";
       position: absolute;
-      right: -40px;
-      top: -60px;
-      width: 140px;
-      height: 140px;
+      right: -50px;
+      top: -70px;
+      width: 160px;
+      height: 160px;
       border-radius: 50%;
-      background: rgba(94,139,255,0.12);
+      background: rgba(94,139,255,0.14);
     }
     .faq-card::after{
       content: "";
       position: absolute;
-      left: -40px;
-      bottom: -60px;
-      width: 160px;
-      height: 160px;
+      left: -60px;
+      bottom: -70px;
+      width: 180px;
+      height: 180px;
       border-radius: 50%;
-      background: rgba(255,159,104,0.12);
+      background: rgba(255,159,104,0.14);
     }
-    .faq-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; position: relative; z-index: 1; }
-    .faq-heading { max-width: 560px; }
+    .faq-hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 16px; position: relative; z-index: 1; }
+    .faq-hero-text { display: grid; gap: 8px; }
+    .faq-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #eef3ff;
+      color: #3b5ecc;
+      font-size: 12px;
+      font-weight: 800;
+      width: fit-content;
+      box-shadow: 0 10px 20px rgba(94,139,255,0.18);
+    }
     .faq-title { margin: 0; font-size: 22px; letter-spacing: 0.2px; }
-    .faq-sub { margin: 6px 0 0; color: #516273; font-size: 13px; }
-    .faq-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .faq-search { padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); min-width: 240px; background: #ffffff; box-shadow: 0 10px 20px rgba(15,23,42,0.08); }
-    .faq-count { padding: 8px 12px; border-radius: 999px; border: 1px solid #dbe5ff; background: #f0f4ff; font-weight: 700; font-size: 12px; color: #3b5ecc; }
-    .faq-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; position: relative; z-index: 1; }
+    .faq-sub { margin: 0; color: #516273; font-size: 13px; line-height: 1.6; }
+    .faq-search-wrap {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      box-shadow: 0 14px 26px rgba(15,23,42,0.08);
+    }
+    .faq-search-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: #f0f4ff;
+      display: grid;
+      place-items: center;
+      color: #3b5ecc;
+      flex-shrink: 0;
+    }
+    .faq-search-icon svg { width: 18px; height: 18px; fill: currentColor; }
+    .faq-search {
+      border: none;
+      background: transparent;
+      padding: 8px 6px;
+      font-size: 14px;
+      flex: 1;
+      min-width: 0;
+    }
+    .faq-search:focus { outline: none; }
+    .faq-count {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #dbe5ff;
+      background: #f0f4ff;
+      font-weight: 800;
+      font-size: 12px;
+      color: #3b5ecc;
+      white-space: nowrap;
+    }
+    .faq-hero-panel {
+      background: linear-gradient(160deg, rgba(94,139,255,0.12), rgba(255,159,104,0.12)), #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      box-shadow: 0 14px 28px rgba(24,39,75,0.1);
+    }
+    .faq-panel-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .faq-panel-label { font-size: 12px; color: #64748b; font-weight: 700; }
+    .faq-panel-value { font-size: 20px; font-weight: 800; color: #1b2b3a; }
+    .faq-tags {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 6px 2px;
+      overflow-x: auto;
+      position: relative;
+      z-index: 1;
+    }
+    .faq-tags::-webkit-scrollbar { height: 6px; }
+    .faq-tags::-webkit-scrollbar-thumb { background: #dbe3f3; border-radius: 999px; }
     .faq-tag {
-      padding: 8px 12px;
+      padding: 8px 14px;
       border-radius: 999px;
       background: #f7f9ff;
       border: 1px solid #dee6ff;
-      font-weight: 700;
+      font-weight: 800;
       font-size: 12px;
       cursor: pointer;
       color: #334155;
       transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+      white-space: nowrap;
     }
     .faq-tag:hover{ transform: translateY(-1px); box-shadow: 0 10px 18px rgba(94,139,255,0.16); }
     .faq-tag.active { background: var(--accent-soft); color: #2f4eb8; border-color: #c1d3ff; box-shadow: 0 8px 18px rgba(94,139,255,0.18); }
-    .faq-body { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 12px; position: relative; z-index: 1; }
-    .faq-list { display: grid; gap: 10px; }
+    .faq-body { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); margin-top: 12px; position: relative; z-index: 1; }
+    .faq-list { display: grid; gap: 12px; }
     .faq-item{
       width: 100%;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 12px 14px;
       background: #ffffff;
       cursor: pointer;
@@ -121,32 +196,68 @@
       font-family: inherit;
       appearance: none;
       -webkit-appearance: none;
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) 16px;
+      gap: 12px;
+      align-items: start;
       transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
     }
     .faq-item:hover{ transform: translateY(-1px); box-shadow: 0 12px 22px rgba(15,23,42,0.12); border-color: #d7e2ff; }
     .faq-item.active{ background: linear-gradient(135deg, #eef3ff, #ffffff); border-color: #c7d7ff; box-shadow: 0 14px 26px rgba(94,139,255,0.18); }
     .faq-item:focus-visible{ outline: 2px solid #aac4ff; outline-offset: 2px; }
+    .faq-item-index{
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: #f0f4ff;
+      color: #3b5ecc;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      box-shadow: inset 0 0 0 1px #dbe5ff;
+    }
+    .faq-item-body { display: grid; gap: 6px; }
     .faq-item-head{ display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .faq-chip{ display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; background: #eef2ff; color: #3b5ecc; font-size: 11px; font-weight: 700; }
-    .faq-item-title{ margin: 8px 0 6px; font-weight: 800; font-size: 14px; color: #1b2b3a; }
-    .faq-item-preview{ color: #64748b; font-size: 12px; line-height: 1.5; }
+    .faq-item-meta { font-size: 11px; color: #94a3b8; font-weight: 700; }
+    .faq-item-title{ margin: 0; font-weight: 800; font-size: 14px; color: #1b2b3a; }
+    .faq-item-preview{ color: #64748b; font-size: 12px; line-height: 1.5; margin: 0; }
+    .faq-item-arrow{
+      width: 12px;
+      height: 12px;
+      border-right: 2px solid #94a3b8;
+      border-bottom: 2px solid #94a3b8;
+      transform: rotate(-45deg);
+      margin-top: 10px;
+      justify-self: end;
+    }
     .faq-detail{
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
+      border-radius: 18px;
+      padding: 18px;
       background: #ffffff;
       box-shadow: 0 12px 26px rgba(24,39,75,0.08);
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      min-height: 240px;
+      gap: 12px;
+      min-height: 260px;
+      position: sticky;
+      top: 110px;
     }
+    .faq-detail-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .faq-detail-title{ font-size: 18px; margin: 0; color: #1b2b3a; }
     .faq-detail-answer{ color: #3d4b5a; line-height: 1.65; white-space: pre-wrap; }
-    .faq-detail-meta{ font-size: 12px; color: var(--muted); }
+    .faq-detail-meta{
+      font-size: 12px;
+      color: #3b5ecc;
+      background: #eef3ff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-weight: 700;
+    }
     .faq-empty{ text-align: center; color: var(--muted); padding: 16px; border: 1px dashed var(--border); border-radius: 12px; background: #ffffff; }
-    .faq-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #eef3ff; color: #3b5ecc; font-size: 12px; font-weight: 700; }
-    .faq-status { margin-top: 10px; font-size: 12px; color: var(--muted); position: relative; z-index: 1; }
+    .faq-status { margin-top: 12px; font-size: 12px; color: var(--muted); position: relative; z-index: 1; }
 
     footer { text-align: center; padding: 20px; color: #6c7b73; font-size: 12px; }
     @media (max-width: 700px) {
@@ -154,7 +265,9 @@
       .hero { padding: 22px; }
     }
     @media (max-width: 900px) {
+      .faq-hero { grid-template-columns: 1fr; }
       .faq-body { grid-template-columns: 1fr; }
+      .faq-detail { position: static; }
     }
   </style>
 </head>
@@ -204,25 +317,42 @@
 
     <section class="faq-section">
       <div class="faq-card">
-        <div class="faq-header">
-          <div class="faq-heading">
-            <div class="faq-badge">FAQ Layanan</div>
-            <h3 class="faq-title">Jawaban cepat layanan kepegawaian</h3>
+        <div class="faq-hero">
+          <div class="faq-hero-text">
+            <div class="faq-kicker">FAQ Layanan</div>
+            <h3 class="faq-title">Pusat tanya jawab layanan kepegawaian</h3>
             <p class="faq-sub">Cari aturan, syarat, dan alur kerja mutasi atau pemutusan JF secara ringkas.</p>
+            <div class="faq-search-wrap">
+              <span class="faq-search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M10 2a8 8 0 0 1 6.32 12.9l4.4 4.4-1.4 1.4-4.4-4.4A8 8 0 1 1 10 2Zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"></path>
+                </svg>
+              </span>
+              <input id="faqSearch" class="faq-search" placeholder="Cari pertanyaan..." />
+              <div class="faq-count" id="faqCount">0 pertanyaan</div>
+            </div>
           </div>
-          <div class="faq-controls">
-            <input id="faqSearch" class="faq-search" placeholder="Cari pertanyaan..." />
-            <div class="faq-count" id="faqCount">0 pertanyaan</div>
+          <div class="faq-hero-panel">
+            <div class="faq-panel-row">
+              <span class="faq-panel-label">Total FAQ</span>
+              <span class="faq-panel-value" id="faqCountBadge">0</span>
+            </div>
+            <div class="faq-panel-row">
+              <span class="faq-panel-label">Status Data</span>
+              <span class="faq-panel-value" id="faqStatusBadge">-</span>
+            </div>
           </div>
         </div>
         <div class="faq-tags" id="faqTags"></div>
         <div class="faq-body">
           <div class="faq-list" id="faqList"></div>
           <div class="faq-detail" id="faqDetail">
-            <div class="faq-chip" id="faqDetailCategory">Umum</div>
+            <div class="faq-detail-head">
+              <div class="faq-chip" id="faqDetailCategory">Umum</div>
+              <div class="faq-detail-meta" id="faqDetailMeta">Status: -</div>
+            </div>
             <h4 class="faq-detail-title" id="faqDetailTitle">Pilih pertanyaan di daftar.</h4>
             <div class="faq-detail-answer" id="faqDetailAnswer">Jawaban akan tampil otomatis di sini.</div>
-            <div class="faq-detail-meta" id="faqDetailMeta">Status: -</div>
           </div>
         </div>
         <div class="faq-status" id="faqStatus">Status FAQ: menunggu data.</div>
@@ -259,6 +389,8 @@
     const faqDetailAnswer = document.getElementById('faqDetailAnswer');
     const faqDetailMeta = document.getElementById('faqDetailMeta');
     const faqCount = document.getElementById('faqCount');
+    const faqCountBadge = document.getElementById('faqCountBadge');
+    const faqStatusBadge = document.getElementById('faqStatusBadge');
 
     let serverReady = false;
 
@@ -284,8 +416,19 @@
       }[ch]));
     }
 
+    function toBadgeStatus(message){
+      const text = String(message || '').toLowerCase();
+      if (!text) return '-';
+      if (text.includes('memuat')) return 'Memuat';
+      if (text.includes('siap')) return 'Siap';
+      if (text.includes('contoh')) return 'Contoh';
+      if (text.includes('gagal')) return 'Gagal';
+      return message || '-';
+    }
+
     function setFaqStatus(message){
       if (faqStatus) faqStatus.textContent = 'Status FAQ: ' + message;
+      if (faqStatusBadge) faqStatusBadge.textContent = toBadgeStatus(message);
     }
 
     function renderFaqTags(){
@@ -328,18 +471,21 @@
         const id = escapeHtml(item.id || `faq-${idx}`);
         const question = escapeHtml(item.question || '-');
         const rawAnswer = item.answer || '-';
-        const answer = escapeHtml(rawAnswer);
         const category = escapeHtml(item.category || 'Umum');
         const previewText = rawAnswer.length > 120 ? `${rawAnswer.slice(0, 120)}...` : rawAnswer;
         const preview = escapeHtml(previewText);
         return `
           <button type="button" class="faq-item" data-id="${id}" aria-pressed="false">
-            <div class="faq-item-head">
-              <span class="faq-chip">${category}</span>
-              <span style="font-size:11px; color:#94a3b8;">#${idx + 1}</span>
+            <div class="faq-item-index">${idx + 1}</div>
+            <div class="faq-item-body">
+              <div class="faq-item-head">
+                <span class="faq-chip">${category}</span>
+                <span class="faq-item-meta">FAQ ${idx + 1}</span>
+              </div>
+              <div class="faq-item-title">${question}</div>
+              <div class="faq-item-preview">${preview || '-'}</div>
             </div>
-            <div class="faq-item-title">${question}</div>
-            <div class="faq-item-preview">${preview || '-'}</div>
+            <div class="faq-item-arrow" aria-hidden="true"></div>
           </button>
         `;
       }).join('');
@@ -364,6 +510,7 @@
       faqState.filtered = list;
       renderFaqList(list);
       if (faqCount) faqCount.textContent = `${list.length} pertanyaan`;
+      if (faqCountBadge) faqCountBadge.textContent = String(list.length);
     }
 
     async function loadFaq(){

@@ -105,9 +105,9 @@
           <h3 style="margin:0 0 12px;">Identitas</h3>
           <div class="info-grid">
             <div class="info-item"><div class="info-label">NIP</div><div class="info-value" id="nip">-</div></div>
-            <div class="info-item"><div class="info-label">NIK</div><div class="info-value" id="nik">-</div></div>
             <div class="info-item"><div class="info-label">Jenis Kelamin</div><div class="info-value" id="jenisKelamin">-</div></div>
             <div class="info-item"><div class="info-label">Tempat / Tanggal Lahir</div><div class="info-value" id="ttl">-</div></div>
+            <div class="info-item"><div class="info-label">Umur</div><div class="info-value" id="umur">-</div></div>
             <div class="info-item"><div class="info-label">Agama</div><div class="info-value" id="agama">-</div></div>
             <div class="info-item"><div class="info-label">Status Pernikahan</div><div class="info-value" id="statusNikah">-</div></div>
             <div class="info-item"><div class="info-label">Golongan Darah</div><div class="info-value" id="goldar">-</div></div>
@@ -232,11 +232,77 @@
       window.location.href = BASE;
     }
 
+    function serialToDate(serial){
+      const ms = Math.round((serial - 25569) * 86400 * 1000);
+      return new Date(ms);
+    }
+
+    function parseDateValue(raw){
+      if (!raw) return null;
+      if (raw instanceof Date) return raw;
+      const num = Number(raw);
+      if (!Number.isNaN(num) && String(raw).trim() !== '') {
+        if (num > 100000000000) return new Date(num);
+        if (num > 59) return serialToDate(num);
+      }
+      const str = String(raw).trim();
+      if (!str) return null;
+      if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+        const iso = new Date(str);
+        if (!Number.isNaN(iso.getTime())) return iso;
+      }
+      const match = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+      if (match) {
+        let day = parseInt(match[1], 10);
+        let month = parseInt(match[2], 10);
+        let year = parseInt(match[3], 10);
+        if (year < 100) year += 2000;
+        return new Date(year, month - 1, day);
+      }
+      const parsed = Date.parse(str);
+      return Number.isNaN(parsed) ? null : new Date(parsed);
+    }
+
     function fmtDate(raw){
-      if (!raw) return '-';
-      const d = new Date(raw);
-      if (Number.isNaN(d.getTime())) return raw;
-      return d.toLocaleDateString('id-ID');
+      const dt = parseDateValue(raw);
+      if (!dt || Number.isNaN(dt.getTime())) return '-';
+      return dt.toLocaleDateString('id-ID');
+    }
+
+    function formatTenure(raw){
+      const dt = parseDateValue(raw);
+      if (!dt || Number.isNaN(dt.getTime())) return '';
+      const now = new Date();
+      let years = now.getFullYear() - dt.getFullYear();
+      let months = now.getMonth() - dt.getMonth();
+      if (now.getDate() < dt.getDate()) months -= 1;
+      if (months < 0) {
+        years -= 1;
+        months += 12;
+      }
+      if (years < 0) return '';
+      if (years === 0 && months === 0) return '0 bulan';
+      if (years === 0) return `${months} bulan`;
+      if (months === 0) return `${years} tahun`;
+      return `${years} tahun ${months} bulan`;
+    }
+
+    function formatAge(raw){
+      const dt = parseDateValue(raw);
+      if (!dt || Number.isNaN(dt.getTime())) return '';
+      const now = new Date();
+      let years = now.getFullYear() - dt.getFullYear();
+      let months = now.getMonth() - dt.getMonth();
+      if (now.getDate() < dt.getDate()) months -= 1;
+      if (months < 0) {
+        years -= 1;
+        months += 12;
+      }
+      if (years < 0) return '';
+      if (years === 0 && months === 0) return '0 bulan';
+      if (years === 0) return `${months} bulan`;
+      if (months === 0) return `${years} tahun`;
+      return `${years} tahun ${months} bulan`;
     }
 
     function fillProfile(p){
@@ -250,10 +316,13 @@
       document.getElementById('statusAktif').textContent = p.nama_status_aktif || p.aktif || '-';
 
       document.getElementById('nip').textContent = p.nip || '-';
-      document.getElementById('nik').textContent = p.nik || '-';
       document.getElementById('jenisKelamin').textContent = p.jenis_kelamin || '-';
-      const ttlVal = [p.tempat_lahir, fmtDate(p.tanggal_lahir)].filter(Boolean).join(' / ') || '-';
+      const ttlDate = fmtDate(p.tanggal_lahir);
+      const ttlParts = [p.tempat_lahir, ttlDate !== '-' ? ttlDate : ''].filter(Boolean);
+      const ttlVal = ttlParts.length ? ttlParts.join(' / ') : '-';
       document.getElementById('ttl').textContent = ttlVal;
+      const ageText = formatAge(p.tanggal_lahir);
+      document.getElementById('umur').textContent = ageText || '-';
       document.getElementById('agama').textContent = p.agama || '-';
       document.getElementById('statusNikah').textContent = p.status_pernikahan || '-';
       document.getElementById('goldar').textContent = p.golongan_darah || '-';
@@ -266,7 +335,9 @@
       document.getElementById('jenisKontrak').textContent = p.jenis_kontrak || '-';
       document.getElementById('jabatanOrb').textContent = p.nama_jabatan_orb || '-';
       document.getElementById('jabatanPrb').textContent = p.nama_jabatan_prb || '-';
-      document.getElementById('tmtKerja').textContent = p.tmt_kerja_ukpd || '-';
+      const tmtText = fmtDate(p.tmt_kerja_ukpd);
+      const tenure = formatTenure(p.tmt_kerja_ukpd);
+      document.getElementById('tmtKerja').textContent = tmtText === '-' ? '-' : `${tmtText}${tenure ? ' - ' + tenure : ''}`;
       document.getElementById('ukpdDetail').textContent = p.nama_ukpd || '-';
 
       document.getElementById('jenjang').textContent = p.jenjang_pendidikan || '-';

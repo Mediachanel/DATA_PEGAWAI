@@ -14,7 +14,7 @@
 - Script otomatis mencari file `.json` yang mengandung `update-bezetting` atau fallback `service-account.json`.
 - Share spreadsheet ke email service account dengan hak Edit.
 - Install deps: `npm install`.
-- Jalankan: `npm start` (opsional: `PORT=4000 SPREADSHEET_ID=... RANGE="DATA PEGAWAI!A:AC"`).
+- Jalankan: `npm start` (opsional: `PORT=4000 SPREADSHEET_ID=... RANGE="DATA PEGAWAI!A:AD"`).
 - Migrasi password lama ke hash (sekali jalan): `npm run migrate-passwords` (opsional `--dry-run`).
 - Endpoint:
   - GET `/health` (cek status).
@@ -29,7 +29,7 @@
 - Gunakan login dari sheet `username`.
 
 ## Struktur sheet
-- Data: `DATA PEGAWAI` (A:AC)
+- Data: `DATA PEGAWAI` (A:AD)
   1. nama_pegawai
   2. npwp
   3. no_bpjs
@@ -39,26 +39,27 @@
   7. nama_status_rumpun
   8. jenis_kontrak
   9. nip
-  10. nik
-  11. jenis_kelamin
-  12. tmt_kerja_ukpd
-  13. tempat_lahir
-  14. tanggal_lahir
-  15. agama
-  16. jenjang_pendidikan
-  17. jurusan_pendidikan
-  18. no_tlp
-  19. email
-  20. nama_ukpd
-  21. wilayah_ukpd
-  22. golongan_darah
-  23. gelar_depan
-  24. gelar_belakang
-  25. status_pernikahan
-  26. nama_jenis_pegawai
-  27. catatan_revisi_biodata
-  28. alamat_ktp
-  29. alamat_domisili
+  10. jenis_kelamin
+  11. tmt_kerja_ukpd
+  12. tempat_lahir
+  13. tanggal_lahir
+  14. agama
+  15. jenjang_pendidikan
+  16. jurusan_pendidikan
+  17. no_tlp
+  18. email
+  19. nama_ukpd
+  20. wilayah_ukpd
+  21. golongan_darah
+  22. gelar_depan
+  23. gelar_belakang
+  24. status_pernikahan
+  25. nama_jenis_pegawai
+  26. catatan_revisi_biodata
+  27. alamat_ktp
+  28. alamat_domisili
+  29. created_at
+  30. updated_at
 - Login: `username` (A:E) kolom Nama UKPD, Username, Password, Hak akses, Wilayah. Password disimpan hash `sha256$<salt>$<hash>` (login akan upgrade jika masih plaintext).
 
 ## Troubleshooting
