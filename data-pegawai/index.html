@@ -78,14 +78,42 @@
     .icon-edit { background:linear-gradient(135deg, #fff7ed, #ffedd5); color:#c2410c; border-color:#fed7aa; }
     .icon-delete { background:linear-gradient(135deg, #fee2e2, #ffe4e6); color:#b91c1c; border-color:#fecdd3; }
     .warn-badge{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:8px; background:#fef3c7; color:#92400e; font-size:12px; font-weight:700; margin-left:6px; cursor:pointer; border:1px solid #fcd34d; }
+    .toast-container{ position:fixed; top:18px; right:18px; display:flex; flex-direction:column; gap:10px; z-index:9999; }
+    .toast{
+      min-width:240px; max-width:360px; background:#ffffff; border:1px solid var(--border); border-left:4px solid var(--accent);
+      padding:10px 12px; border-radius:12px; box-shadow:0 12px 24px rgba(15,23,42,0.18);
+      display:flex; flex-direction:column; gap:4px; font-size:13px; color:#0f172a; transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.success{ border-left-color: var(--success); }
+    .toast.error{ border-left-color: var(--danger); }
+    .toast.hide{ opacity:0; transform: translateY(-6px); }
+    .toast-title{ font-weight:800; }
+    .toast-msg{ color:#475569; }
     .table-tools { display:flex; gap:14px; align-items:center; justify-content:space-between; margin:8px 0; flex-wrap:wrap; }
     .table-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 20; }
     .modal-backdrop.show { display: flex; }
     .modal { background: #fff; border-radius: 16px; padding: 18px; width: min(1100px, 96vw); box-shadow: 0 22px 48px rgba(24,39,75,0.22); }
     .modal h3 { margin: 0 0 12px; }
-    .modal form { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; max-height: 72vh; overflow:auto; }
-    .modal .full { grid-column: 1 / -1; }
+    .modal form { display:flex; flex-direction:column; gap:14px; max-height: 72vh; overflow:auto; padding-right:4px; }
+    .form-section{ background:#f8fafc; border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:12px; }
+    .section-title{ font-size:12px; font-weight:800; color:#0f172a; text-transform:uppercase; letter-spacing:.6px; display:flex; align-items:center; gap:8px; }
+    .section-grid{ display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:12px; align-items:start; }
+    .section-grid > div{ display:flex; flex-direction:column; gap:6px; }
+    .section-grid input, .section-grid select, .section-grid textarea{ width:100%; }
+    .section-grid .full { grid-column: 1 / -1; }
+    .form-section label{ min-height:28px; }
+    .modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:4px; }
+    @media (max-width: 1200px){
+      .section-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 960px){
+      .section-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px){
+      .section-grid{ grid-template-columns: 1fr; }
+      .form-section label{ min-height: auto; }
+    }
     .pill { display:inline-flex; gap:6px; align-items:center; padding:6px 10px; background:#e0f2fe; color:#0369a1; border-radius:999px; font-weight:700; }
     .mobile-toggle{
       position: fixed; top: 14px; left: 14px; z-index: 70;
@@ -215,43 +243,74 @@
   <div id="modalBackdrop" class="modal-backdrop">
     <div class="modal">
       <h3 id="modalTitle">Tambah Pegawai</h3>
-      <form id="pegawaiForm">
-        <div><label>Nama Pegawai</label><input name="nama_pegawai" required /></div>
-        <div><label>NPWP</label><input name="npwp" required /></div>
-        <div><label>No BPJS</label><input name="no_bpjs" required /></div>
-        <div><label>Jabatan ORB</label><input name="nama_jabatan_orb" required /></div>
-        <div><label>Jabatan PRB</label><input name="nama_jabatan_prb" required /></div>
-        <div><label>Status Aktif</label><select name="nama_status_aktif" id="nama_status_aktif" required></select></div>
-        <div><label>Status Rumpun</label><select name="nama_status_rumpun" id="nama_status_rumpun" required></select></div>
-        <div><label>Jenis Kontrak</label><select name="jenis_kontrak" id="jenis_kontrak" required></select></div>
-        <div><label>NIP</label><input name="nip" required /></div>
-        <div><label>NIK</label><input name="nik" required /></div>
-        <div><label>Jenis Kelamin</label><select name="jenis_kelamin" id="jenis_kelamin" required></select></div>
-        <div><label>TMT Kerja UKPD</label><input type="date" name="tmt_kerja_ukpd" required /></div>
-        <div><label>Tempat Lahir</label><input name="tempat_lahir" required /></div>
-        <div><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" required /></div>
-        <div><label>Agama</label><select name="agama" id="agama" required></select></div>
-        <div><label>Jenjang Pendidikan</label><select name="jenjang_pendidikan" id="jenjang_pendidikan" required></select></div>
-        <div><label>Jurusan Pendidikan</label><input name="jurusan_pendidikan" required /></div>
-        <div><label>No Tlp</label><input name="no_tlp" required /></div>
-        <div><label>Email</label><input name="email" required /></div>
-        <div><label>Nama UKPD</label><input name="nama_ukpd" id="nama_ukpd" required /></div>
-        <div><label>Wilayah UKPD</label><input name="wilayah_ukpd" id="wilayah_ukpd" placeholder="Wilayah UKPD" /></div>
-        <div><label>Golongan Darah</label><select name="golongan_darah" id="golongan_darah" required></select></div>
-        <div><label>Gelar Depan</label><input name="gelar_depan" required /></div>
-        <div><label>Gelar Belakang</label><input name="gelar_belakang" required /></div>
-        <div><label>Status Pernikahan (Opsional)</label><select name="status_pernikahan" id="status_pernikahan"></select></div>
-        <div><label>Jenis Pegawai</label><input name="nama_jenis_pegawai" required /></div>
-        <div class="full"><label>Catatan Revisi Biodata</label><textarea name="catatan_revisi_biodata" rows="2" required></textarea></div>
-        <div class="full"><label>Alamat KTP</label><textarea name="alamat_ktp" rows="2" required></textarea></div>
-        <div class="full"><label>Alamat Domisili</label><textarea name="alamat_domisili" rows="3" required></textarea></div>
-        <div class="full" style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+      <form id="pegawaiForm" autocomplete="off">
+        <div class="form-section">
+          <div class="section-title">Identitas</div>
+          <div class="section-grid">
+            <div><label>Nama Pegawai</label><input name="nama_pegawai" required /></div>
+            <div><label>NIP</label><input name="nip" required /></div>
+            <div><label>NIK</label><input name="nik" required /></div>
+            <div><label>Jenis Kelamin</label><select name="jenis_kelamin" id="jenis_kelamin" required></select></div>
+            <div><label>Tempat Lahir</label><input name="tempat_lahir" required /></div>
+            <div><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" required /></div>
+            <div><label>Agama</label><select name="agama" id="agama" required></select></div>
+            <div><label>Golongan Darah</label><select name="golongan_darah" id="golongan_darah" required></select></div>
+            <div><label>Status Pernikahan (Opsional)</label><select name="status_pernikahan" id="status_pernikahan"></select></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Kepegawaian</div>
+          <div class="section-grid">
+            <div><label>Status Aktif</label><select name="nama_status_aktif" id="nama_status_aktif" required></select></div>
+            <div><label>Status Rumpun</label><select name="nama_status_rumpun" id="nama_status_rumpun" required></select></div>
+            <div><label>Jenis Pegawai (Opsional)</label><select name="nama_jenis_pegawai" id="nama_jenis_pegawai"></select></div>
+            <div><label>Jenis Kontrak</label><select name="jenis_kontrak" id="jenis_kontrak" required></select></div>
+            <div><label>Jabatan ORB</label><input name="nama_jabatan_orb" required /></div>
+            <div><label>Jabatan PRB</label><input name="nama_jabatan_prb" required /></div>
+            <div><label>Nama UKPD</label><input name="nama_ukpd" id="nama_ukpd" required /></div>
+            <div><label>Wilayah UKPD</label><input name="wilayah_ukpd" id="wilayah_ukpd" placeholder="Wilayah UKPD" /></div>
+            <div><label>TMT Kerja UKPD</label><input type="date" name="tmt_kerja_ukpd" required /></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Pendidikan & Gelar</div>
+          <div class="section-grid">
+            <div><label>Jenjang Pendidikan</label><select name="jenjang_pendidikan" id="jenjang_pendidikan" required></select></div>
+            <div><label>Jurusan Pendidikan</label><input name="jurusan_pendidikan" required /></div>
+            <div><label>Gelar Depan</label><input name="gelar_depan" /></div>
+            <div><label>Gelar Belakang</label><input name="gelar_belakang" /></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Kontak</div>
+          <div class="section-grid">
+            <div><label>No Tlp</label><input name="no_tlp" required /></div>
+            <div><label>Email</label><input name="email" required /></div>
+            <div><label>NPWP</label><input name="npwp" required /></div>
+            <div><label>No BPJS</label><input name="no_bpjs" required /></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Alamat</div>
+          <div class="section-grid">
+            <div class="full"><label>Alamat KTP</label><textarea name="alamat_ktp" rows="2" required></textarea></div>
+            <div class="full"><label>Alamat Domisili</label><textarea name="alamat_domisili" rows="3" required></textarea></div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
           <button type="button" class="secondary" id="cancelModal">Batal</button>
           <button type="submit" id="submitModal">Simpan</button>
         </div>
       </form>
     </div>
   </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <script src="../loader.js"></script>
   <script>
@@ -313,6 +372,7 @@
     const selectJenjang = document.getElementById('jenjang_pendidikan');
     const selectGoldar = document.getElementById('golongan_darah');
     const selectStatusNikah = document.getElementById('status_pernikahan');
+    const selectJenisPegawai = document.getElementById('nama_jenis_pegawai');
     const inputUkpd = document.getElementById('nama_ukpd');
     const inputWilayah = document.getElementById('wilayah_ukpd');
     const pageSize = document.getElementById('pageSize');
@@ -358,8 +418,22 @@
     const LIST_GOLDAR = ['A-','A+','AB+','AB-','B-','B+','O-','O+'];
     const LIST_JENJANG = ['SD','SMP','SMA/SEDERAJAT','D-I','D-II','D-III','D-IV','S-1','PROFESI','S-2','S-3','Spesialis'];
     const LIST_STATUS_NIKAH = ['Belum Menikah','Cerai Hidup','Cerai Mati','Menikah'];
+    const LIST_JENIS_PEGAWAI = ['PNS','PPPK','NON ASN','PJLP'];
 
     function setStatus(msg){ statusEl.textContent = 'Status: ' + msg; }
+    function showToast(message, type = 'success'){
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const title = type === 'error' ? 'Gagal' : 'Berhasil';
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<div class="toast-title">${title}</div><div class="toast-msg">${message}</div>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 250);
+      }, 2600);
+    }
     function toggleDataSection(show){ /* intentionally keep always visible */ }
     function updateHeaderUser(){
       if (!authUser) return;
@@ -392,7 +466,7 @@
     }
 
     function initSelectOptions(){
-      const setOpts = (el, list)=>{ if (!el) return; el.innerHTML = '<option value=\"\">Pilih</option>' + list.map(v=>`<option value=\"${v}\">${v}</option>`).join(''); };
+      const setOpts = (el, list, placeholder = 'Pilih')=>{ if (!el) return; el.innerHTML = `<option value=\"\">${placeholder}</option>` + list.map(v=>`<option value=\"${v}\">${v}</option>`).join(''); };
       setOpts(selectStatusRumpun, LIST_STATUS_RUMPUN);
       setOpts(selectJenisKontrak, LIST_JENIS_KONTRAK);
       setOpts(selectAgama, LIST_AGAMA);
@@ -401,6 +475,7 @@
       setOpts(selectGoldar, LIST_GOLDAR);
       setOpts(selectJenjang, LIST_JENJANG);
       setOpts(selectStatusNikah, LIST_STATUS_NIKAH);
+      setOpts(selectJenisPegawai, LIST_JENIS_PEGAWAI, 'Opsional');
     }
 
     function setUkpdField(fillDefault=true){
@@ -545,7 +620,7 @@
 
     const REQUIRED_FIELDS = [
       ['nip','NIP'],['nik','NIK'],['nama_pegawai','Nama'],['nama_ukpd','UKPD'],['nama_jabatan_orb','Jabatan'],
-      ['nama_status_rumpun','Rumpun'],['nama_status_aktif','Status Pegawai'],['nama_jenis_pegawai','Jenis Pegawai'],
+      ['nama_status_rumpun','Rumpun'],['nama_status_aktif','Status Pegawai'],
       ['jenis_kelamin','Jenis Kelamin'],['tanggal_lahir','Tanggal Lahir'],['tempat_lahir','Tempat Lahir'],
       ['agama','Agama'],['jenjang_pendidikan','Pendidikan'],['no_tlp','No Tlp'],['alamat_domisili','Alamat Domisili']
     ];
@@ -599,14 +674,39 @@
 
     function countBy(arr, fn){ return arr.reduce((acc, item)=>{ const k = fn(item); acc[k] = (acc[k]||0)+1; return acc; }, {}); }
 
+    function disableFormAutocomplete(formEl){
+      if (!formEl) return;
+      const fields = formEl.querySelectorAll('input, textarea');
+      fields.forEach((el) => {
+        el.setAttribute('autocomplete', 'off');
+        el.setAttribute('autocorrect', 'off');
+        el.setAttribute('autocapitalize', 'off');
+        el.setAttribute('spellcheck', 'false');
+      });
+    }
+
+    function ensureSelectValue(el, value){
+      if (!el || !value) return;
+      const exists = Array.from(el.options || []).some(o => o.value === value);
+      if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = value;
+        el.appendChild(opt);
+      }
+      el.value = value;
+    }
+
     function openModal(data){
       modalBackdrop.classList.add('show');
       pegawaiForm.reset();
+      disableFormAutocomplete(pegawaiForm);
       editingId = data?.id || data?.nip || data?.nik || null;
       modalTitle.textContent = editingId ? 'Edit Pegawai' : 'Tambah Pegawai';
       submitModal.textContent = editingId ? 'Simpan Perubahan' : 'Tambah';
       if (data){
         Object.keys(data).forEach(k => { if (pegawaiForm.elements[k]) pegawaiForm.elements[k].value = data[k] || ''; });
+        ensureSelectValue(selectJenisPegawai, data.nama_jenis_pegawai);
         setUkpdField(false);
       } else {
         setUkpdField(true);
@@ -633,8 +733,10 @@
         closeModal();
         await loadData();
         setStatus('Berhasil disimpan');
+        showToast('Data pegawai berhasil disimpan.', 'success');
       } catch(err){
         setStatus('Gagal simpan: ' + err.message);
+        showToast('Gagal menyimpan data pegawai.', 'error');
       }
     }
 
@@ -651,8 +753,10 @@
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal hapus');
         await loadData();
         setStatus('Data terhapus');
+        showToast('Data pegawai berhasil dihapus.', 'success');
       } catch(err){
         setStatus('Gagal hapus: ' + err.message);
+        showToast('Gagal menghapus data pegawai.', 'error');
       }
     }
 
