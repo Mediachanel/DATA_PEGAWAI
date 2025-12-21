@@ -6,12 +6,13 @@ const MUTASI_SHEET = 'USULAN_MUTASI';
 const PEMUTUSAN_SHEET = 'USULAN_PEMUTUSAN_JF';
 const QNA_SHEET = 'Q n A';
 const BEZETTING_SHEET = 'bezetting';
-// Urutan kolom data pegawai (A:AC) termasuk wilayah_ukpd
+// Urutan kolom data pegawai (A:AE) termasuk wilayah_ukpd + timestamp
 const COLS = [
   'nama_pegawai','npwp','no_bpjs','nama_jabatan_orb','nama_jabatan_prb','nama_status_aktif','nama_status_rumpun',
   'jenis_kontrak','nip','nik','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
-  'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili'
+  'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili',
+  'created_at','updated_at'
 ];
 const MUTASI_COLS = [
   'id','nip','nama_pegawai','gelar_depan','gelar_belakang','pangkat_golongan','jabatan','abk_j_lama',
@@ -463,6 +464,9 @@ function createPegawai(e) {
       if (sessionUser.wilayah) body.wilayah_ukpd = sessionUser.wilayah;
     }
   }
+  const nowIso = new Date().toISOString();
+  if (!body.created_at) body.created_at = nowIso;
+  body.updated_at = nowIso;
   const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] || [];
   const keys = header.map(normalizePegawaiHeader);
   const idIdx = keys.indexOf('id');
@@ -504,6 +508,9 @@ function updatePegawai(e) {
       if (sessionUser.wilayah) body.wilayah_ukpd = sessionUser.wilayah;
     }
   }
+  const nowIso = new Date().toISOString();
+  if (!body.created_at && current.created_at) body.created_at = current.created_at;
+  body.updated_at = nowIso;
   const next = { ...current, ...body };
   if (keys.includes('id') && !next.id) next.id = id;
   const payload = keys.map((k) => (k ? (next[k] !== undefined ? next[k] : '') : ''));

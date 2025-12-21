@@ -15,7 +15,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
 const LOGIN_WINDOW_MS = Math.max(60000, parseInt(process.env.LOGIN_WINDOW_MS, 10) || 5 * 60 * 1000);
 const LOGIN_MAX_ATTEMPTS = Math.max(5, parseInt(process.env.LOGIN_MAX_ATTEMPTS, 10) || 10);
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw';
-const RANGE = process.env.RANGE || 'DATA PEGAWAI!A:AC'; // 29 kolom (tambah wilayah_ukpd)
+const RANGE = process.env.RANGE || 'DATA PEGAWAI!A:AE'; // 31 kolom (tambah wilayah_ukpd + timestamp)
 const USER_RANGE = process.env.USER_RANGE || 'username!A:E'; // Nama UKPD | Username | password | hak akses | wilayah
 const SHEET_NAME = RANGE.split('!')[0];
 const WEB_APP_BASE = process.env.WEB_APP_BASE || 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
@@ -25,7 +25,8 @@ const COLS = [
   'nama_pegawai','npwp','no_bpjs','nama_jabatan_orb','nama_jabatan_prb','nama_status_aktif','nama_status_rumpun',
   'jenis_kontrak','nip','nik','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
-  'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili'
+  'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili',
+  'created_at','updated_at'
 ];
 const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:AC'; // 29 kolom (format baru)
 const MUTASI_COLS = [
@@ -814,6 +815,9 @@ app.post('/pegawai', async (req, res) => {
       if (sessionUser.wilayah) d.wilayah_ukpd = sessionUser.wilayah;
     }
   }
+  const nowIso = new Date().toISOString();
+  if (!d.created_at) d.created_at = nowIso;
+  d.updated_at = nowIso;
   const row = COLS.map(k => d[k] || '');
   try {
     const result = await sheets.spreadsheets.values.append({
@@ -925,10 +929,14 @@ app.put('/pegawai/:id', async (req, res) => {
       }
     }
     const rowNumber = idx + 1; // 1-based
-    const payload = COLS.map(k => d[k] || '');
+    const nowIso = new Date().toISOString();
+    if (!d.created_at && current.created_at) d.created_at = current.created_at;
+    d.updated_at = nowIso;
+    const payload = COLS.map(k => (d[k] !== undefined ? d[k] : (current[k] || '')));
+    const endCol = columnIndexToLetter(COLS.length);
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A${rowNumber}:AC${rowNumber}`,
+      range: `${SHEET_NAME}!A${rowNumber}:${endCol}${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
@@ -1874,6 +1882,8 @@ function toRecord(header, row) {
     catatan_revisi_biodata: get('catatan_revisi_biodata', 25),
     alamat_ktp: get('alamat_ktp', 26),
     alamat_domisili: get('alamat_domisili', 27),
+    created_at: get('created_at', 29),
+    updated_at: get('updated_at', 30),
     wilayah_ukpd: get('wilayah_ukpd', 20),
     unit: get('nama_ukpd', 19),
     jabatan: get('nama_jabatan_orb', 3),
