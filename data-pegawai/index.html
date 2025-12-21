@@ -248,7 +248,7 @@
           <div class="section-title">Identitas</div>
           <div class="section-grid">
             <div><label>Nama Pegawai</label><input name="nama_pegawai" required /></div>
-            <div><label>NIP</label><input name="nip" required /></div>
+            <div><label>NIP (Opsional)</label><input name="nip" /></div>
             <div><label>Jenis Kelamin</label><select name="jenis_kelamin" id="jenis_kelamin" required></select></div>
             <div><label>Tempat Lahir</label><input name="tempat_lahir" required /></div>
             <div><label>Tanggal Lahir</label><input type="date" name="tanggal_lahir" required /></div>
@@ -623,7 +623,7 @@
     }
 
     const REQUIRED_FIELDS = [
-      ['nip','NIP'],['nama_pegawai','Nama'],['nama_ukpd','UKPD'],['nama_jabatan_orb','Jabatan'],
+      ['nama_pegawai','Nama'],['nama_ukpd','UKPD'],['nama_jabatan_orb','Jabatan'],
       ['nama_status_rumpun','Rumpun'],['nama_status_aktif','Status Pegawai'],
       ['jenis_kelamin','Jenis Kelamin'],['tanggal_lahir','Tanggal Lahir'],['tempat_lahir','Tempat Lahir'],
       ['agama','Agama'],['jenjang_pendidikan','Pendidikan'],['no_tlp','No Tlp'],['alamat_domisili','Alamat Domisili']
@@ -768,7 +768,7 @@
     async function savePegawai(e){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(pegawaiForm).entries());
-      if (!data.nip && !editingId){ setStatus('NIP wajib diisi'); return; }
+      if (!data.nama_pegawai || !data.tanggal_lahir){ setStatus('Nama dan tanggal lahir wajib diisi'); return; }
       try {
         setStatus(editingId ? 'Menyimpan perubahan...' : 'Menambah pegawai...');
         const isEdit = Boolean(editingId);
@@ -868,7 +868,12 @@
       if(!btn) return; 
       const id = btn.dataset.id; 
       const action = btn.dataset.action; 
-      const row = rows.find(r => r.id === id || r.nip === id); 
+      const matches = rows.filter(r => r.id === id || r.nip === id); 
+      if (matches.length > 1) {
+        alert('Data ganda dengan nama dan tanggal lahir yang sama. Lengkapi NIP agar bisa edit/hapus.');
+        return;
+      }
+      const row = matches[0]; 
       if(action==='edit' && row) openModal(row); 
       if(action==='delete' && id) deletePegawai(id); 
       if(action==='view' && row){ 

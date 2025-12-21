@@ -115,6 +115,66 @@ const BEZETTING_COLS = [
 ];
 
 const norm = (val = '') => (val || '').toString().trim().toLowerCase();
+
+const normalizeNameKey = (val = '') => (val || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+
+function serialToDate(serial) {
+  const ms = Math.round((Number(serial) - 25569) * 86400 * 1000);
+  return new Date(ms);
+}
+
+function parseDateValue(raw) {
+  if (!raw) return null;
+  if (raw instanceof Date && !Number.isNaN(raw.getTime())) return raw;
+  const num = Number(raw);
+  if (!Number.isNaN(num) && String(raw).trim() !== '') {
+    if (num > 59) return serialToDate(num);
+  }
+  const str = String(raw).trim();
+  if (!str) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    const iso = new Date(str);
+    if (!Number.isNaN(iso.getTime())) return iso;
+  }
+  const match = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+  if (match) {
+    let day = parseInt(match[1], 10);
+    let month = parseInt(match[2], 10);
+    let year = parseInt(match[3], 10);
+    if (year < 100) year += 2000;
+    return new Date(year, month - 1, day);
+  }
+  const parsed = Date.parse(str);
+  return Number.isNaN(parsed) ? null : new Date(parsed);
+}
+
+function normalizeDateKey(raw) {
+  const dt = parseDateValue(raw);
+  if (!dt || Number.isNaN(dt.getTime())) return '';
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function buildCompositeId(name, dob) {
+  const nameKey = normalizeNameKey(name);
+  const dateKey = normalizeDateKey(dob);
+  if (!nameKey || !dateKey) return '';
+  return `nama_tgl:${nameKey}|${dateKey}`;
+}
+
+function parseCompositeId(id) {
+  if (!id || typeof id !== 'string') return null;
+  if (!id.startsWith('nama_tgl:')) return null;
+  const payload = id.slice('nama_tgl:'.length);
+  const parts = payload.split('|');
+  if (parts.length < 2) return null;
+  const nameKey = parts[0].trim();
+  const dateKey = parts.slice(1).join('|').trim();
+  if (!nameKey || !dateKey) return null;
+  return { nameKey, dateKey };
+}
 const HASH_PREFIX = 'sha256$';
 
 function isHashedPassword(value = '') {
@@ -815,6 +875,21 @@ app.post('/pegawai', async (req, res) => {
       if (sessionUser.wilayah) d.wilayah_ukpd = sessionUser.wilayah;
     }
   }
+  const nipVal = String(d.nip || '').trim();
+  if (!nipVal) {
+    const nameKey = normalizeNameKey(d.nama_pegawai);
+    const dateKey = normalizeDateKey(d.tanggal_lahir);
+    if (!nameKey || !dateKey) {
+      return res.status(400).json({ ok: false, error: 'Nama dan tanggal lahir wajib jika NIP kosong' });
+    }
+    const records = await getPegawaiRecords();
+    const duplicate = records.some(r => (
+      normalizeNameKey(r.nama_pegawai) === nameKey && normalizeDateKey(r.tanggal_lahir) === dateKey
+    ));
+    if (duplicate) {
+      return res.status(409).json({ ok: false, error: 'Data dengan nama dan tanggal lahir yang sama sudah ada. Lengkapi NIP agar unik.' });
+    }
+  }
   const nowIso = new Date().toISOString();
   if (!d.created_at) d.created_at = nowIso;
   d.updated_at = nowIso;
@@ -879,8 +954,12 @@ app.get('/pegawai/:id', async (req, res) => {
     const sessionUser = req.sessionUser || {};
     const records = await getPegawaiRecords();
     if (!records.length) return res.status(404).json({ ok: false, error: 'Data kosong' });
-    const found = records.find(r => r.id === id || r.nip === id);
-    if (!found) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
+    const matches = records.filter(r => r.id === id || r.nip === id);
+    if (!matches.length) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
+    if (matches.length > 1) {
+      return res.status(409).json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
+    }
+    const found = matches[0];
     if (!filterPegawaiByRole([found], sessionUser).length) {
       return res.status(403).json({ ok: false, error: 'forbidden' });
     }
@@ -898,16 +977,14 @@ app.put('/pegawai/:id', async (req, res) => {
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: RANGE });
     const rows = values.data.values || [];
     const [header, ...data] = rows;
-    const h = header || [];
-    const idxNip = h.findIndex(x => (x || '').toLowerCase().trim() === 'nip');
-    const idx = rows.findIndex(r => {
-      const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
-      return nipVal === id;
-    });
-    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP) tidak ditemukan' });
+    const idx = findRowIndexByIdentifier(header, data, id);
+    if (idx === -2) {
+      return res.status(409).json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
+    }
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
     const sessionUser = req.sessionUser || {};
     const ctx = getRoleContext(sessionUser);
-    const currentRow = rows[idx] || [];
+    const currentRow = data[idx] || [];
     const current = toRecord(header, currentRow);
     if (!ctx.isSuper) {
       const map = await getUkpdWilayahMap();
@@ -926,11 +1003,32 @@ app.put('/pegawai/:id', async (req, res) => {
         if (sessionUser.wilayah) d.wilayah_ukpd = sessionUser.wilayah;
       }
     }
-    const rowNumber = idx + 1; // 1-based
+    const rowNumber = idx + 2; // 1-based (header baris 1)
     const nowIso = new Date().toISOString();
-    if (!d.created_at && current.created_at) d.created_at = current.created_at;
-    d.updated_at = nowIso;
-    const payload = COLS.map(k => (d[k] !== undefined ? d[k] : (current[k] || '')));
+    const next = { ...current, ...d };
+    const nextNip = String(next.nip || '').trim();
+    if (!nextNip) {
+      const nameKey = normalizeNameKey(next.nama_pegawai);
+      const dateKey = normalizeDateKey(next.tanggal_lahir);
+      if (!nameKey || !dateKey) {
+        return res.status(400).json({ ok: false, error: 'Nama dan tanggal lahir wajib jika NIP kosong' });
+      }
+      const hNorm = (header || []).map(normalizeHeaderKey);
+      const idxName = hNorm.indexOf('nama_pegawai');
+      const idxDob = hNorm.indexOf('tanggal_lahir');
+      const duplicate = data.some((row, i) => {
+        if (i === idx) return false;
+        const rName = normalizeNameKey(idxName >= 0 ? row[idxName] : '');
+        const rDate = normalizeDateKey(idxDob >= 0 ? row[idxDob] : '');
+        return rName === nameKey && rDate === dateKey;
+      });
+      if (duplicate) {
+        return res.status(409).json({ ok: false, error: 'Data dengan nama dan tanggal lahir yang sama sudah ada. Lengkapi NIP agar unik.' });
+      }
+    }
+    if (!next.created_at && current.created_at) next.created_at = current.created_at;
+    next.updated_at = nowIso;
+    const payload = COLS.map(k => (next[k] !== undefined ? next[k] : (current[k] || '')));
     const endCol = columnIndexToLetter(COLS.length);
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -951,17 +1049,16 @@ app.delete('/pegawai/:id', async (req, res) => {
     const values = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: RANGE });
     const rows = values.data.values || [];
     const header = rows[0] || [];
-    const h = header || [];
-    const idxNip = h.findIndex(x => (x || '').toLowerCase().trim() === 'nip');
-    const idx = rows.findIndex(r => {
-      const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
-      return nipVal === id;
-    });
-    if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP) tidak ditemukan' });
+    const data = rows.slice(1);
+    const idx = findRowIndexByIdentifier(header, data, id);
+    if (idx === -2) {
+      return res.status(409).json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
+    }
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'ID tidak ditemukan' });
     const sessionUser = req.sessionUser || {};
     const ctx = getRoleContext(sessionUser);
     if (!ctx.isSuper) {
-      const record = toRecord(header, rows[idx]);
+      const record = toRecord(header, data[idx]);
       const map = await getUkpdWilayahMap();
       if (!isUkpdAllowed(ctx, record.nama_ukpd, record.wilayah_ukpd, map)) {
         return res.status(403).json({ ok: false, error: 'forbidden' });
@@ -973,7 +1070,7 @@ app.delete('/pegawai/:id', async (req, res) => {
       requestBody: {
         requests: [{
           deleteDimension: {
-            range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 }
+            range: { sheetId, dimension: 'ROWS', startIndex: idx + 1, endIndex: idx + 2 }
           }
         }]
       }
@@ -1847,8 +1944,9 @@ function toRecord(header, row) {
     || get('pangkat golongan')
     || get('pangkat/gol')
     || get('pangkat');
+  const fallbackId = buildCompositeId(get('nama_pegawai', 0), get('tanggal_lahir', 12));
   return {
-    id: get('id') || get('nip', 8) || '',
+    id: get('id') || get('nip', 8) || fallbackId || '',
     nama_pegawai: get('nama_pegawai', 0),
     npwp: get('npwp', 1),
     no_bpjs: get('no_bpjs', 2),
@@ -1885,6 +1983,31 @@ function toRecord(header, row) {
     statusKaryawan: get('nama_status_aktif', 5),
     aktif: get('nama_status_aktif', 5)
   };
+}
+
+function findRowIndexByIdentifier(header, rows, id) {
+  const h = (header || []).map(normalizeHeaderKey);
+  const idxNip = h.indexOf('nip');
+  const composite = parseCompositeId(id);
+  if (composite) {
+    const idxName = h.indexOf('nama_pegawai');
+    const idxDob = h.indexOf('tanggal_lahir');
+    let foundIndex = -1;
+    rows.forEach((row, i) => {
+      const nameKey = normalizeNameKey(idxName >= 0 ? row[idxName] : '');
+      const dateKey = normalizeDateKey(idxDob >= 0 ? row[idxDob] : '');
+      if (nameKey && dateKey && nameKey === composite.nameKey && dateKey === composite.dateKey) {
+        if (foundIndex !== -1) {
+          foundIndex = -2;
+          return;
+        }
+        foundIndex = i;
+      }
+    });
+    return foundIndex;
+  }
+  if (idxNip < 0) return -1;
+  return rows.findIndex(r => String(r[idxNip] || '').trim() === id);
 }
 
 function countStatus(rows) {

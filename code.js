@@ -222,7 +222,7 @@ function listPegawai(e) {
   }
 
   const [header, ...rowsRaw] = values;
-  const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.id);
+  const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.nama_pegawai || r.nip || r.id);
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
 
   const filtered = scopedRecords.filter(r => {
@@ -274,7 +274,7 @@ function dashboardStats(e) {
     return json({ ok: true, prepared: emptyDashboardPrepared(), total: 0 });
   }
   const [header, ...rowsRaw] = values;
-  const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.id);
+  const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.nama_pegawai || r.nip || r.id);
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
   const filtered = scopedRecords.filter(r => {
     const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
@@ -440,6 +440,7 @@ function getPegawai(e) {
   if (!values.length) return json({ ok: false, error: 'Data kosong' });
   const [header, ...rows] = values;
   const idx = findRowIndexById(header, rows, id);
+  if (idx === -2) return json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   const record = toRecord(header, rows[idx]);
   return json({ ok: true, data: record });
@@ -464,10 +465,33 @@ function createPegawai(e) {
       if (sessionUser.wilayah) body.wilayah_ukpd = sessionUser.wilayah;
     }
   }
+  const nipVal = String(body.nip || '').trim();
+  let header = [];
+  if (!nipVal) {
+    const values = sheet.getDataRange().getValues();
+    header = values[0] || [];
+    const rows = values.slice(1);
+    const h = header.map(normalizePegawaiHeader);
+    const idxName = h.indexOf('nama_pegawai');
+    const idxDob = h.indexOf('tanggal_lahir');
+    const nameKey = normalizeNameKey(body.nama_pegawai);
+    const dateKey = normalizeDateKey(body.tanggal_lahir);
+    if (!nameKey || !dateKey) return json({ ok: false, error: 'Nama dan tanggal lahir wajib jika NIP kosong' });
+    const exists = rows.some(r => {
+      const rName = normalizeNameKey(idxName >= 0 ? r[idxName] : '');
+      const rDate = normalizeDateKey(idxDob >= 0 ? r[idxDob] : '');
+      return rName === nameKey && rDate === dateKey;
+    });
+    if (exists) {
+      return json({ ok: false, error: 'Data dengan nama dan tanggal lahir yang sama sudah ada. Lengkapi NIP agar unik.' });
+    }
+  }
   const nowIso = new Date().toISOString();
   if (!body.created_at) body.created_at = nowIso;
   body.updated_at = nowIso;
-  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] || [];
+  if (!header.length) {
+    header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] || [];
+  }
   const keys = header.map(normalizePegawaiHeader);
   const idIdx = keys.indexOf('id');
   if (idIdx >= 0 && !body.id) body.id = Utilities.getUuid();
@@ -478,7 +502,8 @@ function createPegawai(e) {
   });
   sheet.appendRow(row);
   bumpCacheVersion();
-  return json({ ok: true, data: { id: body.id || body.nip || '' } });
+  const fallbackId = buildCompositeId(body.nama_pegawai, body.tanggal_lahir);
+  return json({ ok: true, data: { id: body.id || body.nip || fallbackId || '' } });
 }
 
 function updatePegawai(e) {
@@ -490,6 +515,7 @@ function updatePegawai(e) {
   const [header, ...rows] = values;
   const keys = header.map(normalizePegawaiHeader);
   const idx = findRowIndexById(header, rows, id);
+  if (idx === -2) return json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   const rowNumber = idx + 2; // header di baris 1
   const current = rowToObject(keys, rows[idx]);
@@ -512,6 +538,23 @@ function updatePegawai(e) {
   if (!body.created_at && current.created_at) body.created_at = current.created_at;
   body.updated_at = nowIso;
   const next = { ...current, ...body };
+  const nextNip = String(next.nip || '').trim();
+  if (!nextNip) {
+    const nameKey = normalizeNameKey(next.nama_pegawai);
+    const dateKey = normalizeDateKey(next.tanggal_lahir);
+    if (!nameKey || !dateKey) return json({ ok: false, error: 'Nama dan tanggal lahir wajib jika NIP kosong' });
+    const idxName = keys.indexOf('nama_pegawai');
+    const idxDob = keys.indexOf('tanggal_lahir');
+    const duplicate = rows.some((r, i) => {
+      if (i === idx) return false;
+      const rName = normalizeNameKey(idxName >= 0 ? r[idxName] : '');
+      const rDate = normalizeDateKey(idxDob >= 0 ? r[idxDob] : '');
+      return rName === nameKey && rDate === dateKey;
+    });
+    if (duplicate) {
+      return json({ ok: false, error: 'Data dengan nama dan tanggal lahir yang sama sudah ada. Lengkapi NIP agar unik.' });
+    }
+  }
   if (keys.includes('id') && !next.id) next.id = id;
   const payload = keys.map((k) => (k ? (next[k] !== undefined ? next[k] : '') : ''));
   sheet.getRange(rowNumber, 1, 1, keys.length).setValues([payload]);
@@ -526,6 +569,7 @@ function deletePegawai(e) {
   const values = sheet.getDataRange().getValues();
   const [header, ...rows] = values;
   const idx = findRowIndexById(header, rows, id);
+  if (idx === -2) return json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   const sessionUser = e.sessionUser || {};
   const ctx = getRoleContext(sessionUser);
@@ -1698,6 +1742,66 @@ function normalizePegawaiHeader(name) {
   return String(name || '').toLowerCase().trim().replace(/\s+/g, '_');
 }
 
+function normalizeNameKey(name) {
+  return String(name || '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function serialToDate(serial) {
+  const ms = Math.round((Number(serial) - 25569) * 86400 * 1000);
+  return new Date(ms);
+}
+
+function parseDateValue(value) {
+  if (!value) return null;
+  if (Object.prototype.toString.call(value) === '[object Date]') return value;
+  const num = Number(value);
+  if (!Number.isNaN(num) && String(value).trim() !== '') {
+    if (num > 59) return serialToDate(num);
+  }
+  const str = String(value).trim();
+  if (!str) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    const iso = new Date(str);
+    if (!Number.isNaN(iso.getTime())) return iso;
+  }
+  const match = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+  if (match) {
+    let day = parseInt(match[1], 10);
+    let month = parseInt(match[2], 10);
+    let year = parseInt(match[3], 10);
+    if (year < 100) year += 2000;
+    return new Date(year, month - 1, day);
+  }
+  const parsed = Date.parse(str);
+  return Number.isNaN(parsed) ? null : new Date(parsed);
+}
+
+function normalizeDateKey(value) {
+  const dt = parseDateValue(value);
+  if (!dt || Number.isNaN(dt.getTime())) return '';
+  const tz = Session.getScriptTimeZone();
+  return Utilities.formatDate(dt, tz, 'yyyy-MM-dd');
+}
+
+function buildCompositeId(name, dob) {
+  const nameKey = normalizeNameKey(name);
+  const dateKey = normalizeDateKey(dob);
+  if (!nameKey || !dateKey) return '';
+  return `nama_tgl:${nameKey}|${dateKey}`;
+}
+
+function parseCompositeId(id) {
+  if (!id || typeof id !== 'string') return null;
+  if (id.indexOf('nama_tgl:') !== 0) return null;
+  const payload = id.slice('nama_tgl:'.length);
+  const parts = payload.split('|');
+  if (parts.length < 2) return null;
+  const nameKey = parts[0].trim();
+  const dateKey = parts.slice(1).join('|').trim();
+  if (!nameKey || !dateKey) return null;
+  return { nameKey, dateKey };
+}
+
 function rowToObject(keys, row) {
   const obj = {};
   keys.forEach((k, idx) => {
@@ -1720,7 +1824,7 @@ function getParam(e, name) {
 function toRecord(header, row) {
   const keys = (header || []).map(normalizePegawaiHeader);
   const obj = rowToObject(keys, row);
-  const idVal = obj.id || obj.nip || '';
+  const idVal = obj.id || obj.nip || buildCompositeId(obj.nama_pegawai, obj.tanggal_lahir) || '';
   const pangkatGolongan = obj.pangkat_golongan
     || obj['pangkat/golongan']
     || obj['pangkat golongan']
@@ -1871,6 +1975,24 @@ function findRowIndexById(header, rows, id) {
   const h = (header || []).map(normalizePegawaiHeader);
   const idxId = h.indexOf('id');
   const idxNip = h.indexOf('nip');
+  const composite = parseCompositeId(id);
+  if (composite) {
+    const idxName = h.indexOf('nama_pegawai');
+    const idxDob = h.indexOf('tanggal_lahir');
+    let foundIndex = -1;
+    rows.forEach((row, i) => {
+      const nameKey = normalizeNameKey(idxName >= 0 ? row[idxName] : '');
+      const dateKey = normalizeDateKey(idxDob >= 0 ? row[idxDob] : '');
+      if (nameKey && dateKey && nameKey === composite.nameKey && dateKey === composite.dateKey) {
+        if (foundIndex !== -1) {
+          foundIndex = -2;
+          return;
+        }
+        foundIndex = i;
+      }
+    });
+    return foundIndex;
+  }
   return rows.findIndex(r => {
     const idVal = (idxId >= 0 ? r[idxId] : '')?.toString?.() || '';
     const nipVal = (idxNip >= 0 ? r[idxNip] : '')?.toString?.() || '';

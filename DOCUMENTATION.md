@@ -51,6 +51,8 @@
 28. alamat_domisili
 29. created_at
 30. updated_at
+Catatan:
+- NIP bersifat opsional. Jika NIP kosong, identifikasi data memakai kombinasi `nama_pegawai + tanggal_lahir`, jadi pastikan kombinasi tersebut unik agar proses edit/hapus tidak ambigu.
 
 ### Usulan Mutasi (USULAN_MUTASI!A:AC, 29 kolom)
 1. id
