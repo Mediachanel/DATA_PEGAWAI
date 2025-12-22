@@ -1,4 +1,4 @@
-// Konfigurasi
+﻿// Konfigurasi
 const SPREADSHEET_ID = '1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw';
 const DATA_SHEET = 'DATA PEGAWAI';
 const USER_SHEET = 'username'; // kolom: Nama UKPD | Username | Password | Hak akses | Wilayah
@@ -207,7 +207,7 @@ function listPegawai(e) {
   const jab = (params.jabatan || '').toLowerCase().trim();
   const statuses = (params.status || '').split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
 
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   if (!values.length) {
     return json({
       ok: true,
@@ -222,7 +222,8 @@ function listPegawai(e) {
   }
 
   const [header, ...rowsRaw] = values;
-  const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.nama_pegawai || r.nip || r.id);
+  const keys = header.map(normalizePegawaiHeader);
+  const records = rowsRaw.map(r => toRecord(header, r, keys)).filter(r => r.nama_pegawai || r.nip || r.id);
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
 
   const filtered = scopedRecords.filter(r => {
@@ -269,12 +270,13 @@ function dashboardStats(e) {
   const jab = norm(params.jabatan);
   const statuses = (params.status || '').split(',').map(s => norm(s)).filter(Boolean);
 
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   if (!values.length) {
     return json({ ok: true, prepared: emptyDashboardPrepared(), total: 0 });
   }
   const [header, ...rowsRaw] = values;
-  const records = rowsRaw.map(r => toRecord(header, r)).filter(r => r.nama_pegawai || r.nip || r.id);
+  const keys = header.map(normalizePegawaiHeader);
+  const records = rowsRaw.map(r => toRecord(header, r, keys)).filter(r => r.nama_pegawai || r.nip || r.id);
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
   const filtered = scopedRecords.filter(r => {
     const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
@@ -436,13 +438,14 @@ function getPegawai(e) {
   if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet DATA PEGAWAI tidak ditemukan' });
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   if (!values.length) return json({ ok: false, error: 'Data kosong' });
   const [header, ...rows] = values;
+  const keys = header.map(normalizePegawaiHeader);
   const idx = findRowIndexById(header, rows, id);
   if (idx === -2) return json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
-  const record = toRecord(header, rows[idx]);
+  const record = toRecord(header, rows[idx], keys);
   return json({ ok: true, data: record });
 }
 
@@ -468,7 +471,7 @@ function createPegawai(e) {
   const nipVal = String(body.nip || '').trim();
   let header = [];
   if (!nipVal) {
-    const values = sheet.getDataRange().getValues();
+    const values = getSheetValues(sheet);
     header = values[0] || [];
     const rows = values.slice(1);
     const h = header.map(normalizePegawaiHeader);
@@ -511,7 +514,7 @@ function updatePegawai(e) {
   const id = getIdParam(e);
   if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const keys = header.map(normalizePegawaiHeader);
   const idx = findRowIndexById(header, rows, id);
@@ -566,15 +569,16 @@ function deletePegawai(e) {
   const id = getIdParam(e);
   if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DATA_SHEET);
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
+  const keys = header.map(normalizePegawaiHeader);
   const idx = findRowIndexById(header, rows, id);
   if (idx === -2) return json({ ok: false, error: 'Data ganda: nama dan tanggal lahir sama. Lengkapi NIP agar unik.' });
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
   const sessionUser = e.sessionUser || {};
   const ctx = getRoleContext(sessionUser);
   if (!ctx.isSuper) {
-    const record = toRecord(header, rows[idx]);
+    const record = toRecord(header, rows[idx], keys);
     const map = getUkpdWilayahMap();
     if (!isUkpdAllowed(ctx, record.nama_ukpd, record.wilayah_ukpd, map)) return forbidden();
   }
@@ -591,7 +595,7 @@ function login(e) {
 
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USER_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet username tidak ditemukan' });
-  const [header, ...rows] = sheet.getDataRange().getValues();
+  const [header, ...rows] = getSheetValues(sheet);
   const h = (header || []).map(x => (x || '').toLowerCase());
   const idxNamaUkpd = h.indexOf('nama ukpd');
   const idxUser = h.indexOf('username');
@@ -643,7 +647,7 @@ function changePassword(e) {
   }
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USER_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet username tidak ditemukan' });
-  const [header, ...rows] = sheet.getDataRange().getValues();
+  const [header, ...rows] = getSheetValues(sheet);
   const h = (header || []).map(x => (x || '').toLowerCase());
   const idxUser = h.indexOf('username');
   const idxPass = h.indexOf('password');
@@ -683,7 +687,7 @@ function listMutasi(e) {
   const jenis = norm(params.jenis_mutasi);
   const wilayah = norm(params.wilayah);
 
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   if (!values.length) {
     return json({
       ok: true,
@@ -776,7 +780,7 @@ function createMutasi(e) {
     created_at: body.created_at || nowIso,
     updated_at: body.updated_at || nowIso,
   };
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const header = values.length && values[0].length ? values[0] : MUTASI_COLS;
   const row = buildMutasiRow(header, rowData);
   sheet.appendRow(row);
@@ -791,7 +795,7 @@ function updateMutasi(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MUTASI_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const safeHeader = header && header.length ? header : MUTASI_COLS;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
@@ -828,7 +832,7 @@ function deleteMutasi(e) {
   if (!id) return json({ ok: false, error: 'ID mutasi wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(MUTASI_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_MUTASI tidak ditemukan' });
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [, ...rows] = values;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID mutasi tidak ditemukan' });
@@ -859,7 +863,7 @@ function listPemutusan(e) {
   const ukpdQuery = norm(params.ukpd);
   const wilayahQuery = norm(params.wilayah);
 
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   if (!values.length) {
     return json({
       ok: true,
@@ -934,7 +938,7 @@ function createPemutusan(e) {
     created_at: body.created_at || nowIso,
     updated_at: body.updated_at || nowIso,
   };
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const header = values.length && values[0].length ? values[0] : PEMUTUSAN_COLS;
   const row = buildPemutusanRow(header, rowData);
   sheet.appendRow(row);
@@ -949,7 +953,7 @@ function updatePemutusan(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const safeHeader = header && header.length ? header : PEMUTUSAN_COLS;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
@@ -986,7 +990,7 @@ function deletePemutusan(e) {
   if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(PEMUTUSAN_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet USULAN_PEMUTUSAN_JF tidak ditemukan' });
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [, ...rows] = values;
   const idx = rows.findIndex(r => String(r[0] || '') === String(id));
   if (idx < 0) return json({ ok: false, error: 'ID tidak ditemukan' });
@@ -1023,7 +1027,7 @@ function listQna(e) {
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, maxLimit));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
 
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   if (!values.length) {
     const response = {
       ok: true,
@@ -1082,7 +1086,7 @@ function createQna(e) {
     created_at: body.created_at || nowIso,
     updated_at: body.updated_at || nowIso
   };
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const header = values.length && values[0].length ? values[0] : QNA_COLS;
   const row = buildQnaRow(header, rowData);
   sheet.appendRow(row);
@@ -1099,7 +1103,7 @@ function updateQna(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const safeHeader = header && header.length ? header : QNA_COLS;
   const headerIndex = buildHeaderIndex(safeHeader);
@@ -1127,7 +1131,7 @@ function deleteQna(e) {
   if (!id) return json({ ok: false, error: 'ID wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(QNA_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet Q n A tidak ditemukan' });
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const safeHeader = header && header.length ? header : QNA_COLS;
   const headerIndex = buildHeaderIndex(safeHeader);
@@ -1157,7 +1161,7 @@ function listBezetting(e) {
   const rumpunQuery = norm(params.rumpun);
   const jabatanQuery = norm(params.jabatan);
 
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   if (!values.length) {
     const response = {
       ok: true,
@@ -1248,7 +1252,7 @@ function updateBezetting(e) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet bezetting tidak ditemukan' });
   const body = e.body || parseBody(e) || {};
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const idx = findRowIndexByHeader(header, rows, 'kode', 6, kode);
   if (idx < 0) return json({ ok: false, error: 'Kode tidak ditemukan' });
@@ -1282,7 +1286,7 @@ function deleteBezetting(e) {
   if (!kode) return json({ ok: false, error: 'Kode wajib' });
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(BEZETTING_SHEET);
   if (!sheet) return json({ ok: false, error: 'Sheet bezetting tidak ditemukan' });
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const idx = findRowIndexByHeader(header, rows, 'kode', 6, kode);
   if (idx < 0) return json({ ok: false, error: 'Kode tidak ditemukan' });
@@ -1320,6 +1324,13 @@ function uploadFile(e) {
 }
 
 // ==== Helpers ====
+function getSheetValues(sheet) {
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (!lastRow || !lastCol) return [];
+  return sheet.getRange(1, 1, lastRow, lastCol).getValues();
+}
+
 function getCacheVersion() {
   return PropertiesService.getScriptProperties().getProperty(CACHE_VERSION_KEY) || '0';
 }
@@ -1610,7 +1621,7 @@ function getUkpdWilayahMap() {
   }
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USER_SHEET);
   if (!sheet) return {};
-  const values = sheet.getDataRange().getValues();
+  const values = getSheetValues(sheet);
   const [header, ...rows] = values;
   const h = (header || []).map(x => norm(x));
   const idxUkpd = h.indexOf('nama ukpd');
@@ -1821,9 +1832,9 @@ function getParam(e, name) {
   return String(e?.parameter?.[name] || body[name] || '').trim();
 }
 
-function toRecord(header, row) {
-  const keys = (header || []).map(normalizePegawaiHeader);
-  const obj = rowToObject(keys, row);
+function toRecord(header, row, keys) {
+  const keyList = (keys && keys.length) ? keys : (header || []).map(normalizePegawaiHeader);
+  const obj = rowToObject(keyList, row);
   const idVal = obj.id || obj.nip || buildCompositeId(obj.nama_pegawai, obj.tanggal_lahir) || '';
   const pangkatGolongan = obj.pangkat_golongan
     || obj['pangkat/golongan']
@@ -2056,3 +2067,4 @@ function json(obj, _status) {
 }
 
 function forbidden() { return json({ ok: false, error: 'forbidden' }); }
+
