@@ -122,6 +122,7 @@
     }
     .modal-body{ padding: 16px 18px 20px; }
     .detail-grid{ display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
+    .detail-grid .full{ grid-column: 1 / -1; }
     .detail-card{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#f8fafc; }
     .detail-label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
     .detail-value{ font-weight:700; margin-top:2px; }
@@ -350,6 +351,37 @@
     </div>
   </div>
 
+  <div class="modal" id="validateModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3 class="panel-title" id="validateTitle" style="margin:0;">Validasi Usulan Mutasi</h3>
+        <button type="button" class="close-btn" id="closeValidate" aria-label="Tutup">x</button>
+      </div>
+      <div class="modal-body">
+        <form id="validateForm" class="detail-grid">
+          <div>
+            <label>Status</label>
+            <select name="status" id="validateStatus">
+              <option value="DIUSULKAN">DIUSULKAN</option>
+              <option value="DIPROSES">DIPROSES</option>
+              <option value="SELESAI">SELESAI</option>
+              <option value="DITOLAK">DITOLAK</option>
+              <option value="DITARIK">DITARIK</option>
+            </select>
+          </div>
+          <div class="full">
+            <label>Keterangan / Catatan Dinkes</label>
+            <textarea name="keterangan" id="validateNote" placeholder="Catatan hasil validasi..."></textarea>
+          </div>
+          <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
+            <button type="button" class="ghost" id="resetValidate">Reset</button>
+            <button type="submit" class="primary">Simpan Validasi</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="../loader.js"></script>
   <script>
     const BASE = (() => {
@@ -440,8 +472,14 @@
     const modalBackdrop = document.getElementById('modalBackdrop');
     const formModal = document.getElementById('formModal');
     const viewModal = document.getElementById('viewModal');
+    const validateModal = document.getElementById('validateModal');
+    const validateForm = document.getElementById('validateForm');
+    const validateStatus = document.getElementById('validateStatus');
+    const validateNote = document.getElementById('validateNote');
+    const validateTitle = document.getElementById('validateTitle');
     const closeForm = document.getElementById('closeForm');
     const closeView = document.getElementById('closeView');
+    const closeValidate = document.getElementById('closeValidate');
     const formTitle = document.getElementById('formTitle');
     const submitBtn = document.getElementById('submitBtn');
     const detailGrid = document.getElementById('detailGrid');
@@ -451,6 +489,10 @@
     const roleBadge = document.getElementById('roleBadge');
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
+    const resetValidate = document.getElementById('resetValidate');
+    const TEMPLATE_PATH = `${BASE}templates/usulan-mutasi-kajian.html`;
+    let validatingRow = null;
+    let templateCache = null;
 
     function showModal(el){
       el.classList.add('show');
@@ -459,7 +501,8 @@
     }
     function hideModal(el){
       el.classList.remove('show');
-      if (![formModal, viewModal].some(m=>m.classList.contains('show'))) {
+      const modals = [formModal, viewModal, validateModal].filter(Boolean);
+      if (!modals.some(m=>m.classList.contains('show'))) {
         modalBackdrop.classList.remove('show');
       }
       el.setAttribute('aria-hidden','true');
@@ -497,6 +540,87 @@
     function formatStatusLabel(value){
       const key = normalizeStatus(value);
       return escapeHtml(STATUS_LABELS[key] || (value ? String(value) : '-'));
+    }
+
+    function sanitizeFilename(value){
+      return String(value || '')
+        .replace(/[\\\/:*?"<>|]+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function formatAbkPlain(abk, bezetting, nonasnAbk, nonasnBezetting){
+      const parts = [
+        `ASN: ${String(abk || '-')} | Bezetting: ${String(bezetting || '-')}`
+      ];
+      if (nonasnAbk || nonasnBezetting) {
+        parts.push(`Non-ASN: ${String(nonasnAbk || '-')} | Bezetting: ${String(nonasnBezetting || '-')}`);
+      }
+      return parts.join(' ; ');
+    }
+
+    async function loadWordTemplate(){
+      if (templateCache) return templateCache;
+      const res = await fetch(TEMPLATE_PATH, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Template Word tidak ditemukan');
+      templateCache = await res.text();
+      return templateCache;
+    }
+
+    function renderTemplate(template, data){
+      return template.replace(/{{\s*([a-z0-9_]+)\s*}}/gi, (match, key) => {
+        const k = String(key || '').toLowerCase();
+        return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : '';
+      });
+    }
+
+    function buildWordMap(row){
+      const nama = formatNama(row) || row.nama_pegawai || '-';
+      const berkasUrl = safeUrl(row.berkas_path);
+      const nowText = new Date().toLocaleDateString('id-ID');
+      const validator = (userNameEl?.textContent || authUser?.namaUkpd || authUser?.username || 'Admin Dinkes').trim();
+      return {
+        id: escapeHtml(row.id || '-'),
+        mutasi_id: escapeHtml(row.mutasi_id || '-'),
+        nama_pegawai: escapeHtml(nama),
+        nip: escapeHtml(row.nip || '-'),
+        gelar_depan: escapeHtml(row.gelar_depan || '-'),
+        gelar_belakang: escapeHtml(row.gelar_belakang || '-'),
+        pangkat_golongan: escapeHtml(row.pangkat_golongan || '-'),
+        jabatan: escapeHtml(row.jabatan || '-'),
+        jabatan_baru: escapeHtml(row.jabatan_baru || '-'),
+        jenis_mutasi: escapeHtml(row.jenis_mutasi || '-'),
+        ukpd_asal: escapeHtml(row.nama_ukpd || '-'),
+        ukpd_tujuan: escapeHtml(row.ukpd_tujuan || '-'),
+        abk_lama: escapeHtml(formatAbkPlain(row.abk_j_lama, row.bezetting_j_lama, row.nonasn_abk_lama, row.nonasn_bezetting_lama)),
+        abk_baru: escapeHtml(formatAbkPlain(row.abk_j_baru, row.bezetting_j_baru, row.nonasn_abk_baru, row.nonasn_bezetting_baru)),
+        alasan: formatMultiline(row.alasan || '-'),
+        verif_checklist: formatMultiline(row.verif_checklist || '-'),
+        keterangan: formatMultiline(row.keterangan || '-'),
+        status: formatStatusLabel(row.status || '-'),
+        created_by_ukpd: escapeHtml(row.created_by_ukpd || '-'),
+        tanggal_usulan: escapeHtml(formatDateDisplay(row.tanggal_usulan)),
+        created_at: escapeHtml(formatDateDisplay(row.created_at)),
+        updated_at: escapeHtml(formatDateDisplay(row.updated_at)),
+        berkas: berkasUrl ? `<a href="${escapeHtml(berkasUrl)}">${escapeHtml(berkasUrl)}</a>` : '-',
+        tanggal_cetak: escapeHtml(nowText),
+        validator: escapeHtml(validator)
+      };
+    }
+
+    async function exportWord(row){
+      const template = await loadWordTemplate();
+      const html = renderTemplate(template, buildWordMap(row));
+      const filenameBase = sanitizeFilename(row?.nama_pegawai || row?.id || 'mutasi');
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Kajian Mutasi - ${filenameBase}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 1000);
     }
 
     function parseDateValue(value){
@@ -928,6 +1052,8 @@
               <button class="ghost dropdown-toggle">Aksi v</button>
               <div class="dropdown-menu">
                 <button data-action="view" data-id="${safeId}">Lihat</button>
+                ${isSuper ? `<button data-action="validate" data-id="${safeId}">Validasi</button>` : ''}
+                ${isSuper ? `<button data-action="print" data-id="${safeId}">Cetak Word</button>` : ''}
                 <button data-action="edit" data-id="${safeId}">Ubah</button>
                 <button data-action="delete" data-id="${safeId}">Hapus</button>
               </div>
@@ -1067,6 +1193,35 @@
       showModal(viewModal);
     }
 
+    function openValidate(row){
+      validatingRow = row;
+      if (validateForm) validateForm.reset();
+      if (validateStatus) validateStatus.value = normalizeStatus(row.status) || 'DIUSULKAN';
+      if (validateNote) validateNote.value = row.keterangan || '';
+      if (validateTitle) {
+        const nama = formatNama(row) || row.nama_pegawai || '-';
+        validateTitle.textContent = `Validasi Usulan Mutasi - ${nama}`;
+      }
+      showModal(validateModal);
+    }
+
+    async function saveValidate(e){
+      e.preventDefault();
+      if (!validatingRow) return;
+      const payload = {
+        action: 'mutasi_update',
+        id: validatingRow.id,
+        status: normalizeStatus(validateStatus?.value || validatingRow.status || ''),
+        keterangan: String(validateNote?.value || '').trim(),
+        updated_at: new Date().toISOString()
+      };
+      await apiFetch(API_BASE, { method: 'POST', body: JSON.stringify(payload) });
+      hideModal(validateModal);
+      validatingRow = null;
+      await loadData();
+      alert('Validasi tersimpan');
+    }
+
     tableBody.addEventListener('click', (e)=>{
       const btn = e.target.closest('button');
       if (!btn) return;
@@ -1074,6 +1229,10 @@
       const action = btn.dataset.action;
       const row = cacheRows.find(r=>String(r.id || '') === String(id || ''));
       if (action==='view' && row){ openView(row); }
+      if (action==='validate' && row && isSuper){ openValidate(row); }
+      if (action==='print' && row && isSuper){
+        exportWord(row).catch(err=>alert(err.message));
+      }
       if (action==='edit' && row){
         openEditForm(row).catch(err=>alert(err.message));
       }
@@ -1121,6 +1280,8 @@
 
     form.addEventListener('submit', (e)=>{ saveMutasi(e).catch(err=>alert(err.message)); });
     resetFormBtn.addEventListener('click', ()=>{ editingId=null; form.reset(); applyFormDefaults().catch(err=>alert(err.message)); submitBtn.textContent='Simpan'; formTitle.textContent='Tambah Usulan Mutasi'; });
+    if (validateForm) validateForm.addEventListener('submit', (e)=>{ saveValidate(e).catch(err=>alert(err.message)); });
+    if (resetValidate) resetValidate.addEventListener('click', ()=>{ if (validatingRow) openValidate(validatingRow); else validateForm?.reset(); });
     applyFilter.addEventListener('click', ()=>{ page=1; loadData().catch(err=>alert(err.message)); });
     resetFilter.addEventListener('click', ()=>{
       statusFilter.value = '';
@@ -1137,8 +1298,9 @@
     btnAdd.addEventListener('click', ()=>{ openAddForm().catch(err=>alert(err.message)); });
     closeForm.addEventListener('click', ()=> hideModal(formModal));
     closeView.addEventListener('click', ()=> hideModal(viewModal));
-    modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });
-    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ hideModal(formModal); hideModal(viewModal); } });
+    if (closeValidate) closeValidate.addEventListener('click', ()=> hideModal(validateModal));
+    modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); hideModal(validateModal); });
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ hideModal(formModal); hideModal(viewModal); hideModal(validateModal); } });
 
     function doLogout(){ localStorage.removeItem('authUser'); window.location.href = BASE; }
 
