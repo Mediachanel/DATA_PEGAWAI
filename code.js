@@ -770,6 +770,8 @@ function createMutasi(e) {
     } else {
       body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || body.nama_ukpd;
     }
+    body.status = 'DIUSULKAN';
+    delete body.keterangan;
   }
   const id = body.id || `UM-${Date.now()}`;
   const nowIso = new Date().toISOString();
@@ -815,6 +817,8 @@ function updateMutasi(e) {
     } else {
       body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
     }
+    delete body.status;
+    delete body.keterangan;
   }
   const rowData = { ...current, ...body, id };
   if (!rowData.updated_at) rowData.updated_at = new Date().toISOString();

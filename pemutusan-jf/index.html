@@ -448,6 +448,8 @@
     const userNameEl = document.getElementById('userName');
     const userRoleEl = document.getElementById('userRole');
 
+    const TEMPLATE_PATH = `${BASE}templates/Putus%20JF%20Batch%203.docx`;
+    let templateCache = null;
     let rows = [];
     let filtered = [];
     let page = 1;
@@ -492,6 +494,25 @@
       return escapeHtml(value || '').replace(/\n/g, '<br>');
     }
 
+    function sanitizeFilename(value){
+      return String(value || 'dokumen')
+        .replace(/[\\/:*?"<>|]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80) || 'dokumen';
+    }
+
+    function escapeXml(str){
+      return String(str || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
+      }[ch]));
+    }
+
+    function formatDocxValue(value){
+      const safe = escapeXml(value || '-');
+      return safe.replace(/\r?\n/g, '</w:t><w:br/><w:t>');
+    }
+
     function showModal(el){
       el.classList.add('show');
       modalBackdrop.classList.add('show');
@@ -511,6 +532,248 @@
       if (v==='DITOLAK') return '<span class="status-pill pill-danger">Ditolak</span>';
       if (v==='DIPROSES') return '<span class="status-pill pill-warn">Diproses</span>';
       return '<span class="status-pill pill-info">Diusulkan</span>';
+    }
+
+    const CRC_TABLE = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) {
+          c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+
+    function crc32(bytes){
+      let crc = 0xffffffff;
+      for (let i = 0; i < bytes.length; i++) {
+        crc = CRC_TABLE[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+      }
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+
+    async function loadDocxTemplate(){
+      if (templateCache) return templateCache;
+      const res = await fetch(TEMPLATE_PATH, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Template Word tidak ditemukan');
+      templateCache = await res.arrayBuffer();
+      return templateCache;
+    }
+
+    function findEocd(view){
+      for (let i = view.byteLength - 22; i >= Math.max(0, view.byteLength - 0xFFFF - 22); i--) {
+        if (view.getUint32(i, true) === 0x06054b50) return i;
+      }
+      return -1;
+    }
+
+    function decodeText(bytes){
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    function encodeText(text){
+      return new TextEncoder().encode(text);
+    }
+
+    function parseZip(buffer){
+      const view = new DataView(buffer);
+      const eocdOffset = findEocd(view);
+      if (eocdOffset < 0) throw new Error('Template Word tidak valid');
+      const totalEntries = view.getUint16(eocdOffset + 10, true);
+      const cdOffset = view.getUint32(eocdOffset + 16, true);
+      const entries = [];
+      let ptr = cdOffset;
+      for (let i = 0; i < totalEntries; i++) {
+        if (view.getUint32(ptr, true) !== 0x02014b50) break;
+        const flags = view.getUint16(ptr + 8, true);
+        const method = view.getUint16(ptr + 10, true);
+        const time = view.getUint16(ptr + 12, true);
+        const date = view.getUint16(ptr + 14, true);
+        const crc = view.getUint32(ptr + 16, true);
+        const compSize = view.getUint32(ptr + 20, true);
+        const uncompSize = view.getUint32(ptr + 24, true);
+        const nameLen = view.getUint16(ptr + 28, true);
+        const extraLen = view.getUint16(ptr + 30, true);
+        const commentLen = view.getUint16(ptr + 32, true);
+        const localOffset = view.getUint32(ptr + 42, true);
+        const nameBytes = new Uint8Array(buffer.slice(ptr + 46, ptr + 46 + nameLen));
+        const name = decodeText(nameBytes);
+        const localNameLen = view.getUint16(localOffset + 26, true);
+        const localExtraLen = view.getUint16(localOffset + 28, true);
+        const dataOffset = localOffset + 30 + localNameLen + localExtraLen;
+        const compressedData = new Uint8Array(buffer.slice(dataOffset, dataOffset + compSize));
+        entries.push({
+          name,
+          method,
+          flags,
+          time,
+          date,
+          crc,
+          compSize,
+          uncompSize,
+          compressedData
+        });
+        ptr += 46 + nameLen + extraLen + commentLen;
+      }
+      return entries;
+    }
+
+    function concatParts(parts){
+      const total = parts.reduce((sum, part) => sum + part.length, 0);
+      const out = new Uint8Array(total);
+      let offset = 0;
+      parts.forEach((part) => {
+        out.set(part, offset);
+        offset += part.length;
+      });
+      return out;
+    }
+
+    function buildZip(entries){
+      const chunks = [];
+      let offset = 0;
+      entries.forEach((entry) => {
+        const nameBytes = encodeText(entry.name);
+        const localHeader = new Uint8Array(30);
+        const view = new DataView(localHeader.buffer);
+        const flags = (entry.flags | 0x0800) & ~0x0008;
+        view.setUint32(0, 0x04034b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint16(6, flags, true);
+        view.setUint16(8, entry.method, true);
+        view.setUint16(10, entry.time || 0, true);
+        view.setUint16(12, entry.date || 0, true);
+        view.setUint32(14, entry.crc >>> 0, true);
+        view.setUint32(18, entry.compSize >>> 0, true);
+        view.setUint32(22, entry.uncompSize >>> 0, true);
+        view.setUint16(26, nameBytes.length, true);
+        view.setUint16(28, 0, true);
+        entry.localOffset = offset;
+        chunks.push(localHeader, nameBytes, entry.compressedData);
+        offset += localHeader.length + nameBytes.length + entry.compressedData.length;
+      });
+
+      const centralChunks = [];
+      let centralSize = 0;
+      entries.forEach((entry) => {
+        const nameBytes = encodeText(entry.name);
+        const centralHeader = new Uint8Array(46);
+        const view = new DataView(centralHeader.buffer);
+        const flags = (entry.flags | 0x0800) & ~0x0008;
+        view.setUint32(0, 0x02014b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 20, true);
+        view.setUint16(8, flags, true);
+        view.setUint16(10, entry.method, true);
+        view.setUint16(12, entry.time || 0, true);
+        view.setUint16(14, entry.date || 0, true);
+        view.setUint32(16, entry.crc >>> 0, true);
+        view.setUint32(20, entry.compSize >>> 0, true);
+        view.setUint32(24, entry.uncompSize >>> 0, true);
+        view.setUint16(28, nameBytes.length, true);
+        view.setUint16(30, 0, true);
+        view.setUint16(32, 0, true);
+        view.setUint16(34, 0, true);
+        view.setUint16(36, 0, true);
+        view.setUint32(38, 0, true);
+        view.setUint32(42, entry.localOffset >>> 0, true);
+        centralChunks.push(centralHeader, nameBytes);
+        centralSize += centralHeader.length + nameBytes.length;
+      });
+
+      const centralOffset = offset;
+      chunks.push(...centralChunks);
+      offset += centralSize;
+
+      const eocd = new Uint8Array(22);
+      const eocdView = new DataView(eocd.buffer);
+      eocdView.setUint32(0, 0x06054b50, true);
+      eocdView.setUint16(4, 0, true);
+      eocdView.setUint16(6, 0, true);
+      eocdView.setUint16(8, entries.length, true);
+      eocdView.setUint16(10, entries.length, true);
+      eocdView.setUint32(12, centralSize >>> 0, true);
+      eocdView.setUint32(16, centralOffset >>> 0, true);
+      eocdView.setUint16(20, 0, true);
+      chunks.push(eocd);
+
+      return concatParts(chunks);
+    }
+
+    async function streamTransform(data, streamCtor, formats){
+      for (const format of formats) {
+        try {
+          const stream = new streamCtor(format);
+          const blobStream = new Blob([data]).stream().pipeThrough(stream);
+          const arrayBuffer = await new Response(blobStream).arrayBuffer();
+          return new Uint8Array(arrayBuffer);
+        } catch (_) { /* try next */ }
+      }
+      throw new Error('Browser tidak mendukung dekompresi template DOCX');
+    }
+
+    async function inflateData(data){
+      if (typeof DecompressionStream === 'undefined') throw new Error('Browser tidak mendukung dekompresi template DOCX');
+      return streamTransform(data, DecompressionStream, ['deflate-raw', 'deflate']);
+    }
+
+    function buildDocxMap(row){
+      return {
+        Nomor_Surat: row.nomor_surat || '-',
+        Tanggal_Surat: formatDate(row.tanggal_surat),
+        Hal: row.hal || '-',
+        Pimpinan: row.pimpinan || '-',
+        ASAL_SURAT: row.asal_surat || '-',
+        Nama_: row.nama_pegawai || '-',
+        NIP: row.nip || '-',
+        Pangkatgolongan: getPangkat(row) || '-',
+        Nama_Jabatan_fungsional: getJabatan(row) || '-',
+        UKPD: getNamaUkpd(row) || '-',
+        Alasan_Pemutusan: row.alasan_pemutusan || '-'
+      };
+    }
+
+    function applyDocxReplacements(xml, data){
+      let next = xml;
+      Object.entries(data).forEach(([key, value]) => {
+        const token = `\u00ab${key}\u00bb`;
+        next = next.split(token).join(formatDocxValue(value));
+      });
+      return next;
+    }
+
+    async function fillDocxTemplate(buffer, data){
+      const entries = parseZip(buffer);
+      const docEntry = entries.find(e => e.name === 'word/document.xml');
+      if (!docEntry) throw new Error('Template Word tidak valid');
+      const xmlBytes = await inflateData(docEntry.compressedData);
+      const xmlText = decodeText(xmlBytes);
+      const updatedText = applyDocxReplacements(xmlText, data);
+      const updatedBytes = encodeText(updatedText);
+      docEntry.compressedData = updatedBytes;
+      docEntry.compSize = updatedBytes.length;
+      docEntry.uncompSize = updatedBytes.length;
+      docEntry.crc = crc32(updatedBytes);
+      docEntry.method = 0;
+      docEntry.flags = 0x0800;
+      return buildZip(entries);
+    }
+
+    async function exportWord(row){
+      const buffer = await loadDocxTemplate();
+      const filled = await fillDocxTemplate(buffer, buildDocxMap(row));
+      const filenameBase = sanitizeFilename(row?.nama_pegawai || row?.id || 'pemutusan-jf');
+      const blob = new Blob([filled], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Pemutusan JF - ${filenameBase}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 1000);
     }
 
     function todayIso(){
@@ -797,6 +1060,7 @@
               <button class="ghost dropdown-toggle" data-id="${safeId}">Aksi v</button>
               <div class="dropdown-menu">
                 <button data-action="view" data-id="${safeId}">Lihat</button>
+                ${isSuper ? `<button data-action="print" data-id="${safeId}">Cetak Word</button>` : ''}
                 <button data-action="edit" data-id="${safeId}">Ubah</button>
                 <button data-action="delete" data-id="${safeId}">Hapus</button>
                 ${berkasMenu}
@@ -976,6 +1240,7 @@
       const row = rows.find(r=>String(r.id || '') === String(id || ''));
       if (!row) return;
       if (action === 'view'){ fillView(row); showModal(viewModal); }
+      if (action === 'print' && isSuper){ exportWord(row).catch(err=>alert(err.message)); }
       if (action === 'edit'){ openForm(row).catch(err=>alert(err.message)); }
       if (action === 'delete'){ deletePemutusan(id); }
     });

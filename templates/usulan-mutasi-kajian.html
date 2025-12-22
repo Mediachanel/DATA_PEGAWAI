@@ -2,60 +2,112 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Kajian Usulan Mutasi</title>
+  <title>Form Pertimbangan Penempatan</title>
   <style>
-    body { font-family: "Times New Roman", serif; font-size: 12pt; color: #000; }
-    h2 { margin: 0 0 8pt; }
-    table { width: 100%; border-collapse: collapse; margin: 8pt 0 12pt; }
-    th, td { border: 1px solid #000; padding: 4pt 6pt; vertical-align: top; }
+    @page Section1 { size: 33cm 21.5cm; margin: 12mm 12mm; }
+    body { font-family: "Times New Roman", serif; font-size: 11pt; color: #000; }
+    .Section1 { page: Section1; width: 33cm; min-height: 21.5cm; }
+    .title { text-align: center; font-weight: bold; text-transform: uppercase; }
+    .meta { text-align: center; margin-top: 6pt; font-size: 10pt; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: 3pt 4pt; vertical-align: top; }
     .small { font-size: 10pt; }
-    .section-title { margin-top: 12pt; font-weight: bold; }
+    .center { text-align: center; }
+    .paraf-table { width: 70%; margin: 0 auto; line-height: 1; }
+    .paraf-table th { text-align: center; font-weight: bold; }
+    .paraf-table td { height: 12pt; padding: 1pt 3pt; }
+    .paraf-table td, .paraf-table th { line-height: 1; vertical-align: middle; }
+    .paraf-table td p, .paraf-table th p { margin: 0; }
+    .main-table th { text-align: center; font-weight: bold; }
+    .main-table td { font-size: 10pt; }
+    .text-wrap { white-space: pre-wrap; }
+    .section-space { margin-top: 6pt; }
+    .paraf-block { text-align: center; line-height: 1; margin: 0 0 6pt; }
   </style>
 </head>
 <body>
-  <div class="small">Tanggal Cetak: {{tanggal_cetak}}</div>
-  <h2>Kajian Usulan Mutasi Pegawai</h2>
-  <div class="small">ID: {{id}}</div>
-  <div class="small">Mutasi ID: {{mutasi_id}}</div>
+  <div class="Section1">
+    <div class="title">FORM PERTIMBANGAN PENEMPATAN PEGAWAI DI LINGKUNGAN DINAS KESEHATAN PROVINSI DKI JAKARTA</div>
+    <div class="meta">Tanggal Pengajuan: {{tanggal_usulan}} | NIP: {{nip}} | Nama: {{nama_pegawai}}</div>
 
-  <div class="section-title">Data Pegawai</div>
-  <table>
-    <tr><th>Nama</th><td>{{nama_pegawai}}</td></tr>
-    <tr><th>NIP</th><td>{{nip}}</td></tr>
-    <tr><th>Gelar Depan</th><td>{{gelar_depan}}</td></tr>
-    <tr><th>Gelar Belakang</th><td>{{gelar_belakang}}</td></tr>
-    <tr><th>Pangkat/Golongan</th><td>{{pangkat_golongan}}</td></tr>
-    <tr><th>Jabatan</th><td>{{jabatan}}</td></tr>
-    <tr><th>Jenis Mutasi</th><td>{{jenis_mutasi}}</td></tr>
-  </table>
-
-  <div class="section-title">Rencana Mutasi</div>
-  <table>
-    <tr><th>UKPD Asal</th><td>{{ukpd_asal}}</td></tr>
-    <tr><th>UKPD Tujuan</th><td>{{ukpd_tujuan}}</td></tr>
-    <tr><th>Jabatan Baru</th><td>{{jabatan_baru}}</td></tr>
-    <tr><th>ABK/Bezetting (Lama)</th><td>{{abk_lama}}</td></tr>
-    <tr><th>ABK/Bezetting (Baru)</th><td>{{abk_baru}}</td></tr>
-  </table>
-
-  <div class="section-title">Alasan dan Dokumen</div>
-  <div><strong>Alasan:</strong><br>{{alasan}}</div>
-  <div style="margin-top:8pt;"><strong>Verifikasi Checklist:</strong><br>{{verif_checklist}}</div>
-  <div style="margin-top:8pt;"><strong>Berkas:</strong><br>{{berkas}}</div>
-
-  <div class="section-title">Hasil Validasi</div>
-  <table>
-    <tr><th>Status</th><td>{{status}}</td></tr>
-    <tr><th>Keterangan</th><td>{{keterangan}}</td></tr>
-    <tr><th>Tanggal Usulan</th><td>{{tanggal_usulan}}</td></tr>
-    <tr><th>Created By UKPD</th><td>{{created_by_ukpd}}</td></tr>
-    <tr><th>Created At</th><td>{{created_at}}</td></tr>
-    <tr><th>Updated At</th><td>{{updated_at}}</td></tr>
-  </table>
-
-  <div style="margin-top:24pt;">
-    <div>Validator,</div>
-    <div style="margin-top:48pt; font-weight: bold;">{{validator}}</div>
+    <div class="section-space paraf-block">
+      <table class="paraf-table" align="center">
+        <tr>
+          <th>Jabatan</th>
+          <th style="width:70pt;">Paraf</th>
+          <th>Catatan Jika Ada</th>
+        </tr>
+        <tr><td>Sekretaris Dinas Kesehatan</td><td></td><td></td></tr>
+        <tr><td>Kepala Bidang Pelayanan Kesehatan</td><td></td><td></td></tr>
+        <tr><td>Kepala Bidang Kesehatan Masyarakat</td><td></td><td></td></tr>
+        <tr><td>Kepala Bidang Sumber Daya Kesehatan</td><td></td><td></td></tr>
+        <tr><td>Kepala Bidang Pencegahan dan Pengendalian Penyakit</td><td></td><td></td></tr>
+        <tr><td>Kepala Bidang Sumber Daya Manusia Kesehatan</td><td></td><td></td></tr>
+        <tr><td>Ketua Subkelompok Kepegawaian</td><td></td><td></td></tr>
+        <tr><td>Pemroses</td><td></td><td></td></tr>
+      </table>
+    </div>
+<br>
+    <div class="section-space">
+      <table class="main-table">
+        <tr>
+          <th rowspan="3" style="width:26pt;">NO</th>
+          <th rowspan="3" style="width:70pt;">JENIS MUTASI</th>
+          <th rowspan="3" style="width:110pt;">NAMA</th>
+          <th rowspan="3" style="width:70pt;">NIP</th>
+          <th colspan="8">DATA TEMPAT TUGAS SAAT INI</th>
+          <th colspan="8">DATA TEMPAT TUGAS USULAN</th>
+          <th rowspan="3" style="width:160pt;">HASIL VERIFIKASI DAN VALIDASI</th>
+        </tr>
+        <tr>
+          <th rowspan="2" style="width:110pt;">TEMPAT TUGAS</th>
+          <th rowspan="2" style="width:100pt;">JABATAN</th>
+          <th colspan="3">PNS</th>
+          <th colspan="3">NON PNS</th>
+          <th rowspan="2" style="width:110pt;">USULAN TEMPAT TUGAS</th>
+          <th rowspan="2" style="width:100pt;">JABATAN</th>
+          <th colspan="3">PNS</th>
+          <th colspan="3">NON PNS</th>
+        </tr>
+        <tr>
+          <th style="width:30pt;">B</th>
+          <th style="width:30pt;">K</th>
+          <th style="width:30pt;">S</th>
+          <th style="width:30pt;">B</th>
+          <th style="width:30pt;">K</th>
+          <th style="width:30pt;">S</th>
+          <th style="width:30pt;">B</th>
+          <th style="width:30pt;">K</th>
+          <th style="width:30pt;">S</th>
+          <th style="width:30pt;">B</th>
+          <th style="width:30pt;">K</th>
+          <th style="width:30pt;">S</th>
+        </tr>
+        <tr>
+          <td class="center">{{no}}</td>
+          <td class="center">{{jenis_mutasi}}</td>
+          <td>{{nama_pegawai}}</td>
+          <td class="center">{{nip}}</td>
+          <td>{{tempat_tugas_lama}}</td>
+          <td>{{jabatan_lama}}</td>
+          <td class="center">{{pns_b_lama}}</td>
+          <td class="center">{{pns_k_lama}}</td>
+          <td class="center">{{pns_s_lama}}</td>
+          <td class="center">{{nonpns_b_lama}}</td>
+          <td class="center">{{nonpns_k_lama}}</td>
+          <td class="center">{{nonpns_s_lama}}</td>
+          <td>{{tempat_tugas_baru}}</td>
+          <td>{{jabatan_baru}}</td>
+          <td class="center">{{pns_b_baru}}</td>
+          <td class="center">{{pns_k_baru}}</td>
+          <td class="center">{{pns_s_baru}}</td>
+          <td class="center">{{nonpns_b_baru}}</td>
+          <td class="center">{{nonpns_k_baru}}</td>
+          <td class="center">{{nonpns_s_baru}}</td>
+          <td class="text-wrap">{{hasil_validasi}}</td>
+        </tr>
+      </table>
+    </div>
   </div>
 </body>
 </html>

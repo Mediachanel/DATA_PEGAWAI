@@ -559,6 +559,23 @@
       return parts.join(' ; ');
     }
 
+    function toNumeric(value){
+      if (value === null || value === undefined) return null;
+      const raw = String(value).trim();
+      if (!raw) return null;
+      const cleaned = raw.replace(',', '.').replace(/[^0-9.\-]/g, '');
+      if (!cleaned) return null;
+      const num = Number(cleaned);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function formatNum(value){
+      if (value === null || value === undefined || value === '') return '-';
+      const num = Number(value);
+      if (!Number.isFinite(num)) return String(value);
+      return Number.isInteger(num) ? String(num) : String(num);
+    }
+
     async function loadWordTemplate(){
       if (templateCache) return templateCache;
       const res = await fetch(TEMPLATE_PATH, { cache: 'no-store' });
@@ -579,23 +596,50 @@
       const berkasUrl = safeUrl(row.berkas_path);
       const nowText = new Date().toLocaleDateString('id-ID');
       const validator = (userNameEl?.textContent || authUser?.namaUkpd || authUser?.username || 'Admin Dinkes').trim();
+      const pnsBLama = toNumeric(row.bezetting_j_lama);
+      const pnsKLama = toNumeric(row.abk_j_lama);
+      const pnsSLama = (pnsBLama !== null && pnsKLama !== null) ? (pnsBLama - pnsKLama) : null;
+      const nonPnsBLama = toNumeric(row.nonasn_bezetting_lama);
+      const nonPnsKLama = toNumeric(row.nonasn_abk_lama);
+      const nonPnsSLama = (nonPnsBLama !== null && nonPnsKLama !== null) ? (nonPnsBLama - nonPnsKLama) : null;
+      const pnsBBaru = toNumeric(row.bezetting_j_baru);
+      const pnsKBaru = toNumeric(row.abk_j_baru);
+      const pnsSBaru = (pnsBBaru !== null && pnsKBaru !== null) ? (pnsBBaru - pnsKBaru) : null;
+      const nonPnsBBaru = toNumeric(row.nonasn_bezetting_baru);
+      const nonPnsKBaru = toNumeric(row.nonasn_abk_baru);
+      const nonPnsSBaru = (nonPnsBBaru !== null && nonPnsKBaru !== null) ? (nonPnsBBaru - nonPnsKBaru) : null;
       return {
         id: escapeHtml(row.id || '-'),
         mutasi_id: escapeHtml(row.mutasi_id || '-'),
+        no: '1',
         nama_pegawai: escapeHtml(nama),
         nip: escapeHtml(row.nip || '-'),
         gelar_depan: escapeHtml(row.gelar_depan || '-'),
         gelar_belakang: escapeHtml(row.gelar_belakang || '-'),
         pangkat_golongan: escapeHtml(row.pangkat_golongan || '-'),
         jabatan: escapeHtml(row.jabatan || '-'),
+        jabatan_lama: escapeHtml(row.jabatan || '-'),
         jabatan_baru: escapeHtml(row.jabatan_baru || '-'),
         jenis_mutasi: escapeHtml(row.jenis_mutasi || '-'),
+        tempat_tugas_lama: escapeHtml(row.nama_ukpd || '-'),
+        tempat_tugas_baru: escapeHtml(row.ukpd_tujuan || '-'),
         ukpd_asal: escapeHtml(row.nama_ukpd || '-'),
         ukpd_tujuan: escapeHtml(row.ukpd_tujuan || '-'),
-        abk_lama: escapeHtml(formatAbkPlain(row.abk_j_lama, row.bezetting_j_lama, row.nonasn_abk_lama, row.nonasn_bezetting_lama)),
-        abk_baru: escapeHtml(formatAbkPlain(row.abk_j_baru, row.bezetting_j_baru, row.nonasn_abk_baru, row.nonasn_bezetting_baru)),
+        pns_b_lama: formatNum(pnsBLama),
+        pns_k_lama: formatNum(pnsKLama),
+        pns_s_lama: formatNum(pnsSLama),
+        nonpns_b_lama: formatNum(nonPnsBLama),
+        nonpns_k_lama: formatNum(nonPnsKLama),
+        nonpns_s_lama: formatNum(nonPnsSLama),
+        pns_b_baru: formatNum(pnsBBaru),
+        pns_k_baru: formatNum(pnsKBaru),
+        pns_s_baru: formatNum(pnsSBaru),
+        nonpns_b_baru: formatNum(nonPnsBBaru),
+        nonpns_k_baru: formatNum(nonPnsKBaru),
+        nonpns_s_baru: formatNum(nonPnsSBaru),
         alasan: formatMultiline(row.alasan || '-'),
         verif_checklist: formatMultiline(row.verif_checklist || '-'),
+        hasil_validasi: formatMultiline(row.keterangan || '-'),
         keterangan: formatMultiline(row.keterangan || '-'),
         status: formatStatusLabel(row.status || '-'),
         created_by_ukpd: escapeHtml(row.created_by_ukpd || '-'),
@@ -935,6 +979,19 @@
       }
     }
 
+    function applyRoleLocks(){
+      const statusField = form?.elements?.status;
+      const ketField = form?.elements?.keterangan;
+      if (!statusField && !ketField) return;
+      if (!isSuper) {
+        if (statusField) statusField.disabled = true;
+        if (ketField) ketField.readOnly = true;
+        return;
+      }
+      if (statusField) statusField.disabled = false;
+      if (ketField) ketField.readOnly = false;
+    }
+
     function normalizeMutasiRow(row){
       const next = { ...(row || {}) };
       if (!next.id) next.id = next.id_usulan || '';
@@ -1116,6 +1173,10 @@
     async function saveMutasi(e){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
+      if (!isSuper) {
+        delete data.status;
+        delete data.keterangan;
+      }
       if (data.status) data.status = normalizeStatus(data.status) || data.status;
       const currentRow = editingId ? cacheRows.find(r=>String(r.id || '') === String(editingId || '')) : null;
       if (!data.berkas_path && currentRow?.berkas_path) {
@@ -1243,6 +1304,7 @@
       editingId = null;
       form.reset();
       await applyFormDefaults();
+      applyRoleLocks();
       submitBtn.textContent = 'Simpan';
       formTitle.textContent = 'Tambah Usulan Mutasi';
       showModal(formModal);
@@ -1255,6 +1317,7 @@
       if (form.elements.status) form.elements.status.value = normalizeStatus(row.status) || row.status || '';
       if (namaUkpdHidden && row.nama_ukpd) namaUkpdHidden.value = row.nama_ukpd;
       await applyFormDefaults(row.nama_ukpd, row.nama_pegawai, row.ukpd_tujuan, row.jabatan_baru);
+      applyRoleLocks();
       formTitle.textContent = 'Ubah Usulan Mutasi';
       submitBtn.textContent = 'Update';
       showModal(formModal);

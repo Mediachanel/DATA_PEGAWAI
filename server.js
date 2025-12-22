@@ -1307,6 +1307,8 @@ app.post('/mutasi', async (req, res) => {
       } else {
         d.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || d.nama_ukpd;
       }
+      d.status = 'DIUSULKAN';
+      delete d.keterangan;
     }
     const id = d.id || `UM-${Date.now()}`;
     const nowIso = new Date().toISOString();
@@ -1368,6 +1370,8 @@ app.put('/mutasi/:id', async (req, res) => {
       } else {
         body.nama_ukpd = sessionUser.namaUkpd || sessionUser.username || current.nama_ukpd;
       }
+      delete body.status;
+      delete body.keterangan;
     }
     const payloadData = { ...current, ...body, id };
     if (!payloadData.updated_at) payloadData.updated_at = new Date().toISOString();
