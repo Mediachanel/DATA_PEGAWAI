@@ -378,15 +378,60 @@
     if (!authUser) return;
     const base = getBasePath();
     const IDLE_MS = 10 * 60 * 1000;
+    const LAST_KEY = 'lastActivityAt';
+    const readLast = () => {
+      try {
+        const raw = localStorage.getItem(LAST_KEY) || '';
+        const val = parseInt(raw, 10);
+        return Number.isFinite(val) ? val : 0;
+      } catch (_) {
+        return 0;
+      }
+    };
+    const writeLast = () => {
+      try { localStorage.setItem(LAST_KEY, String(Date.now())); } catch (_) { /* ignore */ }
+    };
+    const clearLocalSession = () => {
+      clearAuthUser();
+      try { localStorage.removeItem(LAST_KEY); } catch (_) { /* ignore */ }
+    };
     const resetIdle = () => {
       if (idleTimer) clearTimeout(idleTimer);
+      writeLast();
       idleTimer = setTimeout(() => {
-        clearAuthUser();
+        clearLocalSession();
         window.location.href = base;
       }, IDLE_MS);
     };
-    ['click','keydown','mousemove','scroll','touchstart','focus'].forEach((ev) => {
+    const expired = () => {
+      const last = readLast();
+      return last > 0 && (Date.now() - last) > IDLE_MS;
+    };
+    if (expired()) {
+      clearAuthUser();
+      window.location.href = base;
+      return;
+    }
+    ['click','keydown','mousemove','scroll','touchstart','touchmove','focus'].forEach((ev) => {
       document.addEventListener(ev, resetIdle, { passive: true });
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && expired()) {
+        clearLocalSession();
+        window.location.href = base;
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      clearLocalSession();
+    });
+    window.addEventListener('beforeunload', () => {
+      clearLocalSession();
+    });
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'authUser' && !e.newValue) {
+        window.location.href = base;
+      }
+      if (e.key === LAST_KEY) resetIdle();
     });
     resetIdle();
   };

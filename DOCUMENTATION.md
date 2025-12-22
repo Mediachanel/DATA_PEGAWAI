@@ -7,6 +7,9 @@
 - Cloudflare Worker mendukung TTL khusus bezetting via env `CACHE_TTL_BEZETTING`.
 - Backend Node men-cache bezetting in-memory (env `BEZETTING_CACHE_TTL`) dan invalidasi saat create/update/delete.
 - Frontend bezetting memakai API lokal saat localhost dan input search sudah debounce; loader global diperbarui (orbital + skeleton shimmer).
+- Usulan Mutasi: status dan keterangan hanya bisa diubah oleh superadmin; admin UKPD/wilayah dikunci di UI dan di backend (status non-super dipaksa `DIUSULKAN`, update status/keterangan diabaikan).
+- Pemutusan JF: tombol "Cetak Word" hanya untuk superadmin dan memakai template DOCX `templates/Putus JF Batch 3.docx` dengan pengisian placeholder.
+- Template kajian mutasi disimpan di `templates/usulan-mutasi-kajian.html`.
 
 ## Backend (Node/Express + Google Sheets)
 - File: `server.js`
@@ -84,6 +87,10 @@ Catatan:
 27. mutasi_id
 28. jenis_mutasi
 29. verif_checklist
+Catatan usulan mutasi:
+- Tombol "Validasi" dan "Cetak Word" hanya muncul untuk superadmin.
+- Admin UKPD/wilayah tidak bisa mengubah `status` dan `keterangan` (dikunci di UI dan di-backend).
+- Status untuk non-superadmin selalu diset ke `DIUSULKAN` saat create/update.
 
 ### Usulan Pemutusan JF (USULAN_PEMUTUSAN_JF!A:U, 21 kolom)
 1. id
@@ -181,6 +188,10 @@ Keamanan:
 - List dan form mengikuti kolom baru (pangkat_golongan, jabatan, nama_ukpd, dll).
 - Filter status + UKPD, sorting status berurutan dan terbaru (lihat catatan pemutusan JF di atas).
 - Aksi per baris muncul via dropdown (Lihat/Ubah/Hapus + link berkas jika ada).
+- Cetak Word: hanya superadmin, memakai template `templates/Putus JF Batch 3.docx`.
+- Placeholder template pemutusan JF:
+  - `Nomor_Surat`, `Tanggal_Surat`, `Hal`, `Pimpinan`, `ASAL_SURAT`, `Nama_`, `NIP`,
+    `Pangkatgolongan`, `Nama_Jabatan_fungsional`, `UKPD`, `Alasan_Pemutusan`.
 
 ## Menjalankan (lokal)
 1. Pastikan file key service account JSON ada di folder; spreadsheet dibagikan ke service account (Editor).
