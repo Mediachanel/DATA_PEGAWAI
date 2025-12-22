@@ -11,7 +11,9 @@
   .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; }
   .pill.role { background:#eef3ff; color:#3b5ecc; }
   .pill.ukpd { background:#e7f7ff; color:#0f5f82; }
-  .brand-title { font-size:18px; font-weight:800; color:#1b2b3a; }
+  .brand { display:flex; flex-direction:column; gap:2px; }
+  .brand-title { font-size:18px; font-weight:800; letter-spacing:1px; color:#1b2b3a; }
+  .brand-sub { font-size:11px; font-weight:600; color:#64748b; }
   .user { display:flex !important; align-items:center; gap:10px; padding:8px 10px; background:#f8fafc; border:1px solid #e6ecf4; border-radius:12px; box-shadow:0 8px 18px rgba(24,39,75,0.08); }
   .user img { width:40px; height:40px; border-radius:12px; object-fit:cover; }
   .user-name { font-weight:800; color:#1b2b3a; }
@@ -21,7 +23,10 @@
 
 <header class="topbar">
   <div class="toolbar">
-    <div class="brand-title">Dashboard Dinas Kesehatan</div>
+    <div class="brand">
+      <div class="brand-title">MANDALA</div>
+      <div class="brand-sub">Manajemen Data dan Layanan Kepegawaian</div>
+    </div>
   </div>
   <div class="user">
     <img src="foto/Dinkes.png" alt="user" data-logo-header />

@@ -421,12 +421,6 @@
         window.location.href = base;
       }
     });
-    window.addEventListener('pagehide', () => {
-      clearLocalSession();
-    });
-    window.addEventListener('beforeunload', () => {
-      clearLocalSession();
-    });
     window.addEventListener('storage', (e) => {
       if (e.key === 'authUser' && !e.newValue) {
         window.location.href = base;
