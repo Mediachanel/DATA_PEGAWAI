@@ -311,6 +311,7 @@ function listPegawai(e) {
   const wilayah = String(params.wilayah || '').toLowerCase().trim();
   const jab = String(params.jabatan || '').toLowerCase().trim();
   const statuses = String(params.status || '').split(',').map(s => String(s || '').toLowerCase().trim()).filter(Boolean);
+  const lite = ['1', 'true', 'yes'].includes(norm(params.lite));
 
   const values = getSheetValues_(sheet);
   if (!values.length) {
@@ -338,10 +339,10 @@ function listPegawai(e) {
 
   const total = filtered.length;
   const slice = filtered.slice(offset, offset + limit);
-  const summary = countStatus(filtered);
-  const units = uniq(filtered.map(r => r.nama_ukpd));
-  const jabs = uniq(filtered.map(r => r.nama_jabatan_orb));
-  const statusList = uniq(filtered.map(r => r.nama_status_aktif));
+  const summary = lite ? {} : countStatus(filtered);
+  const units = lite ? [] : uniq(filtered.map(r => r.nama_ukpd));
+  const jabs = lite ? [] : uniq(filtered.map(r => r.nama_jabatan_orb));
+  const statusList = lite ? [] : uniq(filtered.map(r => r.nama_status_aktif));
 
   const response = {
     ok: true,

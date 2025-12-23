@@ -17,6 +17,26 @@
     lastMessage: '',
     redirecting: false
   };
+  const preconnectOrigins = new Set();
+
+  const ensurePreconnect = (targetUrl) => {
+    if (!targetUrl || !document || !document.head) return;
+    try {
+      const url = new URL(targetUrl, window.location.href);
+      const origin = url.origin;
+      if (!origin || preconnectOrigins.has(origin)) return;
+      preconnectOrigins.add(origin);
+      const preconnect = document.createElement('link');
+      preconnect.rel = 'preconnect';
+      preconnect.href = origin;
+      preconnect.crossOrigin = '';
+      document.head.appendChild(preconnect);
+      const dns = document.createElement('link');
+      dns.rel = 'dns-prefetch';
+      dns.href = origin;
+      document.head.appendChild(dns);
+    } catch (_) { /* ignore */ }
+  };
 
   const ensureStyle = () => {
     if (state.styleReady) return;
@@ -261,6 +281,14 @@
     return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
   };
 
+  const initServiceWorker = () => {
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+    const base = getBasePath();
+    const swUrl = base + 'sw.js';
+    navigator.serviceWorker.register(swUrl, { scope: base }).catch(() => {});
+  };
+
   const ensureHeader = (init, key, value) => {
     if (!init.headers) {
       init.headers = { [key]: value };
@@ -350,6 +378,7 @@
 
   const wrapFetch = (apiBase) => {
     if (apiBase) state.apiBase = apiBase;
+    if (apiBase) ensurePreconnect(apiBase);
     if (state.fetchWrapped) return;
     if (typeof window.fetch !== 'function') return;
     const originalFetch = window.fetch.bind(window);
@@ -431,6 +460,8 @@
   };
 
   initIdleLogout();
+  if (document.readyState === 'complete') initServiceWorker();
+  else window.addEventListener('load', initServiceWorker);
 
   window.AppLoader = { show, hide, wrapFetch };
 })();

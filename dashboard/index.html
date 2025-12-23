@@ -9,19 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../tailwind.css" />
   <script src="../loader.js"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Plus Jakarta Sans','Inter','Segoe UI','sans-serif'] },
-          colors: { brand:'#0EA5E9', cpns:'#06B6D4', pppk:'#22C55E', pro:'#14B8A6', pjlp:'#8B5CF6', card:'#ffffff' },
-          boxShadow: { soft:'0 10px 30px -12px rgba(15,23,42,.25)' }
-        }
-      }
-    };
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0" defer></script>
   <style>
@@ -295,6 +284,31 @@ const loginWilayah = authUser?.wilayah || '';
 document.body.classList.toggle('role-super', isSuper);
 
     const charts = { status:null, ukpd:null, rumpun:null, pendidikan:null };
+    const DASH_CACHE_TTL = 2 * 60 * 1000;
+
+    function getDashboardCacheKey(params){
+      const scope = [roleLower || '-', loginUkpd || '-', loginWilayah || '-', params.toString()].join('|');
+      return `dash_cache:${scope}`;
+    }
+
+    function readDashboardCache(key){
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const payload = JSON.parse(raw);
+        if (!payload || !payload.prepared || !payload.cachedAt) return null;
+        if ((Date.now() - payload.cachedAt) > DASH_CACHE_TTL) return null;
+        return payload;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function writeDashboardCache(key, prepared, total){
+      try {
+        localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), prepared, total }));
+      } catch (_) { /* ignore */ }
+    }
 
     const statusBar = document.getElementById('statusBar');
     const tableBody = document.querySelector('#ukpdTable tbody');
@@ -441,6 +455,18 @@ document.body.classList.toggle('role-super', isSuper);
           if (ukpd) params.set('unit', ukpd);
         }
       }
+      const cacheKey = getDashboardCacheKey(params);
+      const cached = readDashboardCache(cacheKey);
+      if (cached) {
+        preparedCache = cached.prepared;
+        renderKpi(preparedCache.statusCounts);
+        updateChartTitles(chartMode);
+        renderCharts(preparedCache);
+        renderTable(preparedCache.tableRows || []);
+        const totalRows = cached.total || preparedCache.totalRows || 0;
+        const stamp = new Date(cached.cachedAt).toLocaleTimeString('id-ID');
+        setStatus('Menampilkan cache (' + stamp + '), memperbarui data...');
+      }
       try {
         const statsRes = await fetch(`${API_BASE}?action=dashboard_stats&${params.toString()}`, { headers: API_HEADERS });
         const statsBody = await statsRes.json().catch(()=>null);
@@ -453,9 +479,14 @@ document.body.classList.toggle('role-super', isSuper);
           renderTable(prepared.tableRows || []);
           const totalRows = statsBody.total || prepared.totalRows || 0;
           setStatus('Data dimuat: ' + totalRows + ' baris.');
+          writeDashboardCache(cacheKey, prepared, totalRows);
           return;
         }
       } catch (_) {
+        if (cached) {
+          setStatus('Menampilkan cache (gagal memperbarui).');
+          return;
+        }
         /* fallback to legacy list */
       }
 
@@ -471,6 +502,7 @@ document.body.classList.toggle('role-super', isSuper);
         renderCharts(prepared);
         renderTable(prepared.tableRows);
         setStatus('Data dimuat: ' + rows.length + ' baris.');
+        writeDashboardCache(cacheKey, prepared, rows.length);
       }catch(err){
         setStatus('Gagal ambil data: ' + err.message);
       }

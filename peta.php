@@ -208,8 +208,7 @@ if($filters_provided){
   <meta name="theme-color" content="#0EA5E9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Plus Jakarta Sans','system-ui','sans-serif']},colors:{brand:'#0EA5E9'},boxShadow:{soft:'0 10px 30px -10px rgba(15,23,42,.25)'}}}}</script>
+  <link rel="stylesheet" href="../tailwind.css">
   <style>
     :root{ --sidebar-w:18rem; }
     #mainWrap{ margin-left:var(--sidebar-w); }

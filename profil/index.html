@@ -359,6 +359,9 @@
       if (selected) { fillProfile(selected); return; }
       try {
         const params = new URLSearchParams();
+        params.set('limit', '1');
+        params.set('offset', '0');
+        params.set('lite', '1');
         if (!isSuper) {
           if (isWilayahAdmin && loginWilayah) params.set('wilayah', loginWilayah);
           else if (loginUkpd) params.set('unit', loginUkpd);
