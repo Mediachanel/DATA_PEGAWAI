@@ -306,11 +306,11 @@ function listPegawai(e) {
 
   const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 20000, 30000));
   const offset = Math.max(0, parseInt(params.offset, 10) || 0);
-  const term = (params.search || '').toLowerCase().trim();
-  const unit = (params.unit || '').toLowerCase().trim();
-  const wilayah = (params.wilayah || '').toLowerCase().trim();
-  const jab = (params.jabatan || '').toLowerCase().trim();
-  const statuses = (params.status || '').split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
+  const term = String(params.search || '').toLowerCase().trim();
+  const unit = String(params.unit || '').toLowerCase().trim();
+  const wilayah = String(params.wilayah || '').toLowerCase().trim();
+  const jab = String(params.jabatan || '').toLowerCase().trim();
+  const statuses = String(params.status || '').split(',').map(s => String(s || '').toLowerCase().trim()).filter(Boolean);
 
   const values = getSheetValues_(sheet);
   if (!values.length) {
@@ -328,11 +328,11 @@ function listPegawai(e) {
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
 
   const filtered = scopedRecords.filter(r => {
-    const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
-    const matchUnit = !unit || (r.nama_ukpd || '').toLowerCase().trim() === unit;
-    const matchWilayah = !wilayah || (r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
-    const matchJab = !jab || (r.nama_jabatan_orb || '').toLowerCase().includes(jab);
-    const matchStatus = !statuses.length || statuses.includes((r.nama_status_aktif || '').toLowerCase().trim());
+    const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => String(v || '').toLowerCase().includes(term));
+    const matchUnit = !unit || String(r.nama_ukpd || '').toLowerCase().trim() === unit;
+    const matchWilayah = !wilayah || String(r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
+    const matchJab = !jab || String(r.nama_jabatan_orb || '').toLowerCase().includes(jab);
+    const matchStatus = !statuses.length || statuses.includes(String(r.nama_status_aktif || '').toLowerCase().trim());
     return matchTerm && matchUnit && matchWilayah && matchJab && matchStatus;
   });
 
@@ -371,7 +371,7 @@ function dashboardStats(e) {
   const unit = norm(params.unit);
   const wilayah = norm(params.wilayah);
   const jab = norm(params.jabatan);
-  const statuses = (params.status || '').split(',').map(s => norm(s)).filter(Boolean);
+  const statuses = String(params.status || '').split(',').map(s => norm(s)).filter(Boolean);
 
   const values = getSheetValues_(sheet);
   if (!values.length) {
@@ -384,11 +384,11 @@ function dashboardStats(e) {
   const scopedRecords = filterPegawaiByRole(records, sessionUser);
 
   const filtered = scopedRecords.filter(r => {
-    const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => (v || '').toLowerCase().includes(term));
-    const matchUnit = !unit || (r.nama_ukpd || '').toLowerCase().trim() === unit;
-    const matchWilayah = !wilayah || (r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
-    const matchJab = !jab || (r.nama_jabatan_orb || '').toLowerCase().includes(jab);
-    const matchStatus = !statuses.length || statuses.includes((r.nama_status_aktif || '').toLowerCase().trim());
+    const matchTerm = !term || [r.nama_pegawai, r.nip].some(v => String(v || '').toLowerCase().includes(term));
+    const matchUnit = !unit || String(r.nama_ukpd || '').toLowerCase().trim() === unit;
+    const matchWilayah = !wilayah || String(r.wilayah_ukpd || '').toLowerCase().trim().includes(wilayah);
+    const matchJab = !jab || String(r.nama_jabatan_orb || '').toLowerCase().includes(jab);
+    const matchStatus = !statuses.length || statuses.includes(String(r.nama_status_aktif || '').toLowerCase().trim());
     return matchTerm && matchUnit && matchWilayah && matchJab && matchStatus;
   });
 
