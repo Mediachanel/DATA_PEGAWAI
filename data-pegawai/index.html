@@ -837,13 +837,14 @@
     unitFilter.addEventListener('change', applyFilters);
     jabatanFilter.addEventListener('change', applyFilters);
     if (aktifFilter) aktifFilter.addEventListener('change', applyFilters);
-    const debouncedApply = debounce(applyFilters, 350);
-    searchInput.addEventListener('input', debouncedApply);
-    quickSearch.addEventListener('input', debouncedApply);
+      // Cari hanya dijalankan saat tombol Terapkan diklik (tidak auto-run ketika mengetik)
+      const triggerSearch = () => applyFilters();
+      searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); triggerSearch(); } });
+      quickSearch.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); triggerSearch(); } });
     pageSize.addEventListener('change', ()=>{ currentPage = 1; loadData(); });
     prevPage.addEventListener('click', ()=>{ if (currentPage > 1) { currentPage--; loadData(); } });
     nextPage.addEventListener('click', ()=>{ const size = parseInt(pageSize.value,10)||10; const maxPage = Math.max(1, Math.ceil((totalCount||rows.length)/size)); if (currentPage < maxPage) { currentPage++; loadData(); } });
-    applyFilter.addEventListener('click', applyFilters);
+      applyFilter.addEventListener('click', applyFilters);
     resetFilter.addEventListener('click', ()=>{
       searchInput.value='';
       quickSearch.value='';
