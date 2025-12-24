@@ -362,24 +362,35 @@
 
   <footer>(c) 2025 SI Data Informasi dan Layanan Keppegawaian. Sub Kelompok Kepegawaian Dinas Kesehatan Provinsi DKI Jakarta.</footer>
 
-  <script src="loader.js"></script>
+  <script src="loader.js?v=20251224-1"></script>
+
+
   <script>
+    // --- BASE PATH FIX
     const BASE = (() => {
       const parts = location.pathname.split('/').filter(Boolean);
       return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
     })();
+
+    // Fix favicon path (works in subfolder)
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
+
+    // --- API SETUP
     const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
       ? 'http://127.0.0.1:5002'
       : 'https://sikepeg.seftianh23.workers.dev';
+
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
+
     if (window.AppLoader) window.AppLoader.wrapFetch(API_BASE);
+
     const statusEl = document.getElementById('status');
     const loginBtn = document.getElementById('loginBtn');
     const loginForm = document.getElementById('loginForm');
     const clockEl = document.getElementById('clock');
+
     const faqList = document.getElementById('faqList');
     const faqTags = document.getElementById('faqTags');
     const faqSearch = document.getElementById('faqSearch');
@@ -395,6 +406,8 @@
     let serverReady = false;
 
     function setStatus(msg) { statusEl.textContent = 'Status: ' + msg; }
+
+    // --- Clock
     function updateClock(){
       const now = new Date();
       const hari = now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
@@ -403,6 +416,7 @@
     }
     updateClock(); setInterval(updateClock, 1000);
 
+    // --- FAQ
     const faqState = { items: [], categories: [], activeCategory: '', filtered: [], activeId: '' };
     const fallbackFaq = [
       { id: 'faq-1', category: 'Mutasi', question: 'Apa itu usulan mutasi pegawai?', answer: 'Usulan mutasi adalah proses pengajuan perpindahan pegawai untuk penempatan baru sesuai kebutuhan organisasi.' },
@@ -527,6 +541,7 @@
           answer: item.answer || '',
           status: item.status || ''
         })).filter(item => item.question);
+
         faqState.items = items.length ? items : fallbackFaq;
         faqState.categories = Array.from(new Set(faqState.items.map(i => i.category).filter(Boolean))).sort();
         faqState.activeCategory = '';
@@ -583,6 +598,7 @@
     }
     loadFaq();
 
+    // --- Password toggle
     function initPasswordToggles(){
       document.querySelectorAll('.toggle-visibility').forEach(btn => {
         const targetId = btn.getAttribute('data-target');
@@ -599,30 +615,52 @@
     }
     initPasswordToggles();
 
+    // --- LOGIN (FIXED: token disimpan konsisten ke authUser.session)
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!serverReady) { setStatus('Server belum siap.'); return; }
       loginBtn.disabled = true;
       setStatus('Memproses login...');
+
       const data = new FormData(loginForm);
       const payload = {
-        username: data.get('username') || '',
-        password: data.get('password') || ''
+        username: String(data.get('username') || ''),
+        password: String(data.get('password') || ''),
       };
+
       try {
         const res = await fetch(API_BASE, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Proxy-Key': PROXY_KEY },
           body: JSON.stringify({ action: 'login', ...payload })
         });
-        const body = await res.json();
+
+        const body = await res.json().catch(() => ({}));
         if (!res.ok || !body.ok) throw new Error(body.error || 'Login gagal');
-        if (body.user) {
-          const user = { ...body.user };
-          if (body.session_token) user.session = body.session_token;
-          if (body.session_expires_in) user.session_expires_in = body.session_expires_in;
-          localStorage.setItem('authUser', JSON.stringify(user));
+
+        // ambil token dari beberapa kemungkinan bentuk response
+        const token =
+          body.session_token ||
+          body.data?.session_token ||
+          body.session ||
+          body.data?.session ||
+          '';
+
+        const userObj = body.user || body.data?.user || {};
+
+        // simpan minimal: session
+        const authUser = { ...userObj };
+        if (token) authUser.session = token;
+        if (body.session_expires_in || body.data?.session_expires_in) {
+          authUser.session_expires_in = body.session_expires_in || body.data?.session_expires_in;
         }
+
+        if (window.AppLoader) {
+          window.AppLoader.setAuthUser(authUser);
+        } else {
+          localStorage.setItem('authUser', JSON.stringify(authUser));
+        }
+
         setStatus('Login berhasil. Membuka dashboard...');
         window.location.href = BASE + 'dashboard/';
       } catch (err) {
@@ -634,8 +672,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
