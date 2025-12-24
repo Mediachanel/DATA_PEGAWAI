@@ -1,10 +1,54 @@
 (() => {
-  if (window.AppLoader) return;
+  // =========================================================
+  // PATCH MODE:
+  // Kalau AppLoader sudah ada (versi lama), jangan return.
+  // Tambahkan fungsi yang kurang (setAuthUser, dll) lalu lanjut.
+  // =========================================================
 
   const DEFAULT_TITLE = 'Memuat data';
   const DEFAULT_SUB = 'Harap tunggu sebentar.';
   const SHOW_DELAY = 180;
   const MIN_VISIBLE = 280;
+
+  const AUTH_KEY = 'authUser';
+  const LAST_KEY = 'lastActivityAt';
+
+  const safeJsonParse = (s) => { try { return JSON.parse(s); } catch { return null; } };
+
+  const getAuthUser = () => safeJsonParse(localStorage.getItem(AUTH_KEY) || 'null');
+
+  const setAuthUser = (user) => {
+    try {
+      localStorage.setItem(AUTH_KEY, JSON.stringify(user || {}));
+      localStorage.setItem(LAST_KEY, String(Date.now()));
+    } catch (_) {}
+  };
+
+  const clearAuthUser = () => {
+    try { localStorage.removeItem(AUTH_KEY); } catch (_) {}
+    try { localStorage.removeItem(LAST_KEY); } catch (_) {}
+  };
+
+  const getBasePath = () => {
+    const parts = location.pathname.split('/').filter(Boolean);
+    return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+  };
+
+  // Jika AppLoader sudah ada, PATCH method-nya lalu (lanjut bikin loader UI bila belum ada)
+  if (window.AppLoader && typeof window.AppLoader === 'object') {
+    if (typeof window.AppLoader.getAuthUser !== 'function') window.AppLoader.getAuthUser = getAuthUser;
+    if (typeof window.AppLoader.setAuthUser !== 'function') window.AppLoader.setAuthUser = setAuthUser;
+    if (typeof window.AppLoader.clearAuthUser !== 'function') window.AppLoader.clearAuthUser = clearAuthUser;
+    // NOTE: jangan return di sini — biar loader UI & wrapFetch bisa terpasang kalau belum ada.
+  }
+
+  // =========================================================
+  // Jika loader lengkap sudah pernah terpasang, stop.
+  // (kita cek marker internal)
+  // =========================================================
+  if (window.__APP_LOADER_INSTALLED__) return;
+  window.__APP_LOADER_INSTALLED__ = true;
+
   const state = {
     count: 0,
     showTimer: null,
@@ -17,6 +61,7 @@
     lastMessage: '',
     redirecting: false
   };
+
   const preconnectOrigins = new Set();
 
   const ensurePreconnect = (targetUrl) => {
@@ -26,16 +71,18 @@
       const origin = url.origin;
       if (!origin || preconnectOrigins.has(origin)) return;
       preconnectOrigins.add(origin);
+
       const preconnect = document.createElement('link');
       preconnect.rel = 'preconnect';
       preconnect.href = origin;
       preconnect.crossOrigin = '';
       document.head.appendChild(preconnect);
+
       const dns = document.createElement('link');
       dns.rel = 'dns-prefetch';
       dns.href = origin;
       document.head.appendChild(dns);
-    } catch (_) { /* ignore */ }
+    } catch (_) {}
   };
 
   const ensureStyle = () => {
@@ -122,19 +169,9 @@
         box-shadow: 0 0 0 10px rgba(94, 139, 255, 0.12);
         animation: appLoaderPulse 1.2s ease-in-out infinite;
       }
-      #app-loader .app-loader-title {
-        font-weight: 800;
-        color: #0f172a;
-        font-size: 16px;
-      }
-      #app-loader .app-loader-sub {
-        font-size: 12px;
-        color: #64748b;
-      }
-      #app-loader .app-loader-skeleton {
-        display: grid;
-        gap: 8px;
-      }
+      #app-loader .app-loader-title { font-weight: 800; color: #0f172a; font-size: 16px; }
+      #app-loader .app-loader-sub { font-size: 12px; color: #64748b; }
+      #app-loader .app-loader-skeleton { display: grid; gap: 8px; }
       #app-loader .app-loader-line {
         height: 10px;
         border-radius: 999px;
@@ -145,17 +182,8 @@
       #app-loader .app-loader-line:nth-child(2) { width: 88%; }
       #app-loader .app-loader-line:nth-child(3) { width: 72%; }
       @keyframes appLoaderSpin { to { transform: rotate(360deg); } }
-      @keyframes appLoaderPulse {
-        0%, 100% { transform: scale(0.7); opacity: 0.8; }
-        50% { transform: scale(1); opacity: 1; }
-      }
-      @keyframes appLoaderShimmer {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-      }
-      @media (max-width: 600px) {
-        #app-loader .app-loader-card { width: calc(100% - 24px); }
-      }
+      @keyframes appLoaderPulse { 0%,100%{transform:scale(.7);opacity:.8} 50%{transform:scale(1);opacity:1} }
+      @keyframes appLoaderShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     `;
     document.head.appendChild(style);
     state.styleReady = true;
@@ -165,6 +193,7 @@
     if (state.overlay) return state.overlay;
     if (!document.body) return null;
     ensureStyle();
+
     const overlay = document.createElement('div');
     overlay.id = 'app-loader';
     overlay.setAttribute('aria-hidden', 'true');
@@ -172,9 +201,7 @@
       <div class="app-loader-card" role="status" aria-live="polite">
         <div class="app-loader-top"></div>
         <div class="app-loader-body">
-          <div class="app-loader-orbit">
-            <div class="app-loader-core"></div>
-          </div>
+          <div class="app-loader-orbit"><div class="app-loader-core"></div></div>
           <div class="app-loader-text">
             <div class="app-loader-title">${DEFAULT_TITLE}</div>
             <div class="app-loader-sub">${DEFAULT_SUB}</div>
@@ -214,31 +241,19 @@
 
   const scheduleShow = () => {
     if (state.showTimer) return;
-    if (state.hideTimer) {
-      clearTimeout(state.hideTimer);
-      state.hideTimer = null;
-    }
+    if (state.hideTimer) { clearTimeout(state.hideTimer); state.hideTimer = null; }
     state.showTimer = setTimeout(() => {
       state.showTimer = null;
-      if (state.count > 0) {
-        show(state.lastMessage);
-        state.shownAt = Date.now();
-      }
+      if (state.count > 0) { show(state.lastMessage); state.shownAt = Date.now(); }
     }, SHOW_DELAY);
   };
 
   const scheduleHide = () => {
-    if (state.showTimer) {
-      clearTimeout(state.showTimer);
-      state.showTimer = null;
-    }
+    if (state.showTimer) { clearTimeout(state.showTimer); state.showTimer = null; }
     const elapsed = Date.now() - state.shownAt;
     const remaining = Math.max(0, MIN_VISIBLE - elapsed);
     if (state.hideTimer) clearTimeout(state.hideTimer);
-    state.hideTimer = setTimeout(() => {
-      state.hideTimer = null;
-      hide();
-    }, remaining);
+    state.hideTimer = setTimeout(() => { state.hideTimer = null; hide(); }, remaining);
   };
 
   const start = (message) => {
@@ -268,36 +283,9 @@
     return target.includes('action=');
   };
 
-  const getAuthUser = () => {
-    try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; }
-  };
-
-  const clearAuthUser = () => {
-    try { localStorage.removeItem('authUser'); } catch (_) { /* ignore */ }
-  };
-
-  const getBasePath = () => {
-    const parts = location.pathname.split('/').filter(Boolean);
-    return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
-  };
-
-  const initServiceWorker = () => {
-    if (!('serviceWorker' in navigator)) return;
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
-    const base = getBasePath();
-    const swUrl = base + 'sw.js';
-    navigator.serviceWorker.register(swUrl, { scope: base }).catch(() => {});
-  };
-
   const ensureHeader = (init, key, value) => {
-    if (!init.headers) {
-      init.headers = { [key]: value };
-      return;
-    }
-    if (init.headers instanceof Headers) {
-      if (!init.headers.has(key)) init.headers.set(key, value);
-      return;
-    }
+    if (!init.headers) { init.headers = { [key]: value }; return; }
+    if (init.headers instanceof Headers) { if (!init.headers.has(key)) init.headers.set(key, value); return; }
     if (Array.isArray(init.headers)) {
       const exists = init.headers.some(([k]) => String(k).toLowerCase() === key.toLowerCase());
       if (!exists) init.headers.push([key, value]);
@@ -317,23 +305,28 @@
     const authUser = getAuthUser();
     const session = authUser?.session;
     if (!session) return { url, init };
+
     const nextInit = init ? { ...init } : {};
     const method = (nextInit.method || 'GET').toUpperCase();
+
     if (method === 'GET' || method === 'HEAD') {
       return { url: appendSessionToUrl(url, session), init: nextInit };
     }
 
     const body = nextInit.body;
+
     if (body instanceof FormData) {
       if (!body.has('session')) body.append('session', session);
       nextInit.body = body;
       return { url, init: nextInit };
     }
+
     if (body instanceof URLSearchParams) {
       if (!body.has('session')) body.append('session', session);
       nextInit.body = body;
       return { url, init: nextInit };
     }
+
     if (typeof body === 'string') {
       try {
         const data = JSON.parse(body);
@@ -351,6 +344,7 @@
         return { url, init: nextInit };
       }
     }
+
     if (body && typeof body === 'object') {
       if (!Object.prototype.hasOwnProperty.call(body, 'session')) {
         nextInit.body = JSON.stringify({ ...body, session });
@@ -381,81 +375,84 @@
     if (apiBase) ensurePreconnect(apiBase);
     if (state.fetchWrapped) return;
     if (typeof window.fetch !== 'function') return;
+
     const originalFetch = window.fetch.bind(window);
     state.fetchWrapped = true;
+
     window.fetch = (input, init) => {
       const url = getUrl(input);
       if (!isApiRequest(url)) return originalFetch(input, init);
+
       const next = injectSession(url, init);
       start();
+
       return originalFetch(next.url || url, next.init || init).then(
-        (response) => {
-          done();
-          return handleUnauthorized(response);
-        },
-        (error) => {
-          done();
-          throw error;
-        }
+        (response) => { done(); return handleUnauthorized(response); },
+        (error)    => { done(); throw error; }
       );
     };
+  };
+
+  const initServiceWorker = () => {
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+    const base = getBasePath();
+    const swUrl = base + 'sw.js';
+    navigator.serviceWorker.register(swUrl, { scope: base }).catch(() => {});
   };
 
   const initIdleLogout = () => {
     let idleTimer = null;
     const authUser = getAuthUser();
     if (!authUser) return;
+
     const base = getBasePath();
     const IDLE_MS = 10 * 60 * 1000;
-    const LAST_KEY = 'lastActivityAt';
+
     const readLast = () => {
-      try {
-        const raw = localStorage.getItem(LAST_KEY) || '';
-        const val = parseInt(raw, 10);
-        return Number.isFinite(val) ? val : 0;
-      } catch (_) {
-        return 0;
-      }
+      const raw = localStorage.getItem(LAST_KEY) || '';
+      const val = parseInt(raw, 10);
+      return Number.isFinite(val) ? val : 0;
     };
-    const writeLast = () => {
-      try { localStorage.setItem(LAST_KEY, String(Date.now())); } catch (_) { /* ignore */ }
-    };
-    const clearLocalSession = () => {
-      clearAuthUser();
-      try { localStorage.removeItem(LAST_KEY); } catch (_) { /* ignore */ }
-    };
-    const resetIdle = () => {
-      if (idleTimer) clearTimeout(idleTimer);
-      writeLast();
-      idleTimer = setTimeout(() => {
-        clearLocalSession();
-        window.location.href = base;
-      }, IDLE_MS);
-    };
+
+    const writeLast = () => { try { localStorage.setItem(LAST_KEY, String(Date.now())); } catch (_) {} };
+
     const expired = () => {
       const last = readLast();
       return last > 0 && (Date.now() - last) > IDLE_MS;
     };
+
+    const resetIdle = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      writeLast();
+      idleTimer = setTimeout(() => {
+        clearAuthUser();
+        window.location.href = base;
+      }, IDLE_MS);
+    };
+
     if (expired()) {
       clearAuthUser();
       window.location.href = base;
       return;
     }
+
     ['click','keydown','mousemove','scroll','touchstart','touchmove','focus'].forEach((ev) => {
       document.addEventListener(ev, resetIdle, { passive: true });
     });
+
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && expired()) {
-        clearLocalSession();
+        clearAuthUser();
         window.location.href = base;
       }
     });
+
     window.addEventListener('storage', (e) => {
-      if (e.key === 'authUser' && !e.newValue) {
-        window.location.href = base;
-      }
+      if (e.key === AUTH_KEY && !e.newValue) window.location.href = base;
       if (e.key === LAST_KEY) resetIdle();
     });
+
     resetIdle();
   };
 
@@ -463,5 +460,11 @@
   if (document.readyState === 'complete') initServiceWorker();
   else window.addEventListener('load', initServiceWorker);
 
-  window.AppLoader = { show, hide, wrapFetch };
+  // Expose API (merge dengan yang sudah ada)
+  const prev = (window.AppLoader && typeof window.AppLoader === 'object') ? window.AppLoader : {};
+  window.AppLoader = {
+    ...prev,
+    show, hide, wrapFetch,
+    setAuthUser, getAuthUser, clearAuthUser
+  };
 })();
