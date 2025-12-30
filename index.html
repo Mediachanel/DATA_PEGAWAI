@@ -636,15 +636,19 @@
 
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !body.ok) throw new Error(body.error || 'Login gagal');
-        const userPayload = body.user || (body.data && body.data.user);
-        const sessionToken = body.session_token || (body.data && body.data.session_token);
+        const userPayload = body.user || (body.data && body.data.user) || null;
+        const sessionToken = body.session_token || (body.data && body.data.session_token) || body.session || (body.data && body.data.session);
         const sessionExpires = body.session_expires_in || (body.data && body.data.session_expires_in);
-        if (!userPayload) throw new Error('Data user tidak ditemukan dari server');
-        const user = { ...userPayload };
-        if (sessionToken) user.session = sessionToken;
+        if (!sessionToken) throw new Error('Token sesi tidak ditemukan dari server');
+        const user = (userPayload && typeof userPayload === 'object') ? { ...userPayload } : { username: payload.username };
+        user.session = sessionToken;
         if (sessionExpires) user.session_expires_in = sessionExpires;
-        localStorage.setItem('authUser', JSON.stringify(user));
-        try { localStorage.setItem('lastActivityAt', String(Date.now())); } catch (_) { /* ignore */ }
+        if (window.AppLoader && typeof window.AppLoader.setAuthUser === 'function') {
+          window.AppLoader.setAuthUser(user);
+        } else {
+          localStorage.setItem('authUser', JSON.stringify(user));
+          try { localStorage.setItem('lastActivityAt', String(Date.now())); } catch (_) { /* ignore */ }
+        }
         setStatus('Login berhasil. Membuka dashboard...');
         window.location.href = BASE + 'dashboard/';
       } catch (err) {
