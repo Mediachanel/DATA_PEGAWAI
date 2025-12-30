@@ -379,8 +379,7 @@
     // --- API SETUP
     const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
       ? 'http://127.0.0.1:5002'
-      : 'https://sikepeg.seftianh23.workers.dev';
-
+      : 'https://si-data-pegawai-worker.seftianh23.workers.dev';
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
 
@@ -637,30 +636,15 @@
 
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !body.ok) throw new Error(body.error || 'Login gagal');
-
-        // ambil token dari beberapa kemungkinan bentuk response
-        const token =
-          body.session_token ||
-          body.data?.session_token ||
-          body.session ||
-          body.data?.session ||
-          '';
-
-        const userObj = body.user || body.data?.user || {};
-
-        // simpan minimal: session
-        const authUser = { ...userObj };
-        if (token) authUser.session = token;
-        if (body.session_expires_in || body.data?.session_expires_in) {
-          authUser.session_expires_in = body.session_expires_in || body.data?.session_expires_in;
-        }
-
-        if (window.AppLoader) {
-          window.AppLoader.setAuthUser(authUser);
-        } else {
-          localStorage.setItem('authUser', JSON.stringify(authUser));
-        }
-
+        const userPayload = body.user || (body.data && body.data.user);
+        const sessionToken = body.session_token || (body.data && body.data.session_token);
+        const sessionExpires = body.session_expires_in || (body.data && body.data.session_expires_in);
+        if (!userPayload) throw new Error('Data user tidak ditemukan dari server');
+        const user = { ...userPayload };
+        if (sessionToken) user.session = sessionToken;
+        if (sessionExpires) user.session_expires_in = sessionExpires;
+        localStorage.setItem('authUser', JSON.stringify(user));
+        try { localStorage.setItem('lastActivityAt', String(Date.now())); } catch (_) { /* ignore */ }
         setStatus('Login berhasil. Membuka dashboard...');
         window.location.href = BASE + 'dashboard/';
       } catch (err) {

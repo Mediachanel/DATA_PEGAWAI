@@ -1413,7 +1413,9 @@ function toRecord(header, row) {
 
 function countStatus(rows) {
   return rows.reduce((acc, r) => {
-    const k = (r.nama_status_aktif || 'LAINNYA').toUpperCase();
+    const raw = r.nama_status_aktif || '';
+    const cleaned = raw.trim();
+    const k = (cleaned || 'LAINNYA').toUpperCase();
     acc[k] = (acc[k] || 0) + 1;
     return acc;
   }, {});

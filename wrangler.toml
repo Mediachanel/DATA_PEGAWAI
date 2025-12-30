@@ -1,0 +1,29 @@
+name = "si-data-pegawai-worker"
+main = "cf-worker-proxy.js"
+compatibility_date = "2024-11-01"
+
+# Set secrets via:
+#   wrangler secret put PROXY_KEY
+#   wrangler secret put APPS_SCRIPT_KEY
+#   wrangler secret put SYNC_KEY
+#   wrangler secret put DB_HTTP_TOKEN
+#   wrangler secret put API_PROXY_KEY
+#   wrangler secret put DB_API_KEY
+#
+# Set vars via:
+#   wrangler deploy --var WEB_APP_BASE:https://script.google.com/macros/s/.../exec --var DB_HTTP_URL:https://...
+
+[vars]
+# Apps Script Web App (/exec)
+WEB_APP_BASE = "https://script.google.com/macros/s/REPLACE_ME/exec"
+
+# Origin for mysql-gateway via Cloudflare Tunnel
+API_ORIGIN = "https://database.kepegawaian.media"
+
+# Cache TTL for proxy GET list endpoints (seconds)
+CACHE_TTL = "30"
+CACHE_TTL_BEZETTING = "60"
+
+# Optional: HTTP gateway for MySQL (Worker -> DB)
+DB_HTTP_URL = "https://database.kepegawaian.media/db/query"
+
