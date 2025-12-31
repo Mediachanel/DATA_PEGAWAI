@@ -387,6 +387,7 @@
     const rolePill = document.getElementById('rolePill');
     const ukpdPill = document.getElementById('ukpdPill');
 
+    let allRows = [];
     let rows = [];
     let initialized = false;
     let editingId = null;
@@ -531,39 +532,14 @@
       if (!initialized) return;
       setStatus('Memuat data pegawai...');
       try {
-        const size = parseInt(pageSize.value,10) || 25;
-        const params = new URLSearchParams({
-          limit: String(size),
-          offset: String((currentPage - 1) * size)
-        });
-        let unitVal = unitFilter.value || '';
-        if (isSuper) {
-          if (unitVal) params.set('unit', unitVal);
-        } else if (isWilayahAdmin) {
-          if (loginWilayah) params.set('wilayah', loginWilayah);
-          if (unitVal) params.set('unit', unitVal);
-        } else {
-          unitVal = unitVal || loginUkpd;
-          if (unitVal) params.set('unit', unitVal);
-        }
-        const jabVal = jabatanFilter.value;
-        if (jabVal) params.set('jabatan', jabVal);
-        const searchTerm = searchInput.value || quickSearch.value;
-        if (searchTerm) params.set('search', searchTerm);
-        const activeChips = Array.from(document.querySelectorAll('.chip.active')).map(c=>c.dataset.status);
-        if (activeChips.length) params.set('status', activeChips.join(','));
-
+        const params = new URLSearchParams({ limit: '30000', offset: '0' });
         const res = await fetch(`${API_BASE}?action=list&${params.toString()}`, { headers: API_HEADERS });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
-        rows = applyRoleFilter(body.rows || []);
-        totalCount = body.total || rows.length;
-        populateFilters(body, rows);
-        renderStats(body.summary, rows.length);
-        renderTable();
-        const maxPage = Math.max(1, Math.ceil(totalCount / size));
-        if (currentPage > maxPage) { currentPage = maxPage; renderTable(); }
-        setStatus('Data dimuat: ' + totalCount.toLocaleString('id-ID') + ' baris (halaman ' + currentPage + ').');
+        allRows = applyRoleFilter(body.rows || []);
+        populateFilters(body, allRows);
+        applyFilters({ resetPage: false });
+        setStatus('Data dimuat: ' + allRows.length.toLocaleString('id-ID') + ' baris.');
       } catch(err){
         setStatus('Gagal ambil data: ' + err.message);
       }
@@ -590,14 +566,30 @@
         const chip = e.target.closest('.chip');
         if (!chip) return;
         chip.classList.toggle('active');
-        currentPage = 1;
-        loadData();
+        applyFilters();
       };
     }
 
-    function applyFilters(){
-      currentPage = 1;
-      loadData();
+    function applyFilters({ resetPage = true } = {}){
+      if (resetPage) currentPage = 1;
+      const term = norm(searchInput.value || quickSearch.value);
+      const unitVal = norm(unitFilter.value || '');
+      const jabVal = norm(jabatanFilter.value || '');
+      const activeChips = Array.from(document.querySelectorAll('.chip.active')).map(c=>norm(c.dataset.status));
+      let filtered = allRows.slice();
+      if (unitVal) filtered = filtered.filter(r => norm(r.nama_ukpd || '') === unitVal);
+      if (jabVal) filtered = filtered.filter(r => norm(r.nama_jabatan_orb || '').includes(jabVal));
+      if (activeChips.length) {
+        filtered = filtered.filter(r => activeChips.includes(norm(r.nama_status_aktif || '')));
+      }
+      if (term) {
+        filtered = filtered.filter(r => [r.nama_pegawai, r.nip].some(v => norm(v).includes(term)));
+      }
+      rows = filtered;
+      totalCount = rows.length;
+      renderStats(buildSummary(rows), rows.length);
+      renderTable();
+      setStatus('Data tampil: ' + totalCount.toLocaleString('id-ID') + ' baris.');
     }
 
     function debounce(fn, wait = 300){
@@ -638,7 +630,9 @@
       const maxPage = Math.max(1, Math.ceil(total / size));
       if (currentPage > maxPage) currentPage = maxPage;
       tableBody.innerHTML = '';
-      rows.forEach((r, idx)=>{
+      const start = (currentPage - 1) * size;
+      const viewRows = rows.slice(start, start + size);
+      viewRows.forEach((r, idx)=>{
         const tr = document.createElement('tr');
         const rowId = r.id || r.nip || '';
         const missing = missingFields(r);
@@ -646,7 +640,7 @@
         const warnBadge = missing.length ? `<span class="warn-badge" title="Belum lengkap: ${escapeHtml(missingText)}" data-missing="${escapeHtml(missing.join('|'))}">⚠ Lengkapi</span>` : '';
         const safeRowId = escapeHtml(rowId);
         tr.innerHTML = `
-          <td>${(currentPage - 1) * size + idx + 1}</td>
+          <td>${start + idx + 1}</td>
           <td>${escapeHtml(r.nip || '-')}</td>
           <td>${escapeHtml(r.nama_pegawai || '-')}${warnBadge}</td>
           <td>${escapeHtml(r.nama_jabatan_orb || '-')}</td>
@@ -678,6 +672,16 @@
     }
 
     function countBy(arr, fn){ return arr.reduce((acc, item)=>{ const k = fn(item); acc[k] = (acc[k]||0)+1; return acc; }, {}); }
+
+    function buildSummary(data){
+      const summary = {};
+      data.forEach(r => {
+        const key = r.nama_status_aktif || r.nama_jenis_pegawai || 'Lainnya';
+        if (!key) return;
+        summary[key] = (summary[key] || 0) + 1;
+      });
+      return summary;
+    }
 
     function disableFormAutocomplete(formEl){
       if (!formEl) return;
@@ -837,13 +841,14 @@
     unitFilter.addEventListener('change', applyFilters);
     jabatanFilter.addEventListener('change', applyFilters);
     if (aktifFilter) aktifFilter.addEventListener('change', applyFilters);
-      // Cari hanya dijalankan saat tombol Terapkan diklik (tidak auto-run ketika mengetik)
-      const triggerSearch = () => applyFilters();
-      searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); triggerSearch(); } });
-      quickSearch.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); triggerSearch(); } });
-    pageSize.addEventListener('change', ()=>{ currentPage = 1; loadData(); });
-    prevPage.addEventListener('click', ()=>{ if (currentPage > 1) { currentPage--; loadData(); } });
-    nextPage.addEventListener('click', ()=>{ const size = parseInt(pageSize.value,10)||10; const maxPage = Math.max(1, Math.ceil((totalCount||rows.length)/size)); if (currentPage < maxPage) { currentPage++; loadData(); } });
+      const triggerSearch = debounce(() => applyFilters({ resetPage: true }), 250);
+      searchInput.addEventListener('input', ()=>{ quickSearch.value = searchInput.value; triggerSearch(); });
+      quickSearch.addEventListener('input', ()=>{ searchInput.value = quickSearch.value; triggerSearch(); });
+      searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); applyFilters(); } });
+      quickSearch.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); applyFilters(); } });
+    pageSize.addEventListener('change', ()=>{ currentPage = 1; renderTable(); });
+    prevPage.addEventListener('click', ()=>{ if (currentPage > 1) { currentPage--; renderTable(); } });
+    nextPage.addEventListener('click', ()=>{ const size = parseInt(pageSize.value,10)||10; const maxPage = Math.max(1, Math.ceil((totalCount||rows.length)/size)); if (currentPage < maxPage) { currentPage++; renderTable(); } });
       applyFilter.addEventListener('click', applyFilters);
     resetFilter.addEventListener('click', ()=>{
       searchInput.value='';
@@ -887,7 +892,3 @@
   </script>
 </body>
 </html>
-
-
-
-

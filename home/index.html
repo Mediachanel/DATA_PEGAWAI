@@ -164,6 +164,10 @@
       document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
       document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
       document.querySelectorAll('.nav-item').forEach(a=> a.classList.remove('active'));
+      const activePath = BASE + 'home/';
+      document.querySelectorAll('.nav-item').forEach(a=>{
+        if (a.getAttribute('href') === activePath) a.classList.add('active');
+      });
     }
 
     function initSidebarToggle(){
