@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SI Data Pegawai - Home</title>
+  <link rel="icon" type="image/png" href="../foto/Dinkes.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../tailwind.css" />
+
+  <style>
+    :root{
+      --sidebar-w: 16.5rem;
+      --brand: #5e8bff;
+      --brand-soft: #eef3ff;
+      --card-shadow: 0 10px 30px -12px rgba(24,39,75,.14);
+    }
+    body{
+      background: radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%),
+                  radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%),
+                  #f7f9fc;
+      font-family:'Plus Jakarta Sans','Inter','Segoe UI',sans-serif;
+      color:#1b2b3a;
+    }
+    #mainWrap{ margin-left: var(--sidebar-w); transition: margin .2s ease; }
+    @media (max-width: 1023px){ #mainWrap{ margin-left: 0; } }
+
+    .card{
+      background-color: #fff;
+      border: 1px solid rgba(226,232,240,.9);
+      border-radius: 18px;
+      box-shadow: var(--shadow, var(--card-shadow));
+      padding: 16px;
+    }
+
+    .sidebar{
+      position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
+      background: #ffffff;
+      color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px;
+      box-shadow: 8px 0 30px -20px rgba(0,0,0,.08); border-right:1px solid #e2e8f0;
+    }
+    .sidebar .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
+    .sidebar .logo img{ width:38px; height:38px; object-fit:contain; }
+    .sidebar .logo-title{ font-size:14px; text-transform:uppercase; letter-spacing:.2px; }
+    .sidebar .logo-sub{ font-size:12px; color:#94a3b8; }
+    .sidebar .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
+    .sidebar .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .sidebar .nav-item:hover{ background:#f8fafc; }
+    .sidebar .nav-item.active{ background:var(--brand-soft); color:#3b5ecc; font-weight:700; box-shadow:0 10px 22px rgba(94,139,255,0.18); }
+
+    .mobile-toggle{
+      position: fixed; top: 14px; left: 14px; z-index: 70;
+      background: #5e8bff; color: #f8fafc; border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
+      box-shadow: 0 12px 26px rgba(94,139,255,0.35);
+    }
+    #sidebarBackdrop{
+      position: fixed; inset:0; background: rgba(0,0,0,0.45);
+      opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
+    }
+    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+
+    @media (max-width: 1023px){
+      .mobile-toggle{ display:inline-flex; }
+      .sidebar{
+        transform: translateX(-100%);
+        transition: transform .2s ease;
+        z-index: 60;
+        width: calc(100vw - 72px);
+        max-width: 280px;
+      }
+      .sidebar.show{ transform: translateX(0); }
+    }
+  </style>
+</head>
+<body class="text-slate-900">
+  <div id="sidebarBackdrop"></div>
+  <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle">
+    <span style="font-size:18px;">&#9776;</span> Menu
+  </button>
+
+  <div class="flex min-h-screen">
+    <div id="sidebar-container"></div>
+    <div class="flex-1" id="mainWrap">
+      <div id="header-container"></div>
+      <div id="statusBar" class="px-4 sm:px-6 text-sm text-slate-600 mt-2">Status: siap digunakan.</div>
+
+      <main class="px-4 sm:px-6 pb-10 pt-2 space-y-4">
+        <section class="card">
+          <div class="text-xs font-semibold text-slate-500">Ringkasan</div>
+          <h1 class="text-2xl font-extrabold mt-1">Selamat datang di SI Data Pegawai</h1>
+          <p class="text-slate-600 mt-2">Halaman home ini menampilkan informasi statis agar proses setelah login lebih ringan dan cepat.</p>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="card">
+            <div class="text-sm font-semibold">Fokus layanan</div>
+            <p class="text-slate-600 text-sm mt-2">Akses cepat untuk informasi ringkas tanpa memuat grafik berat.</p>
+          </div>
+          <div class="card">
+            <div class="text-sm font-semibold">Kontak admin</div>
+            <p class="text-slate-600 text-sm mt-2">Hubungi admin Subkelompok Kepegawaian jika membutuhkan bantuan akses.</p>
+          </div>
+          <div class="card">
+            <div class="text-sm font-semibold">Catatan data</div>
+            <p class="text-slate-600 text-sm mt-2">Data utama tersimpan di Spreadsheet dan disinkronkan sesuai jadwal.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="text-sm font-semibold">Info layanan</div>
+          <div class="mt-3 grid gap-2 text-sm text-slate-600">
+            <div>Jam layanan: Senin - Jumat, 08.00 - 16.00 WIB</div>
+            <div>Lokasi: Dinas Kesehatan Provinsi DKI Jakarta</div>
+            <div>Peruntukan: Perencanaan, pendayagunaan, dan layanan kepegawaian</div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="py-3 px-4 sm:px-6 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
+        <div id="footer-container"></div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const BASE = (() => {
+      const parts = location.pathname.split('/').filter(Boolean);
+      return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
+    })();
+    const favicon = document.querySelector("link[rel='icon']");
+    if (favicon) favicon.href = BASE + 'foto/Dinkes.png';
+
+    const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser') || 'null'); } catch { return null; } })();
+    if (!authUser) { window.location.href = BASE; }
+
+    const sidebarPromise = fetch(BASE + 'sidebar.html').then(r=>r.text()).catch(()=> '' );
+    const headerPromise = fetch(BASE + 'header.html').then(r=>r.text()).catch(()=> '' );
+    const footerPromise = fetch(BASE + 'footer.html').then(r=>r.text()).catch(()=> '' );
+
+    Promise.all([sidebarPromise, headerPromise, footerPromise]).then(([s,h,f])=>{
+      const wrap = document.getElementById('sidebar-container');
+      wrap.innerHTML = s;
+      const hdr = document.getElementById('header-container');
+      if (hdr) hdr.innerHTML = h;
+      const ftr = document.getElementById('footer-container');
+      if (ftr) ftr.innerHTML = f;
+      setActiveNav();
+      const logoutLink = wrap.querySelector('[data-logout]');
+      if (logoutLink) logoutLink.addEventListener('click', doLogout);
+      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+      initSidebarToggle();
+    });
+
+    function doLogout(){
+      try { localStorage.removeItem('authUser'); } catch (_) {}
+      window.location.href = BASE;
+    }
+
+    function setActiveNav(){
+      document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
+      document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
+      document.querySelectorAll('.nav-item').forEach(a=> a.classList.remove('active'));
+    }
+
+    function initSidebarToggle(){
+      const btn = document.getElementById('sidebarToggle');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const sidebar = document.querySelector('.sidebar');
+      if (!btn || !sidebar || !backdrop) return;
+      const close = ()=>{ sidebar.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      btn.addEventListener('click', ()=>{
+        const willShow = !sidebar.classList.contains('show');
+        sidebar.classList.toggle('show', willShow);
+        backdrop.classList.toggle('show', willShow);
+        document.body.style.overflow = willShow ? 'hidden' : '';
+      });
+      backdrop.addEventListener('click', close);
+      sidebar.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1024) close(); });
+    }
+  </script>
+</body>
+</html>

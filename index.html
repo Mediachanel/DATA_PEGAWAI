@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -649,8 +649,8 @@
           localStorage.setItem('authUser', JSON.stringify(user));
           try { localStorage.setItem('lastActivityAt', String(Date.now())); } catch (_) { /* ignore */ }
         }
-        setStatus('Login berhasil. Membuka dashboard...');
-        window.location.href = BASE + 'dashboard/';
+        setStatus('Login berhasil. Membuka home...');
+        window.location.href = BASE + 'home/';
       } catch (err) {
         setStatus('Gagal login: ' + err.message);
       } finally {
@@ -660,3 +660,4 @@
   </script>
 </body>
 </html>
+
