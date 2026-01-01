@@ -557,7 +557,7 @@
       }
       const jabs = (body?.jabs && body.jabs.length ? body.jabs : Array.from(new Set(dataRows.map(d => d.nama_jabatan_orb).filter(Boolean)))).sort();
       jabatanFilter.innerHTML = '<option value="">Pilih Jabatan</option>' + jabs.map(u => { const safe = escapeHtml(u); return `<option value="${safe}">${safe}</option>`; }).join('');
-      const statuses = (body?.statuses && body.statuses.length ? body.statuses : Array.from(new Set(dataRows.map(d => d.nama_jenis_pegawai || d.nama_status_aktif).filter(Boolean)))).sort();
+      const statuses = (body?.statuses && body.statuses.length ? body.statuses : Array.from(new Set(dataRows.map(d => d.nama_status_aktif).filter(Boolean)))).sort();
       const activeSet = new Set(Array.from(chipStatus.querySelectorAll('.chip.active')).map(c=>c.dataset.status));
       statusTags = statuses;
       chipStatus.innerHTML = statuses.map(s => { const safe = escapeHtml(s); return `<div class="chip" data-status="${safe}">${safe}</div>`; }).join('');
@@ -645,7 +645,7 @@
           <td>${escapeHtml(r.nama_pegawai || '-')}${warnBadge}</td>
           <td>${escapeHtml(r.nama_jabatan_orb || '-')}</td>
           <td>${escapeHtml(r.nama_status_rumpun || '-')}</td>
-          <td>${escapeHtml(r.nama_jenis_pegawai || '-')}</td>
+          <td>${escapeHtml(r.nama_status_aktif || '-')}</td>
           <td>${escapeHtml(r.nama_ukpd || '-')}</td>
             <td>${escapeHtml(r.nama_status_aktif || '-')}</td>
             <td class="actions">
@@ -676,7 +676,7 @@
     function buildSummary(data){
       const summary = {};
       data.forEach(r => {
-        const key = r.nama_status_aktif || r.nama_jenis_pegawai || 'Lainnya';
+        const key = r.nama_status_aktif || 'Lainnya';
         if (!key) return;
         summary[key] = (summary[key] || 0) + 1;
       });
@@ -892,6 +892,5 @@
   </script>
 </body>
 </html>
-
 
 

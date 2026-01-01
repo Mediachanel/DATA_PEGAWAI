@@ -360,6 +360,32 @@
     </div>
   </div>
 
+  <div class="modal" id="validateModal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3 id="validateTitle" style="margin:0;">Validasi Usulan Pemutusan JF</h3>
+        <button type="button" class="close-btn" id="closeValidate" aria-label="Tutup">x</button>
+      </div>
+      <div class="modal-body">
+        <form id="validateForm" class="form-grid">
+          <div>
+            <label>Status</label>
+            <select name="status" id="validateStatus">
+              <option value="DIUSULKAN">Diusulkan</option>
+              <option value="DIPROSES">Diproses</option>
+              <option value="SELESAI">Selesai</option>
+              <option value="DITOLAK">Ditolak</option>
+            </select>
+          </div>
+          <textarea name="keterangan" id="validateNote" placeholder="Catatan hasil validasi..."></textarea>
+          <div style="display:flex; gap:10px; justify-content:flex-end; grid-column:1/-1;">
+            <button type="submit" class="primary">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="../loader.js"></script>
   <script>
     const BASE = (() => {
@@ -425,14 +451,20 @@
     const resetFormBtn = document.getElementById('resetForm');
     const formModal = document.getElementById('formModal');
     const viewModal = document.getElementById('viewModal');
+    const validateModal = document.getElementById('validateModal');
     const modalBackdrop = document.getElementById('modalBackdrop');
     const formTitle = document.getElementById('formTitle');
     const submitBtn = document.getElementById('submitBtn');
     const closeForm = document.getElementById('closeForm');
     const closeView = document.getElementById('closeView');
+    const closeValidate = document.getElementById('closeValidate');
     const detailGrid = document.getElementById('detailGrid');
     const detailAlasan = document.getElementById('detailAlasan');
     const detailKeterangan = document.getElementById('detailKeterangan');
+    const validateForm = document.getElementById('validateForm');
+    const validateStatus = document.getElementById('validateStatus');
+    const validateNote = document.getElementById('validateNote');
+    const validateTitle = document.getElementById('validateTitle');
     const ukpdSelect = document.getElementById('f_ukpd');
     const pegawaiSelect = document.getElementById('f_nama');
     const nipInput = document.getElementById('f_nip');
@@ -450,6 +482,7 @@
     let filtered = [];
     let page = 1;
     let editingId = null;
+    let validatingRow = null;
     const bezettingState = { byUkpd: new Map(), ukpdsAll: null, ukpdsWilayah: null };
 
     function syncHeaderUser(){
@@ -516,7 +549,7 @@
     }
     function hideModal(el){
       el.classList.remove('show');
-      if (![formModal, viewModal].some(m=>m.classList.contains('show'))) modalBackdrop.classList.remove('show');
+      if (![formModal, viewModal, validateModal].some(m=>m.classList.contains('show'))) modalBackdrop.classList.remove('show');
       el.setAttribute('aria-hidden','true');
     }
 
@@ -1054,6 +1087,7 @@
               <button class="ghost dropdown-toggle" data-id="${safeId}">Aksi v</button>
               <div class="dropdown-menu">
                 <button data-action="view" data-id="${safeId}">Lihat</button>
+                ${isSuper ? `<button data-action="validate" data-id="${safeId}">Validasi</button>` : ''}
                 ${isSuper ? `<button data-action="print" data-id="${safeId}">Cetak Word</button>` : ''}
                 <button data-action="edit" data-id="${safeId}">Ubah</button>
                 <button data-action="delete" data-id="${safeId}">Hapus</button>
@@ -1164,6 +1198,35 @@
       detailKeterangan.textContent = row.keterangan || '-';
     }
 
+    function openValidate(row){
+      validatingRow = row;
+      if (validateForm) validateForm.reset();
+      if (validateStatus) validateStatus.value = (row.status || 'DIUSULKAN').toUpperCase();
+      if (validateNote) validateNote.value = row.keterangan || '';
+      if (validateTitle) {
+        const nama = row.nama_pegawai || '-';
+        validateTitle.textContent = `Validasi Usulan Pemutusan JF - ${nama}`;
+      }
+      showModal(validateModal);
+    }
+
+    async function saveValidate(e){
+      e.preventDefault();
+      if (!validatingRow) return;
+      const payload = {
+        action: 'pemutusan_jf_update',
+        id: validatingRow.id,
+        status: validateStatus?.value || validatingRow.status || 'DIUSULKAN',
+        keterangan: String(validateNote?.value || '').trim(),
+        updated_at: new Date().toISOString()
+      };
+      await apiFetch(API_BASE, { method: 'POST', body: JSON.stringify(payload) });
+      hideModal(validateModal);
+      validatingRow = null;
+      await loadData();
+      alert('Validasi tersimpan');
+    }
+
     async function savePemutusan(e){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
@@ -1232,6 +1295,7 @@
       const row = rows.find(r=>String(r.id || '') === String(id || ''));
       if (!row) return;
       if (action === 'view'){ fillView(row); showModal(viewModal); }
+      if (action === 'validate' && row && isSuper){ openValidate(row); }
       if (action === 'print' && isSuper){ exportWord(row).catch(err=>alert(err.message)); }
       if (action === 'edit'){ openForm(row).catch(err=>alert(err.message)); }
       if (action === 'delete'){ deletePemutusan(id); }
@@ -1267,8 +1331,10 @@
     });
     closeForm.addEventListener('click', ()=> hideModal(formModal));
     closeView.addEventListener('click', ()=> hideModal(viewModal));
-    modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); });
-    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ hideModal(formModal); hideModal(viewModal); } });
+    closeValidate?.addEventListener('click', ()=> hideModal(validateModal));
+    modalBackdrop.addEventListener('click', ()=>{ hideModal(formModal); hideModal(viewModal); hideModal(validateModal); });
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ hideModal(formModal); hideModal(viewModal); hideModal(validateModal); } });
+    validateForm?.addEventListener('submit', (e)=>{ saveValidate(e).catch(err=>alert(err.message)); });
 
     if (ukpdSelect){
       ukpdSelect.addEventListener('change', ()=>{
@@ -1300,6 +1366,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 
