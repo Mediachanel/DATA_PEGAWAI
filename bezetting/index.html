@@ -69,7 +69,7 @@
           <div>
             <div class="pill" id="roleBadge">-</div>
             <h2>Peta Jabatan / Bezetting</h2>
-            <p style="margin:4px 0 0; color:#cbd5e1;">Pantau kebutuhan formasi vs eksisting, filter per UKPD/wilayah/jabatan.</p>
+           
           </div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button class="primary" id="refreshBtn" style="min-width:140px;">Muat Ulang</button>
@@ -231,9 +231,13 @@
       if (!authUser) return;
       const roleText = (authUser.role || 'USER').toUpperCase();
       const nameText = authUser.namaUkpd || authUser.username || 'User';
+      const headerName = document.getElementById('userName') || document.querySelector('.user-name');
+      const headerRole = document.getElementById('userRole') || document.querySelector('.user-role');
       if (roleBadge) roleBadge.textContent = roleText;
       if (userNameEl) userNameEl.textContent = nameText;
       if (userRoleEl) userRoleEl.textContent = authUser.role || '';
+      if (headerName) headerName.textContent = nameText;
+      if (headerRole) headerRole.textContent = authUser.role || '';
       if (rolePill) rolePill.textContent = roleText;
       if (ukpdPill) ukpdPill.textContent = nameText;
     }
@@ -401,7 +405,6 @@
   </script>
 </body>
 </html>
-
 
 
 
