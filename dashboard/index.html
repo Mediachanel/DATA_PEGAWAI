@@ -21,14 +21,14 @@
       --h-rumpun: 440px;
       --tbl-font: 0.875rem;
       --tbl-pad-y: .5rem;
-      --brand: #5e8bff;
-      --brand-soft: #eef3ff;
+      --brand: #12b7a6;
+      --brand-soft: #e9fbf8;
       --card-shadow: 0 10px 30px -12px rgba(24,39,75,.14);
     }
     body{
-      background: radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%), #f7f9fc;
+      background: radial-gradient(circle at 18% 20%, rgba(18,183,166,0.12), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,140,58,0.12), transparent 32%), #f3f6f7;
       font-family:'Plus Jakarta Sans','Inter','Segoe UI',sans-serif;
-      color:#1b2b3a;
+      color:#1f2a2e;
     }
     #mainWrap{ margin-left: var(--sidebar-w); transition: margin .2s ease; }
     @media (max-width: 1023px){ #mainWrap{ margin-left: 0; } }
@@ -47,6 +47,33 @@
       box-shadow: var(--shadow, var(--card-shadow));
       padding: 16px;
     }
+    .kpi-progress{
+      margin-top: 10px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.25);
+      overflow: hidden;
+    }
+    .kpi-progress span{
+      display:block;
+      height:100%;
+      width: var(--kpi, 70%);
+      background: rgba(255,255,255,0.85);
+    }
+    .kpi-meta{
+      margin-top: 8px;
+      font-size: 11px;
+      opacity: 0.85;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .kpi-dot{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.8);
+    }
     table#ukpdTable th, table#ukpdTable td{
       font-size: var(--tbl-font);
       padding-top: var(--tbl-pad-y);
@@ -55,24 +82,24 @@
     .sidebar{
       position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
       background: #ffffff;
-      color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; box-shadow: 8px 0 30px -20px rgba(0,0,0,.08); border-right:1px solid #e2e8f0;
+      color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; box-shadow: 8px 0 30px -20px rgba(0,0,0,.08); border-right:1px solid #e4ebee;
     }
     .sidebar .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
     .sidebar .logo img{ width:38px; height:38px; object-fit:contain; }
     .sidebar .logo-title{ font-size:14px; text-transform:uppercase; letter-spacing:.2px; }
     .sidebar .logo-sub{ font-size:12px; color:#94a3b8; }
     .sidebar .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
-    .sidebar .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
-    .sidebar .nav-item:hover{ background:#f8fafc; }
-    .sidebar .nav-item.active{ background:var(--brand-soft); color:#3b5ecc; font-weight:700; box-shadow:0 10px 22px rgba(94,139,255,0.18); }
+    .sidebar .icon-round{ width:26px; height:26px; border-radius:10px; background:#e9fbf8; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .sidebar .nav-item:hover{ background:#f7fbfb; }
+    .sidebar .nav-item.active{ background:var(--brand-soft); color:#0f7f73; font-weight:700; box-shadow:0 10px 22px rgba(18,183,166,0.22); }
     [data-animate]{ opacity:0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
     [data-animate].in-view{ opacity:1; transform:none; }
     .danger-btn { background:#ef4444; color:#fff; border:none; border-radius:10px; padding:9px 14px; cursor:pointer; font-weight:700; }
     .mobile-toggle{
       position: fixed; top: 14px; left: 14px; z-index: 70;
-      background: #5e8bff; color: #f8fafc; border: 1px solid rgba(255,255,255,0.18);
+      background: #12b7a6; color: #f7fbfb; border: 1px solid rgba(255,255,255,0.18);
       border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
-      box-shadow: 0 12px 26px rgba(94,139,255,0.35);
+      box-shadow: 0 12px 26px rgba(18,183,166,0.35);
     }
     #sidebarBackdrop{
       position: fixed; inset:0; background: rgba(0,0,0,0.45);
@@ -116,6 +143,8 @@
               <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PNS</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
+            <div class="kpi-progress" style="--kpi:78%;"><span></span></div>
+            <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
           </div>
           <div class="card text-white bg-gradient-to-br from-cyan-500 to-cpns shadow-soft" data-kpi="CPNS">
             <div class="flex items-center gap-3">
@@ -123,6 +152,8 @@
               <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">CPNS</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
+            <div class="kpi-progress" style="--kpi:62%;"><span></span></div>
+            <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
           </div>
           <div class="card text-white bg-gradient-to-br from-green-600 to-pppk shadow-soft" data-kpi="PPPK">
             <div class="flex items-center gap-3">
@@ -130,6 +161,8 @@
               <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PPPK</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
+            <div class="kpi-progress" style="--kpi:54%;"><span></span></div>
+            <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
           </div>
           <div class="card text-white bg-gradient-to-br from-teal-700 to-pro shadow-soft" data-kpi="PROFESIONAL">
             <div class="flex items-center gap-3">
@@ -137,6 +170,8 @@
               <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PROFESIONAL</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
+            <div class="kpi-progress" style="--kpi:68%;"><span></span></div>
+            <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
           </div>
           <div class="card text-white bg-gradient-to-br from-violet-700 to-pjlp shadow-soft" data-kpi="PJLP">
             <div class="flex items-center gap-3">
@@ -144,6 +179,8 @@
               <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PJLP</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
+            <div class="kpi-progress" style="--kpi:49%;"><span></span></div>
+            <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
           </div>
         </section>
 
@@ -919,6 +956,9 @@ document.body.classList.toggle('role-super', isSuper);
   </script>
 </body>
 </html>
+
+
+
 
 
 

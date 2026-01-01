@@ -20,7 +20,7 @@ const COLS = [
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
   'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili'
 ];
-const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:S'; // 19 kolom (tambah wilayah asal/tujuan)
+const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:W'; // cukup lebar untuk kolom status dkk
 const MUTASI_COLS = [
   'id','nip','nama_pegawai','jabatan_asal','jabatan_baru','nama_ukpd_asal','nama_ukpd_tujuan',
   'wilayah_asal','wilayah_tujuan',
@@ -932,7 +932,7 @@ app.put('/mutasi/:id', async (req, res) => {
     const payload = MUTASI_COLS.map(k => k === 'id' ? id : (payloadData[k] || ''));
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${MUTASI_RANGE.split('!')[0]}!A${rowNumber}:S${rowNumber}`,
+      range: `${MUTASI_RANGE.split('!')[0]}!A${rowNumber}:W${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });

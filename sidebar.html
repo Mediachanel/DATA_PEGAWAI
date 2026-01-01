@@ -1,5 +1,37 @@
 <style>
   body:not(.role-super) .nav-item[data-role="super"] { display: none; }
+  .sidebar{
+    background: #3f4d63;
+    color: #cbd5e1;
+    border-right: 1px solid #4b5a71;
+    box-shadow: 8px 0 30px -20px rgba(15,23,42,0.45);
+  }
+  .sidebar .logo{ color: #f8fafc; }
+  .sidebar .logo-sub{ color: #a8b3c5; }
+  .sidebar .nav-title{ color: #9aa7bd; }
+  .sidebar .nav-item{ color: #cbd5e1; }
+  .sidebar .nav-item:hover{ background: #48586f; color: #ffffff; }
+  .sidebar .nav-item.active{
+    background: #2e3a4d;
+    color: #ff8c3a;
+    box-shadow: inset 3px 0 0 #ff8c3a;
+  }
+  .sidebar .icon-round{
+    background: #2e3a4d;
+    color: #cbd5e1;
+  }
+  .nav-badge{
+    margin-left:auto;
+    display:inline-flex;
+    align-items:center;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:800;
+    color:#ffffff;
+  }
+  .nav-badge.red{ background:#ff5a6a; }
+  .nav-badge.green{ background:#20c997; }
 </style>
 <aside class="sidebar">
   <div class="logo">
@@ -13,10 +45,10 @@
     <div class="nav-title">Menu</div>
     <a class="nav-item" href="#" data-path="home/"><span class="icon-round">H</span>Home</a>
     <a class="nav-item" href="#" data-path="dashboard/"><span class="icon-round">🏠</span>Dashboard</a>
-    <a class="nav-item" href="#" data-path="data-pegawai/"><span class="icon-round">📋</span>Data Pegawai</a>
+    <a class="nav-item" href="#" data-path="data-pegawai/"><span class="icon-round">📋</span>Data Pegawai<span class="nav-badge red">100+</span></a>
     <a class="nav-item" href="#" data-path="bezetting/"><span class="icon-round">🗺️</span>Peta Jabatan</a>
     <div class="nav-title">Layanan</div>
-    <a class="nav-item" href="#" data-path="usulan-mutasi/"><span class="icon-round">🔄</span>Usulan Mutasi</a>
+    <a class="nav-item" href="#" data-path="usulan-mutasi/"><span class="icon-round">🔄</span>Usulan Mutasi<span class="nav-badge green">3</span></a>
     <a class="nav-item" href="#" data-path="pemutusan-jf/"><span class="icon-round">✂️</span>Pemutusan JF</a>
     <div class="nav-title">Master</div>
     <a class="nav-item" href="#" data-path="qna/" data-role="super"><span class="icon-round">Q</span>QnA</a>
@@ -25,3 +57,5 @@
     <a class="nav-item nav-logout" href="#" data-logout="1"><span class="icon-round">🚪</span>Keluar</a>
   </nav>
 </aside>
+
+

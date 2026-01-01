@@ -18,10 +18,10 @@
       --success: #16a34a;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; background: linear-gradient(135deg, #f3f5fb 0%, #eef3ff 40%, #f8fff9 100%); color: #0f172a; }
+    body { margin: 0; font-family: 'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; background: linear-gradient(135deg, #f3f5fb 0%, #e9fbf8 40%, #f8fff9 100%); color: #0f172a; }
     .layout { min-height: 100vh; }
     .content { margin-left: 260px; min-height: 100vh; display:flex; flex-direction:column; transition: margin .2s ease; }
-    .sidebar { position: fixed; inset: 0 auto 0 0; width: 260px; background: #ffffff; color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; min-height: 100vh; box-shadow: 8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0; }
+    .sidebar { position: fixed; inset: 0 auto 0 0; width: 260px; background: #ffffff; color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px; min-height: 100vh; box-shadow: 8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e4ebee; }
     .logo { display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
     .logo img { width:38px; height:38px; object-fit:contain; }
     .logo-title { font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
@@ -29,14 +29,14 @@
     nav { display:flex; flex-direction:column; gap:6px; }
     .nav-title { margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
     .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
-    .nav-item:hover { background:#f8fafc; }
+    .nav-item:hover { background:#f7fbfb; }
     .nav-item.active { background:#ede9fe; color:#6d28d9; font-weight:700; }
-    .icon-round { width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .icon-round { width:26px; height:26px; border-radius:10px; background:#e9fbf8; color:#4338ca; display:grid; place-items:center; font-size:12px; }
     .topbar { background:#fff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow: 0 6px 24px rgba(15,23,42,0.06); }
     .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .badge { display:inline-flex; align-items:center; gap:8px; background:#ede9fe; color:#6d28d9; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; }
-    .ghost-btn { padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#f8fafc; cursor:pointer; }
-    .user { display:inline-flex; align-items:center; gap:10px; padding:8px 10px; background:#f8fafc; border-radius:999px; border:1px solid var(--border); }
+    .ghost-btn { padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#f7fbfb; cursor:pointer; }
+    .user { display:inline-flex; align-items:center; gap:10px; padding:8px 10px; background:#f7fbfb; border-radius:999px; border:1px solid var(--border); }
     .user img { width:32px; height:32px; border-radius:10px; object-fit:cover; }
     .user-name { font-weight:800; }
     .user-role { font-size:12px; color:var(--muted); }
@@ -46,15 +46,15 @@
     .flex { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
     .avatar { width:110px; height:110px; border-radius:14px; object-fit:cover; background:#e5e7eb; }
     .info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:10px 16px; }
-    .info-item { background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+    .info-item { background:#f7fbfb; border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
     .info-label { color: var(--muted); font-weight:700; font-size:12px; letter-spacing:.3px; }
     .info-value { font-size:14px; margin-top:4px; }
     .pill { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; background:#e0f2fe; color:#0369a1; font-weight:700; }
     .mobile-toggle{
       position: fixed; top: 14px; left: 14px; z-index: 70;
-      background: #5e8bff; color: #f8fafc; border: 1px solid rgba(255,255,255,0.18);
+      background: #12b7a6; color: #f7fbfb; border: 1px solid rgba(255,255,255,0.18);
       border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
-      box-shadow: 0 12px 26px rgba(94,139,255,0.35);
+      box-shadow: 0 12px 26px rgba(18,183,166,0.35);
     }
     #sidebarBackdrop{
       position: fixed; inset:0; background: rgba(0,0,0,0.45);
@@ -396,6 +396,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 

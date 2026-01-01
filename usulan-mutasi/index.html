@@ -10,23 +10,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root{
-      --bg: #f6f7fb;
+      --bg: #f3f6f7;
       --card: #ffffff;
-      --border: #e6ecf4;
+      --border: #e4ebee;
       --muted: #6b7280;
-      --accent: #5e8bff;
-      --accent-2: #ff9f68;
-      --accent-soft: #eef3ff;
+      --accent: #12b7a6;
+      --accent-2: #ff8c3a;
+      --accent-soft: #e9fbf8;
       --success: #16a34a;
       --warn: #f59e0b;
       --danger: #dc2626;
       --purple: #7c3aed;
     }
     *{ box-sizing:border-box; }
-    body{ margin:0; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; background:radial-gradient(circle at 18% 20%, rgba(94,139,255,0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,159,104,0.12), transparent 32%), #f7f9fc; color:#1b2b3a; }
+    body{ margin:0; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; background:radial-gradient(circle at 18% 20%, rgba(18,183,166,0.12), transparent 30%), radial-gradient(circle at 80% 0%, rgba(255,140,58,0.12), transparent 32%), #f3f6f7; color:#1f2a2e; }
     .layout{ min-height:100vh; }
     .content{ margin-left:260px; min-height:100vh; display:flex; flex-direction:column; transition:margin .2s ease; }
-    .sidebar{ position:fixed; inset:0 auto 0 0; width:260px; background:#ffffff; color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e2e8f0; }
+    .sidebar{ position:fixed; inset:0 auto 0 0; width:260px; background:#ffffff; color:#475569; padding:18px 14px; display:flex; flex-direction:column; gap:18px; min-height:100vh; box-shadow:8px 0 30px -20px rgba(0,0,0,0.08); border-right:1px solid #e4ebee; }
     .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
     .logo img{ width:38px; height:38px; object-fit:contain; }
     .logo-title{ font-size:13px; text-transform:uppercase; letter-spacing:.2px; }
@@ -34,13 +34,13 @@
     nav{ display:flex; flex-direction:column; gap:6px; }
     .nav-title{ margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
     .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
-    .nav-item:hover{ background:#f8fafc; }
-    .nav-item.active{ background:var(--accent-soft); color:#3b5ecc; font-weight:700; box-shadow:0 10px 22px rgba(94,139,255,0.18); }
-    .icon-round{ width:26px; height:26px; border-radius:10px; background:#eef2ff; color:#4338ca; display:grid; place-items:center; font-size:12px; }
-    .topbar{ background:linear-gradient(120deg, rgba(94,139,255,0.14), rgba(255,159,104,0.16)), #ffffff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 10px 28px rgba(24,39,75,0.12); backdrop-filter:blur(6px); }
+    .nav-item:hover{ background:#f7fbfb; }
+    .nav-item.active{ background:var(--accent-soft); color:#0f7f73; font-weight:700; box-shadow:0 10px 22px rgba(18,183,166,0.22); }
+    .icon-round{ width:26px; height:26px; border-radius:10px; background:#e9fbf8; color:#4338ca; display:grid; place-items:center; font-size:12px; }
+    .topbar{ background:linear-gradient(120deg, rgba(18,183,166,0.18), rgba(255,140,58,0.16)), #ffffff; border-bottom:1px solid var(--border); padding:12px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 10px 28px rgba(24,39,75,0.12); backdrop-filter:blur(6px); }
     .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .badge{ display:inline-flex; align-items:center; gap:8px; background:#eef3ff; color:#3b5ecc; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; box-shadow:0 10px 20px rgba(94,139,255,0.2); }
-    .hero{ background:linear-gradient(135deg, rgba(94,139,255,0.2), rgba(255,159,104,0.18)), #0f1f3a; color:#e2e8f0; border-radius:16px; padding:18px; display:flex; justify-content:space-between; gap:12px; align-items:center; box-shadow:0 12px 30px rgba(24,39,75,0.2); }
+    .badge{ display:inline-flex; align-items:center; gap:8px; background:#e9fbf8; color:#0f7f73; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; box-shadow:0 10px 20px rgba(18,183,166,0.24); }
+    .hero{ background:linear-gradient(135deg, rgba(18,183,166,0.24), rgba(255,140,58,0.18)), #0f9d94; color:#e4ebee; border-radius:16px; padding:18px; display:flex; justify-content:space-between; gap:12px; align-items:center; box-shadow:0 12px 30px rgba(24,39,75,0.2); }
     .hero h2{ margin:0; color:#fff; }
     .pill{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; }
     .pill.role{ background:#e0f2fe; color:#0369a1; }
@@ -56,12 +56,12 @@
     label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:6px; }
     input, select, textarea, button{ padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; }
     input, select, textarea{ width:100%; }
-    button.primary{ background:linear-gradient(120deg,var(--accent) 0%, #7cb3ff 45%, var(--accent-2) 100%); color:#0b1f2c; border:none; font-weight:800; box-shadow:0 15px 35px rgba(94,139,255,0.32); cursor:pointer; }
-    button.ghost{ background:#f8fafc; color:#1b2b3a; border:1px solid var(--border); cursor:pointer; box-shadow:0 8px 18px rgba(24,39,75,0.06); }
+    button.primary{ background:linear-gradient(120deg,var(--accent) 0%, #ffd6b6 45%, var(--accent-2) 100%); color:#0b1f2c; border:none; font-weight:800; box-shadow:0 15px 35px rgba(18,183,166,0.32); cursor:pointer; }
+    button.ghost{ background:#f7fbfb; color:#1f2a2e; border:1px solid var(--border); cursor:pointer; box-shadow:0 8px 18px rgba(24,39,75,0.06); }
     .table-wrap{ overflow-x:auto; }
     table{ width:100%; border-collapse:collapse; }
     th, td{ padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; font-size:13px; vertical-align:top; }
-    th{ background:#f8fafc; text-transform:uppercase; letter-spacing:.4px; font-size:12px; }
+    th{ background:#f7fbfb; text-transform:uppercase; letter-spacing:.4px; font-size:12px; }
     .status-pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; border:1px solid transparent; }
     .pill-info{ background:#e0f2fe; color:#0f5098; }
     .pill-success{ background:#dcfce7; color:#166534; }
@@ -77,15 +77,15 @@
     .dropdown-menu button{
       width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:13px; cursor:pointer;
     }
-    .dropdown-menu button:hover{ background:#f8fafc; }
+    .dropdown-menu button:hover{ background:#f7fbfb; }
     .filters{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:10px; align-items:end; }
     .pagination{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:10px; flex-wrap:wrap; }
-    .pill-abk{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid var(--border); font-size:12px; }
+    .pill-abk{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:#f7fbfb; border:1px solid var(--border); font-size:12px; }
     .mobile-toggle{
       position: fixed; top: 14px; left: 14px; z-index: 70;
-      background: var(--accent); color: #f8fafc; border: 1px solid rgba(255,255,255,0.18);
+      background: var(--accent); color: #f7fbfb; border: 1px solid rgba(255,255,255,0.18);
       border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
-      box-shadow: 0 12px 26px rgba(94,139,255,0.35);
+      box-shadow: 0 12px 26px rgba(18,183,166,0.35);
     }
     #sidebarBackdrop{
       position: fixed; inset:0; background: rgba(0,0,0,0.45);
@@ -123,7 +123,7 @@
     .modal-body{ padding: 16px 18px 20px; }
     .detail-grid{ display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
     .detail-grid .full{ grid-column: 1 / -1; }
-    .detail-card{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#f8fafc; }
+    .detail-card{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:#f7fbfb; }
     .detail-label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
     .detail-value{ font-weight:700; margin-top:2px; }
     @media (max-width:1100px){
@@ -341,11 +341,11 @@
         <div class="detail-grid" id="detailGrid"></div>
         <div style="margin-top:12px;">
           <label>Alasan</label>
-          <div id="detailAlasan" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+          <div id="detailAlasan" style="white-space:pre-wrap; background:#f7fbfb; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
         </div>
         <div style="margin-top:12px;">
           <label>Keterangan / Verifikasi</label>
-          <div id="detailKet" style="white-space:pre-wrap; background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+          <div id="detailKet" style="white-space:pre-wrap; background:#f7fbfb; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
         </div>
       </div>
     </div>
@@ -540,6 +540,15 @@
     function formatStatusLabel(value){
       const key = normalizeStatus(value);
       return escapeHtml(STATUS_LABELS[key] || (value ? String(value) : '-'));
+    }
+
+    function getKeteranganText(row){
+      const note = String(row?.keterangan || '').trim();
+      if (note) return note;
+      const statusKey = normalizeStatus(row?.status || '');
+      if (!statusKey) return '-';
+      const label = STATUS_LABELS[statusKey] || statusKey;
+      return `Status: ${label}`;
     }
 
     function sanitizeFilename(value){
@@ -1000,6 +1009,27 @@
       if (!next.jabatan) next.jabatan = next.jabatan_asal || '';
       if (!next.pangkat_golongan) next.pangkat_golongan = next.pangkat_gol || '';
       if (!next.berkas_path) next.berkas_path = next.berkas_url || next.link_dokumen || '';
+      if (!next.status) {
+        const candidates = [
+          next.status_usulan,
+          next.status_mutasi,
+          next.status_pengajuan,
+          next.status_usulan_mutasi,
+          next.status_mutasi_pegawai,
+          next.status_pengajuan_mutasi
+        ].filter(Boolean);
+        if (candidates.length) {
+          next.status = candidates[0];
+        } else {
+          const key = Object.keys(next).find((k) => {
+            const lower = String(k || '').toLowerCase();
+            if (!lower.startsWith('status')) return false;
+            if (lower.includes('formasi') || lower.includes('aktif') || lower.includes('rumpun')) return false;
+            return next[k];
+          });
+          if (key) next.status = next[key];
+        }
+      }
       if (next.id !== undefined && next.id !== null) next.id = String(next.id);
       return next;
     }
@@ -1096,7 +1126,7 @@
         const tr = document.createElement('tr');
         const nama = escapeHtml(formatNama(r) || r.nama_pegawai || '-');
         const alasan = formatMultiline(r.alasan || '');
-        const ket = formatMultiline(r.keterangan || '-');
+        const ket = formatMultiline(getKeteranganText(r));
         const verif = formatMultiline(r.verif_checklist || '');
         const verifHtml = verif ? `<div style="color:var(--muted); font-size:12px;">Verif: ${verif}</div>` : '';
         const safeId = escapeHtml(r.id || '');
@@ -1250,7 +1280,7 @@
         return `<div class="detail-card"><div class="detail-label">${safeLabel}</div><div class="detail-value">${safeValue}</div></div>`;
       }).join('');
       detailAlasan.textContent = row.alasan || '-';
-      detailKet.textContent = row.keterangan || '-';
+      detailKet.textContent = getKeteranganText(row);
       showModal(viewModal);
     }
 
@@ -1388,6 +1418,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 

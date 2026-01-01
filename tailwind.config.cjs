@@ -10,7 +10,7 @@ module.exports = {
         sans: ['Plus Jakarta Sans', 'Inter', 'Segoe UI', 'system-ui', 'sans-serif']
       },
       colors: {
-        brand: '#0EA5E9',
+        brand: '#12B7A6',
         cpns: '#06B6D4',
         pppk: '#22C55E',
         pro: '#14B8A6',
@@ -23,3 +23,6 @@ module.exports = {
     }
   }
 };
+
+
+

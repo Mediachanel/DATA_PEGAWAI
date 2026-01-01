@@ -1,6 +1,12 @@
 ﻿﻿# Dokumentasi Integrasi SI Data Pegawai
 
 ## Log Kegiatan Terbaru (Des 2025)
+- Login redirect ke `/home/` dengan halaman home statis ringan (lebih cepat setelah login).
+- Halaman home memakai header + sidebar; menu "Home" ditambahkan di `sidebar.html`.
+- Pencarian Data Pegawai kini client-side (ambil data sekali lalu filter lokal); pagination lokal jadi lebih cepat.
+- Notifikasi status login diperjelas (warna success/warn/error).
+- Landing page login + QnA dibuat lebih hidup (tipografi baru, palet hangat, animasi masuk).
+- MySQL/Hybrid dihapus: worker disederhanakan, mysql-gateway + schema SQL dihapus, dokumentasi dibersihkan.
 - Perbaikan pencarian Data Pegawai: semua filter dinormalisasi ke string sebelum `toLowerCase()` sehingga tidak error saat nilai numerik/undefined.
 - Pengambilan data/aksi API dibungkus `safeHandle_()` agar error selalu JSON (tidak lagi HTML/DOCTYPE) dan login/search tidak gagal parse.
 - Pencarian Data Pegawai di UI hanya dijalankan saat klik tombol Terapkan (atau Enter), tidak lagi auto-run setiap ketik.
@@ -24,7 +30,7 @@
 - Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
 
 ## Frontend
-- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`, `/DATA_PEGAWAI/pemutusan-jf/`, `/DATA_PEGAWAI/bezetting/`, `/DATA_PEGAWAI/ubah-password/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
+- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/home/`, `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`, `/DATA_PEGAWAI/pemutusan-jf/`, `/DATA_PEGAWAI/bezetting/`, `/DATA_PEGAWAI/ubah-password/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
 - Header/sidebar/footer di-root (`header.html`, `sidebar.html`, `footer.html`) diambil dengan BASE dinamis; logo/favikon juga di-set ulang via BASE + `foto/Dinkes.png`.
 
 ### Kolom data (urutan A:AD)
@@ -180,7 +186,7 @@ Keamanan:
 - Compact mode, tombol unduh PNG chart, sticky header.
 
 ### Data Pegawai (`data-pegawai.html`)
-- Server-side pagination: query `?action=list` dengan `limit`, `offset`, `search`, `unit`, `jabatan`, `status` (chips). Non-superadmin otomatis kirim `unit`.
+  - Pencarian/filter dilakukan client-side setelah data awal dimuat; pagination lokal agar responsif. Non-superadmin tetap terfilter sesuai UKPD/wilayah.
 - Form validasi: dropdown status rumpun, jenis kontrak, agama, status aktif, jenis kelamin, golongan darah, jenjang pendidikan, status pernikahan. Semua field wajib; tanggal pakai `type=date`; UKPD otomatis sesuai login (readonly untuk non-superadmin).
 - Tabel aksi dengan ikon (lihat profil → simpan ke `localStorage` dan buka `profil.html`, edit, hapus). Footer konsisten.
 

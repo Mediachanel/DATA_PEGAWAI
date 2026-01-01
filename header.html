@@ -1,35 +1,66 @@
 <style>
   .topbar {
     display:flex; align-items:center; justify-content:space-between;
-    padding:12px 16px; background:linear-gradient(120deg, rgba(94,139,255,0.14), rgba(255,159,104,0.16)), #ffffff;
-    border-bottom:1px solid #e6ecf4;
-    position: sticky; top:0; z-index:60; width:100%; box-shadow: 0 10px 28px rgba(24,39,75,0.12);
+    padding:10px 16px; background:#ffffff;
+    border-bottom:1px solid #e4ebee;
+    position: sticky; top:0; z-index:60; width:100%; box-shadow: 0 8px 18px rgba(15,23,42,0.06);
     backdrop-filter: blur(6px);
     font-family: 'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif;
   }
-  .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; }
-  .pill.role { background:#eef3ff; color:#3b5ecc; }
-  .pill.ukpd { background:#e7f7ff; color:#0f5f82; }
-  .brand-title { font-size:18px; font-weight:800; color:#1b2b3a; }
-  .user { display:flex !important; align-items:center; gap:10px; padding:8px 10px; background:#f8fafc; border:1px solid #e6ecf4; border-radius:12px; box-shadow:0 8px 18px rgba(24,39,75,0.08); }
-  .user img { width:40px; height:40px; border-radius:12px; object-fit:cover; }
-  .user-name { font-weight:800; color:#1b2b3a; }
-  .user-role { font-size:12px; color:#6b7280; }
-  .danger-btn { background:linear-gradient(135deg, #ff6b6b, #ff9f68); color:#fff; border:none; border-radius:12px; padding:9px 14px; cursor:pointer; font-weight:800; box-shadow: 0 12px 26px rgba(255,107,107,0.28); }
+  .topbar-left{ display:flex; align-items:center; gap:14px; }
+  .toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:700; font-size:11px; }
+  .pill.role { background:#e9fbf8; color:#0f7f73; }
+  .pill.ukpd { background:#f1f5f9; color:#475569; }
+  .brand-title { font-size:16px; font-weight:800; color:#1f2a2e; display:flex; align-items:center; gap:8px; }
+  .brand-title .dot{ width:10px; height:10px; border-radius:50%; background:#ff8c3a; box-shadow:0 0 0 4px rgba(255,140,58,0.18); }
+  .topbar-actions{ display:flex; align-items:center; gap:10px; }
+  .topbar-icon{
+    width:34px; height:34px; border-radius:10px; border:1px solid #e4ebee; background:#f7fbfb;
+    display:grid; place-items:center; color:#64748b; cursor:pointer; position:relative;
+  }
+  .topbar-icon svg{ width:18px; height:18px; fill:currentColor; }
+  .badge-dot{
+    position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; border-radius:999px;
+    background:#ff5a6a; color:#fff; font-size:10px; font-weight:800; display:grid; place-items:center; border:2px solid #fff;
+  }
+  .badge-dot.green{ background:#20c997; }
+  .user { display:flex !important; align-items:center; gap:8px; padding:6px 10px; background:#ffffff; border:1px solid #e4ebee; border-radius:10px; box-shadow:0 6px 14px rgba(15,23,42,0.05); }
+  .user img { width:32px; height:32px; border-radius:10px; object-fit:cover; }
+  .user-name { font-weight:800; color:#1f2a2e; }
+  .user-role { font-size:11px; color:#6b7280; }
+  .danger-btn { background:#ff5a6a; color:#fff; border:1px solid transparent; border-radius:12px; padding:7px 12px; cursor:pointer; font-weight:800; box-shadow:0 10px 20px rgba(255,90,106,0.25); }
 </style>
 
 <header class="topbar">
-  <div class="toolbar">
-    <div class="brand-title">Dashboard Dinas Kesehatan</div>
-  </div>
-  <div class="user">
-    <img src="foto/Dinkes.png" alt="user" data-logo-header />
-    <div>
-      <div class="user-name" id="userName">User</div>
-      <div class="user-role" id="userRole">-</div>
+  <div class="topbar-left">
+    <div class="brand-title"><span class="dot"></span>Dashboard Dinas Kesehatan</div>
+    <div class="toolbar">
+      <button class="topbar-icon" type="button" aria-label="Cari">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2a8 8 0 0 1 6.32 12.9l4.4 4.4-1.4 1.4-4.4-4.4A8 8 0 1 1 10 2Zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"/></svg>
+      </button>
+      <button class="topbar-icon" type="button" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 12.65-5.65Z"/></svg>
+      </button>
     </div>
-    <button class="danger-btn" id="logoutBtn">Logout</button>
+  </div>
+  <div class="topbar-actions">
+    <button class="topbar-icon" type="button" aria-label="Notifikasi">
+      <span class="badge-dot">5</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2Z"/></svg>
+    </button>
+    <button class="topbar-icon" type="button" aria-label="Pesan">
+      <span class="badge-dot green">3</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H7l-3 3V4Zm2 3v2h12V7H6Zm0 4v2h8v-2H6Z"/></svg>
+    </button>
+    <div class="user">
+      <img src="foto/Dinkes.png" alt="user" data-logo-header />
+      <div>
+        <div class="user-name" id="userName">User</div>
+        <div class="user-role" id="userRole">-</div>
+      </div>
+      <button class="danger-btn" id="logoutBtn">Logout</button>
+    </div>
   </div>
 </header>
 
@@ -69,3 +100,6 @@
     resetIdle();
   })();
 </script>
+
+
+
