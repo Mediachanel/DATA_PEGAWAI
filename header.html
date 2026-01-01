@@ -13,6 +13,7 @@
   .pill.role { background:#e9fbf8; color:#0f7f73; }
   .pill.ukpd { background:#f1f5f9; color:#475569; }
   .brand-title { font-size:16px; font-weight:800; color:#1f2a2e; display:flex; align-items:center; gap:8px; }
+  .brand-text{ display:inline-block; }
   .brand-title .dot{ width:10px; height:10px; border-radius:50%; background:#ff8c3a; box-shadow:0 0 0 4px rgba(255,140,58,0.18); }
   .topbar-actions{ display:flex; align-items:center; gap:10px; }
   .topbar-icon{
@@ -30,11 +31,19 @@
   .user-name { font-weight:800; color:#1f2a2e; }
   .user-role { font-size:11px; color:#6b7280; }
   .danger-btn { background:#ff5a6a; color:#fff; border:1px solid transparent; border-radius:12px; padding:7px 12px; cursor:pointer; font-weight:800; box-shadow:0 10px 20px rgba(255,90,106,0.25); }
+  @media (max-width: 640px){
+    .topbar{ padding:8px 10px; }
+    .brand-text{ display:none; }
+    .topbar-icon{ width:30px; height:30px; }
+    .user{ padding:6px 8px; }
+    .user-role{ display:none; }
+    .danger-btn{ padding:6px 10px; border-radius:10px; }
+  }
 </style>
 
 <header class="topbar">
   <div class="topbar-left">
-    <div class="brand-title"><span class="dot"></span>Dashboard Dinas Kesehatan</div>
+    <div class="brand-title"><span class="dot"></span><span class="brand-text">Dashboard Dinas Kesehatan</span></div>
     <div class="toolbar">
       <button class="topbar-icon" type="button" aria-label="Cari">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2a8 8 0 0 1 6.32 12.9l4.4 4.4-1.4 1.4-4.4-4.4A8 8 0 1 1 10 2Zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"/></svg>
