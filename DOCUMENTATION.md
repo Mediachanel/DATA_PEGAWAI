@@ -249,59 +249,6 @@ Keamanan:
 4) Set `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL Worker.
 5) Hard refresh dan uji `action=health` dengan header `X-Proxy-Key`.
 
-### Setup Hybrid Sync (Spreadsheet -> MySQL)
-Fitur ini memirror data Spreadsheet ke MySQL agar query lebih cepat.
-
-1. **Siapkan Database**:
-   - Buat database MySQL.
-   - Jalankan query dari file `SQL_SCHEMA.sql` untuk membuat tabel yang dibutuhkan.
-   - Pastikan Anda memiliki "HTTP Gateway" ke MySQL (karena Worker tidak bisa connect TCP langsung kecuali pakai Hyperdrive/Tunnel). URL gateway ini dipakai di var `DB_HTTP_URL`.
-
-2. **Konfigurasi Apps Script**:
-   - Buka Script Editor (`code.js`).
-   - Jalankan fungsi `setHybridSyncConfig('URL_WORKER_ANDA', 'RAHASIA_SYNC_KEY')` sekali saja untuk menyimpan konfigurasi.
-   - Jalankan fungsi `installTriggers()` **secara manual** sekali. Ini akan meminta izin akses (termasuk `UrlFetchApp`).
-   - **Penting**: Jangan andalkan trigger `onEdit` bawaan (simple trigger) karena tidak bisa akses internet. `installTriggers` akan membuat trigger khusus yang punya izin.
-
-3. **Konfigurasi Worker**:
-   - Set variabel `SYNC_KEY` (harus sama dengan di Apps Script).
-   - Set `DB_HTTP_URL` (URL endpoint yang menerima JSON `{sql, params}` dan menjalankan query ke MySQL).
-   - Set `DB_HTTP_TOKEN` (jika gateway butuh auth).
-
-## Operasional & Troubleshooting Hybrid Sync (Des 2025)
-
-### Current setup (ringkas)
-- Gateway MySQL (mysql-gateway) berjalan di server dan diakses publik via Cloudflare Tunnel.
-- DB gateway URL (Worker): `https://base.kepegawaian.media/db/query`
-- phpMyAdmin publik: `https://database.kepegawaian.media`
-- mysql-gateway port: `8089` (di server)
-
-### Worker env (wajib konsisten)
-- `DB_HTTP_URL=https://base.kepegawaian.media/db/query`
-- `DB_HTTP_TOKEN=<sama dengan mysql-gateway/.env>`
-- `SYNC_KEY=<sama dengan Apps Script>`
-
-### Apps Script (runbook)
-Jalankan ini saat full refresh:
-```js
-backfillAllSID();
-resetRefreshState();
-fullRefreshAllToMySQLBatched(5); // ulang sampai done: true
-```
-
-### Error umum
-- `db_error: 502`:
-  - Worker tidak bisa akses `DB_HTTP_URL`.
-  - Periksa route Cloudflare Tunnel dan `DB_HTTP_URL`.
-- `Incorrect datetime value`:
-  - Pastikan Worker sudah redeploy dengan normalisasi datetime terbaru di `cf-worker-proxy.js`.
-- `stage row count mismatch`:
-  - Biasanya karena chunk belum selesai atau ada error insert.
-  - Jalankan batched refresh berulang sampai `done: true`.
-
-### Catatan keamanan
-- Jangan simpan `DB_HTTP_TOKEN`, `SYNC_KEY`, atau password database di file publik.
-
 ### Cara deploy backend Node (opsi Render)
 1) Repo punya `server.js` dan `package.json` (`npm start`).
 2) Render → New Web Service → Build `npm install`, Start `npm start`.
