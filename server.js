@@ -51,9 +51,9 @@ const DASHBOARD_CACHE_TTL = Math.max(5, parseInt(process.env.DASHBOARD_CACHE_TTL
 const BEZETTING_CACHE_TTL = Math.max(5, parseInt(process.env.BEZETTING_CACHE_TTL || '60', 10));
 const META_CACHE_TTL = Math.max(5, parseInt(process.env.META_CACHE_TTL || '300', 10));
 
-const DASH_STATUS_ORDER = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP'];
-const DASH_STATUS_LABELS = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP' };
-const DASH_STATUS_COLORS = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
+const DASH_STATUS_ORDER = ['PNS','CPNS','PPPK','PROFESIONAL','PPPK Paruh Waktu'];
+const DASH_STATUS_LABELS = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', 'PPPK Paruh Waktu':'PPPK Paruh Waktu' };
+const DASH_STATUS_COLORS = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', 'PPPK Paruh Waktu':'#8B5CF6' };
 
 const DASH_GENDER_ORDER = ['LAKI','PEREMPUAN'];
 const DASH_GENDER_LABELS = { LAKI:'Laki-laki', PEREMPUAN:'Perempuan' };
@@ -1579,7 +1579,7 @@ function sumCounts(obj) {
   return Object.keys(obj || {}).reduce((sum, key) => sum + (+obj[key] || 0), 0);
 }
 
-function emptyStatusCounts() { return { PNS: 0, CPNS: 0, PPPK: 0, PROFESIONAL: 0, PJLP: 0 }; }
+function emptyStatusCounts() { return { PNS: 0, CPNS: 0, PPPK: 0, PROFESIONAL: 0, 'PPPK Paruh Waktu': 0 }; }
 function emptyMaritalCounts() { return { BELUM_MENIKAH: 0, MENIKAH: 0, CERAI_HIDUP: 0, CERAI_MATI: 0 }; }
 
 function makeDatasets(map, labels, order, labelMap, colorMap) {
@@ -1594,10 +1594,10 @@ function makeDatasets(map, labels, order, labelMap, colorMap) {
 function normalizeStatusDashboard(raw) {
   const t = String(raw || '').toUpperCase().trim();
   if (!t) return '';
+  if (t.indexOf('PJLP') > -1 || t.indexOf('PPPK PARUH WAKTU') > -1) return 'PPPK Paruh Waktu';
   if (t === 'PNS') return 'PNS';
   if (t === 'CPNS') return 'CPNS';
   if (t.indexOf('PPPK') > -1 || t.indexOf('P3K') > -1) return 'PPPK';
-  if (t.indexOf('PJLP') > -1) return 'PJLP';
   if (['NON PNS','NON ASN','PROFESIONAL','PROFESIONAL (NON PNS)','PROFESIONAL/NON PNS','TENAGA PROFESIONAL'].includes(t)) return 'PROFESIONAL';
   return 'LAINNYA';
 }

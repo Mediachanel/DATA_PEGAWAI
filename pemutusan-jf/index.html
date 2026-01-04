@@ -414,13 +414,13 @@
       document.querySelectorAll('[data-path]').forEach(a=> a.href = BASE + a.dataset.path);
       document.querySelectorAll('[data-logo],[data-logo-header]').forEach(img=> img.src = BASE + 'foto/Dinkes.png');
       const activeLink = Array.from(document.querySelectorAll('.nav-item')).find(a=> (a.dataset.path||'').includes('pemutusan-jf'));
-      if (activeLink) activeLink.classList.add('active');
-      document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
-      const logoutNav = document.querySelector('[data-logout]');
-      if (logoutNav) logoutNav.addEventListener('click', doLogout);
-      initSidebarToggle();
-      syncHeaderUser();
-    });
+        if (activeLink) activeLink.classList.add('active');
+        document.getElementById('logoutBtn')?.addEventListener('click', doLogout);
+        const logoutNav = document.querySelector('[data-logout]');
+        if (logoutNav) logoutNav.addEventListener('click', doLogout);
+        initSidebarToggle();
+        syncHeaderUser();
+      });
 
     const authUser = (()=>{ try { return JSON.parse(localStorage.getItem('authUser')||'null'); } catch { return null; } })();
     if (!authUser) { window.location.href = BASE; }
@@ -510,6 +510,7 @@
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[ch]));
     }
+
 
     function safeUrl(value){
       const raw = String(value || '').trim();

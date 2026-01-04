@@ -177,10 +177,10 @@
             <div class="kpi-progress" style="--kpi:68%;"><span></span></div>
             <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
           </div>
-          <div class="card text-white bg-gradient-to-br from-violet-700 to-pjlp shadow-soft" data-kpi="PJLP">
+          <div class="card text-white bg-gradient-to-br from-violet-700 to-pjlp shadow-soft" data-kpi="PPPK Paruh Waktu">
             <div class="flex items-center gap-3">
               <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">J</div>
-              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PJLP</p></div>
+              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PPPK Paruh Waktu</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
             <div class="kpi-progress" style="--kpi:49%;"><span></span></div>
@@ -254,7 +254,7 @@
                   <th class="px-3 py-2 text-center">CPNS</th>
                   <th class="px-3 py-2 text-center">PPPK</th>
                   <th class="px-3 py-2 text-center">PROFESIONAL</th>
-                  <th class="px-3 py-2 text-center">PJLP</th>
+                  <th class="px-3 py-2 text-center">PPPK Paruh Waktu</th>
                   <th class="px-3 py-2 text-center">Total</th>
                 </tr>
               </thead>
@@ -294,9 +294,9 @@
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     if (window.AppLoader) window.AppLoader.wrapFetch(API_BASE);
-    const statusOrder = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP'];
-    const statusLabels = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP' };
-    const statusColors = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#8B5CF6' };
+    const statusOrder = ['PNS','CPNS','PPPK','PROFESIONAL','PPPK Paruh Waktu'];
+    const statusLabels = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', 'PPPK Paruh Waktu':'PPPK Paruh Waktu' };
+    const statusColors = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', 'PPPK Paruh Waktu':'#8B5CF6' };
     const genderOrder = ['LAKI','PEREMPUAN'];
     const genderLabels = { LAKI:'Laki-laki', PEREMPUAN:'Perempuan' };
     const genderColors = { LAKI:'#0EA5E9', PEREMPUAN:'#F97316' };
@@ -429,15 +429,15 @@ document.body.classList.toggle('role-super', isSuper);
       });
     }
 
-    function normalizeStatus(raw){
-      const t = (raw || '').toUpperCase().trim();
-      if (t === 'PNS') return 'PNS';
-      if (t === 'CPNS') return 'CPNS';
-      if (t.includes('PPPK') || t.includes('P3K')) return 'PPPK';
-      if (t.includes('PJLP')) return 'PJLP';
-      if (['NON PNS','NON ASN','PROFESIONAL','PROFESIONAL (NON PNS)','PROFESIONAL/NON PNS','TENAGA PROFESIONAL'].includes(t)) return 'PROFESIONAL';
-      return 'LAINNYA';
-    }
+      function normalizeStatus(raw){
+        const t = (raw || '').toUpperCase().trim();
+        if (t.includes('PJLP') || t.includes('PPPK PARUH WAKTU')) return 'PPPK Paruh Waktu';
+        if (t === 'PNS') return 'PNS';
+        if (t === 'CPNS') return 'CPNS';
+        if (t.includes('PPPK') || t.includes('P3K')) return 'PPPK';
+        if (['NON PNS','NON ASN','PROFESIONAL','PROFESIONAL (NON PNS)','PROFESIONAL/NON PNS','TENAGA PROFESIONAL'].includes(t)) return 'PROFESIONAL';
+        return 'LAINNYA';
+      }
 
     function normalizeGender(raw){
       const t = (raw || '').toString().toLowerCase().trim();
@@ -550,10 +550,10 @@ document.body.classList.toggle('role-super', isSuper);
     }
 
     function prepareData(rows){
-      const statusCounts = { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0 };
+      const statusCounts = { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, 'PPPK Paruh Waktu':0 };
       const genderCounts = { LAKI:0, PEREMPUAN:0 };
       const maritalCounts = { BELUM_MENIKAH:0, MENIKAH:0, CERAI_HIDUP:0, CERAI_MATI:0 };
-      const emptyStatusCounts = () => ({ PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0 });
+      const emptyStatusCounts = () => ({ PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, 'PPPK Paruh Waktu':0 });
       const emptyGenderCounts = () => ({ LAKI:0, PEREMPUAN:0 });
       const emptyMaritalCounts = () => ({ BELUM_MENIKAH:0, MENIKAH:0, CERAI_HIDUP:0, CERAI_MATI:0 });
       const unitStatusMap = {};
@@ -854,11 +854,11 @@ document.body.classList.toggle('role-super', isSuper);
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PJLP||0).toLocaleString('id-ID')}</td>
+            <td class="px-3 py-2 text-center">${(r['PPPK Paruh Waktu']||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
           `;
         } else {
-          totalP += r.PNS || 0; totalC += r.CPNS || 0; totalP3 += r.PPPK || 0; totalPro += r.PROFESIONAL || 0; totalJ += r.PJLP || 0; totalAll += r.total || 0;
+          totalP += r.PNS || 0; totalC += r.CPNS || 0; totalP3 += r.PPPK || 0; totalPro += r.PROFESIONAL || 0; totalJ += r['PPPK Paruh Waktu'] || 0; totalAll += r.total || 0;
           const unitText = escapeHtml(r.unit || '-');
           const noText = escapeHtml(r.no || idx + 1);
           tr.className = 'border-b border-slate-100';
@@ -870,7 +870,7 @@ document.body.classList.toggle('role-super', isSuper);
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PJLP||0).toLocaleString('id-ID')}</td>
+            <td class="px-3 py-2 text-center">${(r['PPPK Paruh Waktu']||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
           `;
         }
@@ -960,10 +960,5 @@ document.body.classList.toggle('role-super', isSuper);
   </script>
 </body>
 </html>
-
-
-
-
-
 
 

@@ -456,6 +456,7 @@
     resetIdle();
   };
 
+
   initIdleLogout();
   if (document.readyState === 'complete') initServiceWorker();
   else window.addEventListener('load', initServiceWorker);

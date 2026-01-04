@@ -413,11 +413,19 @@
     const LIST_JENIS_KONTRAK = ['KONTRAK','Part Time','TETAP'];
     const LIST_AGAMA = ['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu','Lainnya'];
     const LIST_STATUS_AKTIF = ['AKTIF','Diberhentikan Dengan Hormat','Resign Atas Permintaan Sendiri','Tidak cakap jasmani/rohani'];
+    const LABEL_PPPK_PARUH = 'PPPK Paruh Waktu';
     const LIST_JENIS_KELAMIN = ['Laki-laki','Perempuan'];
     const LIST_GOLDAR = ['A-','A+','AB+','AB-','B-','B+','O-','O+'];
     const LIST_JENJANG = ['SD','SMP','SMA/SEDERAJAT','D-I','D-II','D-III','D-IV','S-1','PROFESI','S-2','S-3','Spesialis'];
     const LIST_STATUS_NIKAH = ['Belum Menikah','Cerai Hidup','Cerai Mati','Menikah'];
-    const LIST_JENIS_PEGAWAI = ['PNS','PPPK','NON ASN','PJLP'];
+    const LIST_JENIS_PEGAWAI = ['PNS','PPPK','NON ASN',LABEL_PPPK_PARUH];
+
+    function normalizePjlpLabel(value){
+      const t = String(value || '').toUpperCase();
+      if (!t) return value || '';
+      if (t.indexOf('PJLP') > -1 || t.indexOf('PPPK PARUH WAKTU') > -1) return LABEL_PPPK_PARUH;
+      return value;
+    }
 
     function setStatus(msg){ statusEl.textContent = 'Status: ' + msg; }
     function escapeHtml(str){
@@ -535,7 +543,11 @@
         const res = await fetch(`${API_BASE}?action=list&${params.toString()}`, { headers: API_HEADERS });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
-        allRows = applyRoleFilter(body.rows || []);
+        allRows = applyRoleFilter(body.rows || []).map((row) => ({
+          ...row,
+          nama_status_aktif: normalizePjlpLabel(row.nama_status_aktif),
+          nama_jenis_pegawai: normalizePjlpLabel(row.nama_jenis_pegawai)
+        }));
         populateFilters(body, allRows);
         applyFilters({ resetPage: false });
         setStatus('Data dimuat: ' + allRows.length.toLocaleString('id-ID') + ' baris.');
@@ -556,8 +568,9 @@
       }
       const jabs = (body?.jabs && body.jabs.length ? body.jabs : Array.from(new Set(dataRows.map(d => d.nama_jabatan_orb).filter(Boolean)))).sort();
       jabatanFilter.innerHTML = '<option value="">Pilih Jabatan</option>' + jabs.map(u => { const safe = escapeHtml(u); return `<option value="${safe}">${safe}</option>`; }).join('');
-      const statuses = (body?.statuses && body.statuses.length ? body.statuses : Array.from(new Set(dataRows.map(d => d.nama_status_aktif).filter(Boolean)))).sort();
-      const activeSet = new Set(Array.from(chipStatus.querySelectorAll('.chip.active')).map(c=>c.dataset.status));
+      const rawStatuses = body?.statuses && body.statuses.length ? body.statuses : Array.from(new Set(dataRows.map(d => d.nama_status_aktif).filter(Boolean)));
+      const statuses = Array.from(new Set(rawStatuses.map(normalizePjlpLabel).filter(Boolean))).sort();
+      const activeSet = new Set(Array.from(chipStatus.querySelectorAll('.chip.active')).map(c=>normalizePjlpLabel(c.dataset.status)));
       statusTags = statuses;
       chipStatus.innerHTML = statuses.map(s => { const safe = escapeHtml(s); return `<div class="chip" data-status="${safe}">${safe}</div>`; }).join('');
       chipStatus.querySelectorAll('.chip').forEach(chip=>{ if (activeSet.has(chip.dataset.status)) chip.classList.add('active'); });
@@ -891,5 +904,3 @@
   </script>
 </body>
 </html>
-
-

@@ -28,6 +28,11 @@
 - `API_BASE` diarahkan ke Cloudflare Worker (lihat bagian atas).
 - Gunakan login dari sheet `username`.
 
+## Update terbaru
+- Perbaikan tampilan status pada `data-pegawai/index.html`: ringkasan, chip filter, dan kolom status kini memakai `nama_status_aktif` (bukan `nama_jenis_pegawai`).
+- Sinkronisasi nama/role user pada header `bezetting/index.html` agar mengikuti `authUser`.
+- Pemutusan JF: layout sidebar/header dikembalikan seperti semula dan media query diperbaiki (file `pemutusan-jf/index.html`).
+
 ## Struktur sheet
 - Data: `DATA PEGAWAI` (A:AD)
   1. nama_pegawai
