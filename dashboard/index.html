@@ -522,7 +522,8 @@ document.body.classList.toggle('role-super', isSuper);
           const totalRows = statsBody.total || prepared.totalRows || 0;
           setStatus('Data dimuat: ' + totalRows + ' baris.');
           writeDashboardCache(cacheKey, prepared, totalRows);
-          return;
+          const paruhCount = (prepared.statusCounts && prepared.statusCounts['PPPK Paruh Waktu']) || 0;
+          if (paruhCount > 0) return;
         }
       } catch (_) {
         if (cached) {
@@ -961,4 +962,3 @@ document.body.classList.toggle('role-super', isSuper);
   </script>
 </body>
 </html>
-
