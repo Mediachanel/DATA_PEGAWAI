@@ -8,125 +8,271 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../tailwind.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    :root{
+    :root {
       --sidebar-w: 16.5rem;
-      --brand: #12b7a6;
-      --brand-soft: #e9fbf8;
-      --card-shadow: 0 10px 30px -12px rgba(24,39,75,.14);
-    }
-    body{
-      background: radial-gradient(circle at 18% 20%, rgba(18,183,166,0.12), transparent 30%),
-                  radial-gradient(circle at 80% 0%, rgba(255,140,58,0.12), transparent 32%),
-                  #f3f6f7;
-      font-family:'Plus Jakarta Sans','Inter','Segoe UI',sans-serif;
-      color:#1f2a2e;
-    }
-    #mainWrap{ margin-left: var(--sidebar-w); transition: margin .2s ease; }
-    @media (max-width: 1023px){ #mainWrap{ margin-left: 0; } }
-
-    .card{
-      background-color: #fff;
-      border: 1px solid rgba(226,232,240,.9);
-      border-radius: 18px;
-      box-shadow: var(--shadow, var(--card-shadow));
-      padding: 16px;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --muted: #64748b;
+      --ink: #0f172a;
+      --accent: #0f9d94;
+      --accent-soft: #e9fbf8;
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 20px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
     }
 
-    .sidebar{
+    body {
+      background: radial-gradient(circle at 0% 0%, rgba(15, 157, 148, 0.05) 0%, transparent 30%),
+                  radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.05) 0%, transparent 30%),
+                  #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--ink);
+    }
+
+    /* Keep Original Sidebar Logic Styles */
+    #mainWrap { margin-left: var(--sidebar-w); transition: margin .2s ease; }
+    @media (max-width: 1023px) { #mainWrap { margin-left: 0; } }
+
+    .sidebar {
       position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
-      background: #ffffff;
-      color: #475569; padding: 18px 14px; display:flex; flex-direction:column; gap:18px;
-      box-shadow: 8px 0 30px -20px rgba(0,0,0,.08); border-right:1px solid #e4ebee;
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbfb 100%);
+      color: #475569; padding: 18px 14px; display: flex; flex-direction: column; gap: 18px;
+      border-right: 1px solid var(--border); z-index: 60; transition: transform .2s ease;
+      box-shadow: 8px 0 30px -20px rgba(15,23,42,0.12);
     }
-    .sidebar .logo{ display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
-    .sidebar .logo img{ width:38px; height:38px; object-fit:contain; }
-    .sidebar .logo-title{ font-size:14px; text-transform:uppercase; letter-spacing:.2px; }
-    .sidebar .logo-sub{ font-size:12px; color:#94a3b8; }
-    .sidebar .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#475569; text-decoration:none; transition:all .15s ease; font-weight:600; }
-    .sidebar .icon-round{ width:26px; height:26px; border-radius:10px; background:#e9fbf8; color:#4338ca; display:grid; place-items:center; font-size:12px; }
-    .sidebar .nav-item:hover{ background:#f7fbfb; }
-    .sidebar .nav-item.active{ background:var(--brand-soft); color:#0f7f73; font-weight:700; box-shadow:0 10px 22px rgba(18,183,166,0.22); }
+    .sidebar .logo { display:flex; align-items:center; gap:10px; color:#0f172a; font-weight:800; }
+    .sidebar .logo img { width:38px; height:38px; object-fit:contain; }
+    .sidebar .logo-title { font-size:14px; text-transform:uppercase; letter-spacing:.2px; }
+    .sidebar .logo-sub { font-size:12px; color:#94a3b8; }
+    .sidebar .nav-title { margin:18px 10px 6px; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; color:#94a3b8; }
+    .sidebar .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; color: #475569; text-decoration: none; transition: all .15s ease; font-weight: 600; }
+    .sidebar .icon-round { width:26px; height:26px; border-radius:10px; background:rgba(15,157,148,0.12); color:#0f7f73; display:grid; place-items:center; font-size:12px; }
+    .sidebar .nav-item:hover { background:#f7fbfb; }
+    .sidebar .nav-item.active { background: var(--accent-soft); color: #0f7f73; font-weight: 700; box-shadow:0 10px 22px rgba(15,157,148,0.2); }
 
-    .mobile-toggle{
+    /* Modern Components */
+    .home-shell {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow-sm);
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .hero-gradient {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 32px;
+      position: relative;
+    }
+
+    .home-avatar {
+      width: 60px; height: 60px; border-radius: 16px;
+      background: var(--accent);
+      display: grid; place-items: center; font-weight: 800; color: white;
+      box-shadow: 0 10px 20px rgba(15, 157, 148, 0.3);
+      margin-bottom: 20px;
+    }
+
+    .flow-card {
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      border-radius: 18px;
+      padding: 20px;
+      transition: all 0.3s ease;
+      height: 100%;
+    }
+    .flow-card:hover {
+      background: white;
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-4px);
+    }
+
+    .step-number {
+      font-size: 10px; font-weight: 800; color: var(--accent);
+      background: var(--accent-soft); padding: 4px 10px; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: inline-block;
+    }
+
+    .tag {
+      font-size: 10px; padding: 3px 10px; border-radius: 6px;
+      background: white; border: 1px solid #e2e8f0; font-weight: 600; color: #64748b;
+    }
+
+    /* Original Sidebar Mobile Mechanism */
+    .mobile-toggle {
       position: fixed; top: 14px; left: 14px; z-index: 70;
-      background: #12b7a6; color: #f7fbfb; border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
-      box-shadow: 0 12px 26px rgba(18,183,166,0.35);
+      background: var(--accent); color: white; border-radius: 14px;
+      padding: 10px 14px; display: none; align-items: center; gap: 8px; font-weight: 800;
+      box-shadow: 0 12px 26px rgba(15, 157, 148, 0.35);
+      border: 1px solid rgba(255,255,255,0.18);
     }
-    #sidebarBackdrop{
-      position: fixed; inset:0; background: rgba(0,0,0,0.45);
-      opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
+    #sidebarBackdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 50;
     }
-    #sidebarBackdrop.show{ opacity:1; pointer-events:auto; }
+    #sidebarBackdrop.show { opacity: 1; pointer-events: auto; }
 
-    @media (max-width: 1023px){
-      .mobile-toggle{ display:inline-flex; }
-      .sidebar{
-        transform: translateX(-100%);
-        transition: transform .2s ease;
-        z-index: 60;
-        width: calc(100vw - 72px);
-        max-width: 280px;
-      }
-      .sidebar.show{ transform: translateX(0); }
+    @media (max-width: 1023px) {
+      .mobile-toggle { display: inline-flex; }
+      .sidebar { transform: translateX(-100%); width: 280px; }
+      .sidebar.show { transform: translateX(0); }
     }
   </style>
 </head>
-<body class="text-slate-900">
+
+<body>
   <div id="sidebarBackdrop"></div>
   <button id="sidebarToggle" aria-label="Buka menu" class="mobile-toggle">
-    <span style="font-size:18px;">&#9776;</span> Menu
+    <span>&#9776;</span> MENU
   </button>
 
   <div class="flex min-h-screen">
     <div id="sidebar-container"></div>
+
     <div class="flex-1" id="mainWrap">
       <div id="header-container"></div>
-      <div id="statusBar" class="px-4 sm:px-6 text-sm text-slate-600 mt-2">Status: siap digunakan.</div>
 
-      <main class="px-4 sm:px-6 pb-10 pt-2 space-y-4">
-        <section class="card">
-          <div class="text-xs font-semibold text-slate-500">Ringkasan</div>
-          <h1 class="text-2xl font-extrabold mt-1">Selamat datang di SI Data Pegawai</h1>
-          <p class="text-slate-600 mt-2">Halaman home ini menampilkan informasi statis agar proses setelah login lebih ringan dan cepat.</p>
+      <div id="statusBar" class="px-6 sm:px-10 mt-6 flex items-center gap-2">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+        </span>
+        <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Sistem Terhubung: Siap Digunakan</span>
+      </div>
+
+      <main class="px-4 sm:px-10 pb-12 pt-4 space-y-8">
+        
+        <section class="home-shell !p-2">
+          <div class="grid lg:grid-cols-12 gap-2">
+            <div class="lg:col-span-8 hero-gradient">
+              <div class="home-avatar">SDP</div>
+              <h1 class="text-3xl sm:text-4xl font-800 mb-4 tracking-tight">Selamat Datang di Portal <br><span class="text-teal-400">SI Data Pegawai</span></h1>
+              <p class="text-slate-400 text-sm leading-relaxed max-w-xl mb-8">
+                Pusat kendali administrasi SDM terpadu. Gunakan platform ini untuk mengelola validasi profil, memproses usulan mutasi, hingga administrasi jabatan fungsional secara akurat dan efisien.
+              </p>
+              <button class="bg-teal-500 hover:bg-teal-400 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all">
+                Pelajari Dokumentasi
+              </button>
+            </div>
+            
+            <div class="lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-2">
+              <div class="bg-teal-50/50 border border-teal-100 p-6 rounded-2xl flex flex-col justify-center">
+                <span class="text-teal-700 font-800 text-xs uppercase tracking-wider mb-2">Pembaruan</span>
+                <p class="text-slate-600 text-xs leading-relaxed">Pastikan data pegawai diperbarui secara berkala untuk menjaga akurasi laporan statistik.</p>
+              </div>
+              <div class="bg-amber-50/50 border border-amber-100 p-6 rounded-2xl flex flex-col justify-center">
+                <span class="text-amber-700 font-800 text-xs uppercase tracking-wider mb-2">Peringatan</span>
+                <p class="text-slate-600 text-xs leading-relaxed">Proses Mutasi dan Pemutusan JF memerlukan validasi berkas fisik sebelum persetujuan akhir.</p>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card">
-            <div class="text-sm font-semibold">Fokus layanan</div>
-            <p class="text-slate-600 text-sm mt-2">Akses cepat untuk informasi ringkas tanpa memuat grafik berat.</p>
+        <section class="space-y-6">
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-800 tracking-tight">Alur Kerja Sistem Informasi</h2>
+              <p class="text-slate-500 text-sm">Prosedur standar operasional pengelolaan data pegawai.</p>
+            </div>
           </div>
-          <div class="card">
-            <div class="text-sm font-semibold">Kontak admin</div>
-            <p class="text-slate-600 text-sm mt-2">Hubungi admin Subkelompok Kepegawaian jika membutuhkan bantuan akses.</p>
-          </div>
-          <div class="card">
-            <div class="text-sm font-semibold">Catatan data</div>
-            <p class="text-slate-600 text-sm mt-2">Data utama tersimpan di Spreadsheet dan disinkronkan sesuai jadwal.</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="flow-card">
+              <span class="step-number">Tahap 01</span>
+              <h3 class="font-bold text-sm mb-2 text-slate-800">Manajemen Master Data</h3>
+              <p class="text-[12px] text-slate-500 leading-relaxed mb-4">Validasi identitas, riwayat jabatan, dan unit kerja (UKPD) sebagai basis data utama.</p>
+              <div class="flex gap-2">
+                <span class="tag">Profil Pegawai</span>
+              </div>
+            </div>
+
+            <div class="flow-card">
+              <span class="step-number">Tahap 02</span>
+              <h3 class="font-bold text-sm mb-2 text-slate-800">Pengajuan Mutasi</h3>
+              <p class="text-[12px] text-slate-500 leading-relaxed mb-4">Proses usulan perpindahan antar UKPD yang dilakukan oleh Admin Satuan Kerja.</p>
+              <div class="flex gap-2">
+                <span class="tag">Input Usulan</span>
+              </div>
+            </div>
+
+            <div class="flow-card">
+              <span class="step-number">Tahap 03</span>
+              <h3 class="font-bold text-sm mb-2 text-slate-800">Administrasi JF</h3>
+              <p class="text-[12px] text-slate-500 leading-relaxed mb-4">Pengelolaan status Jabatan Fungsional, termasuk penerbitan SK Pemutusan.</p>
+              <div class="flex gap-2">
+                <span class="tag">Otomasi Word</span>
+              </div>
+            </div>
+
+            <div class="flow-card">
+              <span class="step-number">Tahap 04</span>
+              <h3 class="font-bold text-sm mb-2 text-slate-800">Analisis Bezetting</h3>
+              <p class="text-[12px] text-slate-500 leading-relaxed mb-4">Pemantauan peta jabatan (formasi vs eksisting) untuk perencanaan kebutuhan ASN.</p>
+              <div class="flex gap-2">
+                <span class="tag">Peta Jabatan</span>
+              </div>
+            </div>
+
+            <div class="flow-card">
+              <span class="step-number">Tahap 05</span>
+              <h3 class="font-bold text-sm mb-2 text-slate-800">Diseminasi QnA</h3>
+              <p class="text-[12px] text-slate-500 leading-relaxed mb-4">Publikasi informasi regulasi dan bantuan teknis bagi seluruh pengguna sistem.</p>
+              <div class="flex gap-2">
+                <span class="tag">Informasi Publik</span>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section class="card">
-          <div class="text-sm font-semibold">Info layanan</div>
-          <div class="mt-3 grid gap-2 text-sm text-slate-600">
-            <div>Jam layanan: Senin - Jumat, 08.00 - 16.00 WIB</div>
-            <div>Lokasi: Dinas Kesehatan Provinsi DKI Jakarta</div>
-            <div>Peruntukan: Perencanaan, pendayagunaan, dan layanan kepegawaian</div>
+        <section class="grid md:grid-cols-2 gap-6">
+          <div class="home-shell bg-slate-50 border-dashed border-2">
+            <h3 class="text-sm font-800 uppercase tracking-widest text-slate-400 mb-4">Panduan Akses Peran</h3>
+            <div class="space-y-4">
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 rounded bg-teal-500 flex-shrink-0 mt-1"></div>
+                <div>
+                  <p class="text-sm font-bold">Superadmin</p>
+                  <p class="text-xs text-slate-500">Otoritas penuh seluruh wilayah dan validasi akhir dokumen.</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <div class="w-5 h-5 rounded bg-amber-500 flex-shrink-0 mt-1"></div>
+                <div>
+                  <p class="text-sm font-bold">Admin Wilayah & UKPD</p>
+                  <p class="text-xs text-slate-500">Pengelolaan data terbatas pada cakupan unit kerja masing-masing.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="home-shell bg-teal-900 text-white">
+            <h3 class="text-sm font-800 uppercase tracking-widest text-teal-300 mb-4">Catatan Teknis</h3>
+            <ul class="text-xs space-y-3 text-teal-50/80">
+              <li class="flex gap-2"><span>•</span> Status "DIUSULKAN" adalah tahap awal wajib bagi setiap admin non-pusat.</li>
+              <li class="flex gap-2"><span>•</span> Gunakan parameter <strong>nocache=1</strong> pada URL jika data belum terbarui setelah input.</li>
+              <li class="flex gap-2"><span>•</span> Seluruh aktivitas perubahan data dicatat dalam sistem Log Aktivitas.</li>
+            </ul>
           </div>
         </section>
       </main>
 
-      <footer class="py-3 px-4 sm:px-6 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
-        <div id="footer-container"></div>
+      <footer class="py-6 px-10 border-t border-slate-200">
+        <div id="footer-container" class="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-medium">
+          </div>
       </footer>
     </div>
   </div>
 
   <script>
+    // FUNGSI TETAP SAMA AGAR TIDAK MERUSAK LOGIKA SISTEM ANDA
     const BASE = (() => {
       const parts = location.pathname.split('/').filter(Boolean);
       return parts.length && parts[0].toUpperCase() === 'DATA_PEGAWAI' ? '/' + parts[0] + '/' : '/';
@@ -173,22 +319,21 @@
     function initSidebarToggle(){
       const btn = document.getElementById('sidebarToggle');
       const backdrop = document.getElementById('sidebarBackdrop');
-      const sidebar = document.querySelector('.sidebar');
-      if (!btn || !sidebar || !backdrop) return;
-      const close = ()=>{ sidebar.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
-      btn.addEventListener('click', ()=>{
+      const wrap = document.getElementById('sidebar-container');
+      if (!btn || !wrap || !backdrop) return;
+      
+      const toggle = () => {
+        const sidebar = wrap.querySelector('.sidebar');
+        if(!sidebar) return;
         const willShow = !sidebar.classList.contains('show');
         sidebar.classList.toggle('show', willShow);
         backdrop.classList.toggle('show', willShow);
         document.body.style.overflow = willShow ? 'hidden' : '';
-      });
-      backdrop.addEventListener('click', close);
-      sidebar.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
-      window.addEventListener('resize', ()=>{ if (window.innerWidth >= 1024) close(); });
+      };
+
+      btn.addEventListener('click', toggle);
+      backdrop.addEventListener('click', toggle);
     }
   </script>
 </body>
 </html>
-
-
-

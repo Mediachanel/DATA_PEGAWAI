@@ -176,11 +176,6 @@
             </div>
           </div>
           <div class="panel">
-            <h3 style="margin:0 0 12px;">Data Pegawai Dinas Kesehatan Provinsi DKI Jakarta</h3>
-            <div class="grid" id="stats"></div>
-          </div>
-
-          <div class="panel">
             <div class="filters">
               <div class="full">
               <label>Kata Kunci (NIP/Nama)</label>
@@ -630,6 +625,7 @@
     }
 
     function renderStats(summary, countInPage){
+      if (!statsEl) return;
       statsEl.innerHTML = '';
       const cards = [{ title: 'Total Pegawai (filter)', value: totalCount || countInPage || 0 }];
       if (summary) {

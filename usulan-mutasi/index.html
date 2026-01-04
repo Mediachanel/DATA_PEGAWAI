@@ -45,18 +45,19 @@
     .badge{ display:inline-flex; align-items:center; gap:8px; background:var(--accent-soft); color:#0f7f73; padding:8px 12px; border-radius:999px; font-weight:700; font-size:13px; box-shadow:0 10px 20px rgba(15,157,148,0.18); }
     .hero{ background:#ffffff; color:var(--ink); border-radius:18px; padding:18px; display:flex; justify-content:space-between; gap:12px; align-items:center; box-shadow:var(--shadow-md); border:1px solid var(--border); position:relative; overflow:hidden; }
     .hero::before{ content:''; position:absolute; inset:0 0 auto 0; height:6px; background:linear-gradient(90deg, var(--accent), var(--accent-2)); }
-    .hero h2{ margin:0; color:#0f172a; }
+    .hero h2{ margin:6px 0 0; color:#0f172a; font-size:26px; }
+    .eyebrow{ margin:0; font-size:11px; letter-spacing:.6px; text-transform:uppercase; color:#94a3b8; font-weight:800; }
     .pill{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700; font-size:12px; }
     .pill.role{ background:#e0f2fe; color:#0369a1; }
     .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:14px; box-shadow:var(--shadow-sm); }
     .metric-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-    .metric{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:0 8px 20px rgba(15,23,42,0.06); }
-    .metric .label{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
-    .metric .value{ font-size:26px; font-weight:800; }
-    .metric.blue{ background:#e0f2fe; border-color:#c7e0f7; }
-    .metric.orange{ background:#fef3c7; border-color:#fde68a; }
-    .metric.green{ background:#dcfce7; border-color:#bbf7d0; }
-    .metric.red{ background:#fee2e2; border-color:#fecdd3; }
+    .metric{ border:1px solid #d9e3ee; border-radius:16px; padding:14px 16px; box-shadow:0 10px 22px rgba(15,23,42,0.05); }
+    .metric .label{ color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.6px; }
+    .metric .value{ font-size:26px; font-weight:800; color:#111827; margin-top:4px; }
+    .metric.blue{ background:linear-gradient(135deg, #eef6ff, #dbeeff); }
+    .metric.orange{ background:linear-gradient(135deg, #fff7d6, #ffe9a8); }
+    .metric.green{ background:linear-gradient(135deg, #e7fff5, #d6fce8); }
+    .metric.red{ background:linear-gradient(135deg, #ffe8e8, #ffd6d6); }
     label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:6px; }
     input, select, textarea, button{ padding:10px 12px; border:1px solid var(--border); border-radius:12px; font-size:14px; font-family:'Plus Jakarta Sans','Inter','Segoe UI',Arial,sans-serif; }
     input, select, textarea{ width:100%; background:#f9fafb; }
@@ -159,16 +160,16 @@
       <main style="padding:18px;">
         <div class="hero">
           <div>
+            <p class="eyebrow">Mutasi</p>
             <div class="pill role" id="roleBadge">-</div>
             <h2>Usulan Mutasi Pegawai</h2>
-            
           </div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button id="btnAdd" class="primary" style="min-width:150px;">+ Tambah Usulan</button>
           </div>
         </div>
 
-        <div class="metric-grid">
+        <div class="metric-grid" style="margin-top:12px;">
           <div class="metric blue">
             <div class="label">Total</div>
             <div class="value" id="mTotal">0</div>
