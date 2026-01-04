@@ -431,7 +431,8 @@ document.body.classList.toggle('role-super', isSuper);
 
       function normalizeStatus(raw){
         const t = (raw || '').toUpperCase().trim();
-        if (t.includes('PJLP') || t.includes('PPPK PARUH WAKTU')) return 'PPPK Paruh Waktu';
+        const compact = t.replace(/[^A-Z]/g, '');
+        if (compact.includes('PJLP') || compact.includes('PPPKPARUHWAKTU')) return 'PPPK Paruh Waktu';
         if (t === 'PNS') return 'PNS';
         if (t === 'CPNS') return 'CPNS';
         if (t.includes('PPPK') || t.includes('P3K')) return 'PPPK';
@@ -960,5 +961,4 @@ document.body.classList.toggle('role-super', isSuper);
   </script>
 </body>
 </html>
-
 
