@@ -488,7 +488,7 @@ document.body.classList.toggle('role-super', isSuper);
     }
 
     async function loadData(){
-      const params = new URLSearchParams({ limit:'20000', offset:'0', lite:'1' });
+      const params = new URLSearchParams({ limit:'30000', offset:'0', lite:'1' });
       if (!isSuper) {
         if (isWilayahAdmin) {
           if (loginWilayah) params.set('wilayah', loginWilayah);

@@ -1989,7 +1989,8 @@ function makeDatasets(map, labels, order, labelMap, colorMap) {
 function normalizeStatusDashboard(raw) {
   const t = String(raw || '').toUpperCase().trim();
   if (!t) return '';
-  if (t.indexOf('PJLP') > -1 || t.indexOf('PPPK PARUH WAKTU') > -1) return 'PPPK Paruh Waktu';
+  const compact = t.replace(/[^A-Z]/g, '');
+  if (compact.indexOf('PJLP') > -1 || compact.indexOf('PPPKPARUHWAKTU') > -1) return 'PPPK Paruh Waktu';
   if (t === 'PNS') return 'PNS';
   if (t === 'CPNS') return 'CPNS';
   if (t.indexOf('PPPK') > -1 || t.indexOf('P3K') > -1) return 'PPPK';
