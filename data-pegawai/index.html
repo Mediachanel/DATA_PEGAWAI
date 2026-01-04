@@ -423,7 +423,8 @@
     function normalizePjlpLabel(value){
       const t = String(value || '').toUpperCase();
       if (!t) return value || '';
-      if (t.indexOf('PJLP') > -1 || t.indexOf('PPPK PARUH WAKTU') > -1) return LABEL_PPPK_PARUH;
+      const compact = t.replace(/[^A-Z]/g, '');
+      if (compact.indexOf('PJLP') > -1 || compact.indexOf('PPPKPARUHWAKTU') > -1) return LABEL_PPPK_PARUH;
       return value;
     }
 
@@ -543,11 +544,15 @@
         const res = await fetch(`${API_BASE}?action=list&${params.toString()}`, { headers: API_HEADERS });
         const body = await res.json();
         if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
-        allRows = applyRoleFilter(body.rows || []).map((row) => ({
-          ...row,
-          nama_status_aktif: normalizePjlpLabel(row.nama_status_aktif),
-          nama_jenis_pegawai: normalizePjlpLabel(row.nama_jenis_pegawai)
-        }));
+        allRows = applyRoleFilter(body.rows || []).map((row) => {
+          const normalizedJenis = normalizePjlpLabel(row.nama_jenis_pegawai);
+          const normalizedStatus = normalizePjlpLabel(row.nama_status_aktif);
+          return {
+            ...row,
+            nama_jenis_pegawai: normalizedJenis,
+            nama_status_aktif: normalizedJenis === LABEL_PPPK_PARUH ? LABEL_PPPK_PARUH : normalizedStatus
+          };
+        });
         populateFilters(body, allRows);
         applyFilters({ resetPage: false });
         setStatus('Data dimuat: ' + allRows.length.toLocaleString('id-ID') + ' baris.');
