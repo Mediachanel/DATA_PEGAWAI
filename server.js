@@ -8,17 +8,18 @@ import { Readable } from 'stream';
 
 const PORT = process.env.PORT || 5002;
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw';
-const RANGE = process.env.RANGE || 'DATA PEGAWAI!A:AC'; // 29 kolom (tambah wilayah_ukpd)
+const RANGE = process.env.RANGE || 'DATA PEGAWAI!A:AK'; // 37 kolom (id + sync fields)
 const USER_RANGE = process.env.USER_RANGE || 'username!A:E'; // Nama UKPD | Username | password | hak akses | wilayah
 const SHEET_NAME = RANGE.split('!')[0];
-const WEB_APP_BASE = process.env.WEB_APP_BASE || 'https://script.google.com/macros/s/AKfycbxpYfK6Q2_GQzMM0_sTD7ts_SMz2z8aMa-pDd_WfGfuCLagwxf-UjNJDyV1TTLIk0AKxQ/exec';
+const WEB_APP_BASE = process.env.WEB_APP_BASE || 'https://script.google.com/macros/s/AKfycbxGAXBSPjRUwbCQ5a9LiTyg09dGi61hH-4IRvr-rpRBllPv8PLjFbERuetGAZmtvSsFBA/exec';
 const DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID || '1KwmIGbrz8KQ40PveoB6wY7wl7u_vOpbR'; // default folder for berkas upload
 
 const COLS = [
-  'nama_pegawai','npwp','no_bpjs','nama_jabatan_orb','nama_jabatan_prb','nama_status_aktif','nama_status_rumpun',
-  'jenis_kontrak','nip','nik','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
+  'id','nama_pegawai','npwp','no_bpjs','nama_jabatan_orb','nama_jabatan_prb','nama_status_aktif','nama_status_rumpun',
+  'jenis_kontrak','nip','nik','nrk','jenis_kelamin','tmt_kerja_ukpd','tempat_lahir','tanggal_lahir','agama',
   'jenjang_pendidikan','jurusan_pendidikan','no_tlp','email','nama_ukpd','wilayah_ukpd','golongan_darah','gelar_depan',
-  'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili'
+  'gelar_belakang','status_pernikahan','nama_jenis_pegawai','catatan_revisi_biodata','alamat_ktp','alamat_domisili',
+  'created_at','updated_at','sid','sync_status','sync_error','synced_at'
 ];
 const MUTASI_RANGE = process.env.MUTASI_RANGE || 'USULAN_MUTASI!A:W'; // cukup lebar untuk kolom status dkk
 const MUTASI_COLS = [
@@ -51,9 +52,9 @@ const DASHBOARD_CACHE_TTL = Math.max(5, parseInt(process.env.DASHBOARD_CACHE_TTL
 const BEZETTING_CACHE_TTL = Math.max(5, parseInt(process.env.BEZETTING_CACHE_TTL || '60', 10));
 const META_CACHE_TTL = Math.max(5, parseInt(process.env.META_CACHE_TTL || '300', 10));
 
-const DASH_STATUS_ORDER = ['PNS','CPNS','PPPK','PROFESIONAL','PPPK Paruh Waktu'];
-const DASH_STATUS_LABELS = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', 'PPPK Paruh Waktu':'PPPK Paruh Waktu' };
-const DASH_STATUS_COLORS = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', 'PPPK Paruh Waktu':'#8B5CF6' };
+const DASH_STATUS_ORDER = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP','PPPK Paruh Waktu'];
+const DASH_STATUS_LABELS = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP', 'PPPK Paruh Waktu':'PPPK Paruh Waktu' };
+const DASH_STATUS_COLORS = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#10B981', 'PPPK Paruh Waktu':'#8B5CF6' };
 
 const DASH_GENDER_ORDER = ['LAKI','PEREMPUAN'];
 const DASH_GENDER_LABELS = { LAKI:'Laki-laki', PEREMPUAN:'Perempuan' };
@@ -1363,53 +1364,58 @@ app.delete('/qna/:id', async (req, res) => {
   }
 });
 
-function toRecord(header, row) {
-  const h = (header || []).map(x => (x || '').toLowerCase().trim());
-  const get = (name, fallbackIdx) => {
-    const idx = h.indexOf(name);
-    if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
-    if (typeof fallbackIdx === 'number' && typeof row[fallbackIdx] !== 'undefined') return row[fallbackIdx] || '';
-    return '';
-  };
-  return {
-    id: get('nip', 8) || get('nik', 9) || '',
-    nama_pegawai: get('nama_pegawai', 0),
-    npwp: get('npwp', 1),
-    no_bpjs: get('no_bpjs', 2),
-    nama_jabatan_orb: get('nama_jabatan_orb', 3),
-    nama_jabatan_prb: get('nama_jabatan_prb', 4),
-    nama_status_aktif: get('nama_status_aktif', 5),
-    nama_status_rumpun: get('nama_status_rumpun', 6),
-    jenis_kontrak: get('jenis_kontrak', 7),
-    nip: get('nip', 8),
-    nik: get('nik', 9),
-    jenis_kelamin: get('jenis_kelamin', 10),
-    tmt_kerja_ukpd: get('tmt_kerja_ukpd', 11),
-    tempat_lahir: get('tempat_lahir', 12),
-    tanggal_lahir: get('tanggal_lahir', 13),
-    agama: get('agama', 14),
-    jenjang_pendidikan: get('jenjang_pendidikan', 15),
-    jurusan_pendidikan: get('jurusan_pendidikan', 16),
-    no_tlp: get('no_tlp', 17),
-    email: get('email', 18),
-    nama_ukpd: get('nama_ukpd', 19),
-    golongan_darah: get('golongan_darah', 20),
-    gelar_depan: get('gelar_depan', 21),
-    gelar_belakang: get('gelar_belakang', 22),
-    status_pernikahan: get('status_pernikahan', 23),
-    nama_jenis_pegawai: get('nama_jenis_pegawai', 24),
-    catatan_revisi_biodata: get('catatan_revisi_biodata', 25),
-    alamat_ktp: get('alamat_ktp', 26),
-    alamat_domisili: get('alamat_domisili', 27),
-    created_at: get('created_at'),
-    updated_at: get('updated_at'),
-    wilayah_ukpd: get('wilayah_ukpd', 20),
-    unit: get('nama_ukpd', 19),
-    jabatan: get('nama_jabatan_orb', 3),
-    statusKaryawan: get('nama_status_aktif', 5),
-    aktif: get('nama_status_aktif', 5)
-  };
-}
+  function toRecord(header, row) {
+    const h = (header || []).map(x => (x || '').toLowerCase().trim());
+    const get = (name, fallbackIdx) => {
+      const idx = h.indexOf(name);
+      if (idx >= 0 && typeof row[idx] !== 'undefined') return row[idx] || '';
+      if (typeof fallbackIdx === 'number' && typeof row[fallbackIdx] !== 'undefined') return row[fallbackIdx] || '';
+      return '';
+    };
+    return {
+      id: get('id', 0) || get('nip', 9) || get('nik', 10) || '',
+      nama_pegawai: get('nama_pegawai', 1),
+      npwp: get('npwp', 2),
+      no_bpjs: get('no_bpjs', 3),
+      nama_jabatan_orb: get('nama_jabatan_orb', 4),
+      nama_jabatan_prb: get('nama_jabatan_prb', 5),
+      nama_status_aktif: get('nama_status_aktif', 6),
+      nama_status_rumpun: get('nama_status_rumpun', 7),
+      jenis_kontrak: get('jenis_kontrak', 8),
+      nip: get('nip', 9),
+      nik: get('nik', 10),
+      nrk: get('nrk', 11),
+      jenis_kelamin: get('jenis_kelamin', 12),
+      tmt_kerja_ukpd: get('tmt_kerja_ukpd', 13),
+      tempat_lahir: get('tempat_lahir', 14),
+      tanggal_lahir: get('tanggal_lahir', 15),
+      agama: get('agama', 16),
+      jenjang_pendidikan: get('jenjang_pendidikan', 17),
+      jurusan_pendidikan: get('jurusan_pendidikan', 18),
+      no_tlp: get('no_tlp', 19),
+      email: get('email', 20),
+      nama_ukpd: get('nama_ukpd', 21),
+      wilayah_ukpd: get('wilayah_ukpd', 22),
+      golongan_darah: get('golongan_darah', 23),
+      gelar_depan: get('gelar_depan', 24),
+      gelar_belakang: get('gelar_belakang', 25),
+      status_pernikahan: get('status_pernikahan', 26),
+      nama_jenis_pegawai: get('nama_jenis_pegawai', 27),
+      catatan_revisi_biodata: get('catatan_revisi_biodata', 28),
+      alamat_ktp: get('alamat_ktp', 29),
+      alamat_domisili: get('alamat_domisili', 30),
+      created_at: get('created_at', 31),
+      updated_at: get('updated_at', 32),
+      sid: get('sid', 33),
+      sync_status: get('sync_status', 34),
+      sync_error: get('sync_error', 35),
+      synced_at: get('synced_at', 36),
+      unit: get('nama_ukpd', 21),
+      jabatan: get('nama_jabatan_orb', 4),
+      statusKaryawan: get('nama_status_aktif', 6),
+      aktif: get('nama_status_aktif', 6)
+    };
+  }
 
 function countStatus(rows) {
   return rows.reduce((acc, r) => {
@@ -1579,7 +1585,7 @@ function sumCounts(obj) {
   return Object.keys(obj || {}).reduce((sum, key) => sum + (+obj[key] || 0), 0);
 }
 
-function emptyStatusCounts() { return { PNS: 0, CPNS: 0, PPPK: 0, PROFESIONAL: 0, 'PPPK Paruh Waktu': 0 }; }
+function emptyStatusCounts() { return { PNS: 0, CPNS: 0, PPPK: 0, PROFESIONAL: 0, PJLP: 0, 'PPPK Paruh Waktu': 0 }; }
 function emptyMaritalCounts() { return { BELUM_MENIKAH: 0, MENIKAH: 0, CERAI_HIDUP: 0, CERAI_MATI: 0 }; }
 
 function makeDatasets(map, labels, order, labelMap, colorMap) {
@@ -1594,7 +1600,8 @@ function makeDatasets(map, labels, order, labelMap, colorMap) {
 function normalizeStatusDashboard(raw) {
   const t = String(raw || '').toUpperCase().trim();
   if (!t) return '';
-  if (t.indexOf('PJLP') > -1 || t.indexOf('PPPK PARUH WAKTU') > -1) return 'PPPK Paruh Waktu';
+  if (t.indexOf('PJLP') > -1) return 'PJLP';
+  if (t.indexOf('PPPK PARUH WAKTU') > -1) return 'PPPK Paruh Waktu';
   if (t === 'PNS') return 'PNS';
   if (t === 'CPNS') return 'CPNS';
   if (t.indexOf('PPPK') > -1 || t.indexOf('P3K') > -1) return 'PPPK';
@@ -1672,7 +1679,9 @@ function buildDashboardPrepared(records) {
     const rumpun = cleanLabel(r.nama_status_rumpun);
     const pend = cleanLabel(r.jenjang_pendidikan);
 
-    const st = normalizeStatusDashboard(r.nama_jenis_pegawai || r.nama_status_aktif || r.nama_status_rumpun);
+      const st = normalizeStatusDashboard(
+        r.nama_jenis_pegawai || r.nama_status_aktif || r.nama_status_rumpun || r.jenis_kontrak
+      );
     if (st && st !== 'LAINNYA') {
       statusCounts[st] = (statusCounts[st] || 0) + 1;
 

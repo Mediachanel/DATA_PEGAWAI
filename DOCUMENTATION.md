@@ -1,6 +1,7 @@
 ﻿﻿# Dokumentasi Integrasi SI Data Pegawai
 
 ## Log Kegiatan Terbaru (Des 2025)
+- Data Pegawai: perbaikan error JavaScript akibat sisa blok export Excel; sidebar/header kembali ter-load normal.
 - Login redirect ke `/home/` dengan halaman home statis ringan (lebih cepat setelah login).
 - Halaman home memakai header + sidebar; menu "Home" ditambahkan di `sidebar.html`.
 - Pencarian Data Pegawai kini client-side (ambil data sekali lalu filter lokal); pagination lokal jadi lebih cepat.

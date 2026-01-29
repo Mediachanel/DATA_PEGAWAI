@@ -150,10 +150,10 @@
       <div id="statusBar" class="px-4 sm:px-6 text-sm text-slate-600 mt-2">Status: memuat...</div>
 
       <main class="px-4 sm:px-6 pb-10 pt-2 space-y-4" id="contentRoot">
-        <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4" data-animate>
-          <div class="card text-white bg-gradient-to-br from-sky-600 to-brand shadow-soft" data-kpi="PNS">
-            <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">P</div>
+          <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4" data-animate>
+            <div class="card text-white bg-gradient-to-br from-sky-600 to-brand shadow-soft" data-kpi="PNS">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">P</div>
               <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PNS</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
@@ -178,19 +178,28 @@
             <div class="kpi-progress" style="--kpi:54%;"><span></span></div>
             <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
           </div>
-          <div class="card text-white bg-gradient-to-br from-teal-700 to-pro shadow-soft" data-kpi="PROFESIONAL">
-            <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">NP</div>
-              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PROFESIONAL</p></div>
+            <div class="card text-white bg-gradient-to-br from-teal-700 to-pro shadow-soft" data-kpi="PROFESIONAL">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">NP</div>
+                <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PROFESIONAL</p></div>
+              </div>
+              <div class="mt-3 text-3xl font-bold" data-count>0</div>
+              <div class="kpi-progress" style="--kpi:68%;"><span></span></div>
+              <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
             </div>
-            <div class="mt-3 text-3xl font-bold" data-count>0</div>
-            <div class="kpi-progress" style="--kpi:68%;"><span></span></div>
-            <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
-          </div>
-          <div class="card text-white bg-gradient-to-br from-violet-700 to-pjlp shadow-soft" data-kpi="PPPK Paruh Waktu">
-            <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">J</div>
-              <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PPPK Paruh Waktu</p></div>
+            <div class="card text-white bg-gradient-to-br from-emerald-600 to-emerald-500 shadow-soft" data-kpi="PJLP">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">J</div>
+                <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PJLP</p></div>
+              </div>
+              <div class="mt-3 text-3xl font-bold" data-count>0</div>
+              <div class="kpi-progress" style="--kpi:58%;"><span></span></div>
+              <div class="kpi-meta"><span class="kpi-dot"></span>update: 2:15 am</div>
+            </div>
+            <div class="card text-white bg-gradient-to-br from-violet-700 to-pjlp shadow-soft" data-kpi="PPPK Paruh Waktu">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-white/20 grid place-items-center text-lg">J</div>
+                <div><p class="text-xs/4 opacity-90">Jenis Pegawai</p><p class="text-sm font-semibold">PPPK Paruh Waktu</p></div>
             </div>
             <div class="mt-3 text-3xl font-bold" data-count>0</div>
             <div class="kpi-progress" style="--kpi:49%;"><span></span></div>
@@ -210,7 +219,7 @@
         <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="card" data-animate>
             <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold" id="statusTitle">Distribusi Pegawai per Status (Aktif)</h3>
+                <h3 class="text-sm font-semibold" id="statusTitle">Distribusi Pegawai per Status (Aktif &amp; Tubel)</h3>
               <button data-download="status" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100">Unduh PNG</button>
             </div>
             <div class="mt-3 flex items-center justify-center" style="height: var(--h-status);">
@@ -262,25 +271,27 @@
                   <th class="px-3 py-2 text-left">Nama UKPD</th>
                   <th class="px-3 py-2 text-center">PNS</th>
                   <th class="px-3 py-2 text-center">CPNS</th>
-                  <th class="px-3 py-2 text-center">PPPK</th>
-                  <th class="px-3 py-2 text-center">PROFESIONAL</th>
-                  <th class="px-3 py-2 text-center">PPPK Paruh Waktu</th>
-                  <th class="px-3 py-2 text-center">Total</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-              <tfoot>
-                <tr class="bg-sky-50 font-semibold" id="tableTotalRow">
-                  <td class="px-3 py-2 text-right" colspan="2">Total Keseluruhan</td>
-                  <td class="px-3 py-2 text-center">0</td>
-                  <td class="px-3 py-2 text-center">0</td>
-                  <td class="px-3 py-2 text-center">0</td>
-                  <td class="px-3 py-2 text-center">0</td>
-                  <td class="px-3 py-2 text-center">0</td>
-                  <td class="px-3 py-2 text-center">0</td>
-                </tr>
-              </tfoot>
-            </table>
+                    <th class="px-3 py-2 text-center">PPPK</th>
+                    <th class="px-3 py-2 text-center">PROFESIONAL</th>
+                    <th class="px-3 py-2 text-center">PJLP</th>
+                    <th class="px-3 py-2 text-center">PPPK Paruh Waktu</th>
+                    <th class="px-3 py-2 text-center">Total</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                  <tr class="bg-sky-50 font-semibold" id="tableTotalRow">
+                    <td class="px-3 py-2 text-right" colspan="2">Total Keseluruhan</td>
+                    <td class="px-3 py-2 text-center">0</td>
+                    <td class="px-3 py-2 text-center">0</td>
+                    <td class="px-3 py-2 text-center">0</td>
+                    <td class="px-3 py-2 text-center">0</td>
+                    <td class="px-3 py-2 text-center">0</td>
+                    <td class="px-3 py-2 text-center">0</td>
+                    <td class="px-3 py-2 text-center">0</td>
+                  </tr>
+                </tfoot>
+              </table>
           </div>
         </section>
       </main>
@@ -304,9 +315,9 @@
     const PROXY_KEY = 'proxy_5b8d2f7c4a9e1b6d3c7f2a8b5e9d4c6a';
     const API_HEADERS = { 'X-Proxy-Key': PROXY_KEY };
     if (window.AppLoader) window.AppLoader.wrapFetch(API_BASE);
-    const statusOrder = ['PNS','CPNS','PPPK','PROFESIONAL','PPPK Paruh Waktu'];
-    const statusLabels = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', 'PPPK Paruh Waktu':'PPPK Paruh Waktu' };
-    const statusColors = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', 'PPPK Paruh Waktu':'#8B5CF6' };
+    const statusOrder = ['PNS','CPNS','PPPK','PROFESIONAL','PJLP','PPPK Paruh Waktu'];
+    const statusLabels = { PNS:'PNS', CPNS:'CPNS', PPPK:'PPPK', PROFESIONAL:'PROFESIONAL', PJLP:'PJLP', 'PPPK Paruh Waktu':'PPPK Paruh Waktu' };
+    const statusColors = { PNS:'#0EA5E9', CPNS:'#06B6D4', PPPK:'#22C55E', PROFESIONAL:'#14B8A6', PJLP:'#10B981', 'PPPK Paruh Waktu':'#8B5CF6' };
     const genderOrder = ['LAKI','PEREMPUAN'];
     const genderLabels = { LAKI:'Laki-laki', PEREMPUAN:'Perempuan' };
     const genderColors = { LAKI:'#0EA5E9', PEREMPUAN:'#F97316' };
@@ -442,7 +453,8 @@ document.body.classList.toggle('role-super', isSuper);
       function normalizeStatus(raw){
         const t = (raw || '').toUpperCase().trim();
         const compact = t.replace(/[^A-Z]/g, '');
-        if (compact.includes('PJLP') || compact.includes('PPPKPARUHWAKTU')) return 'PPPK Paruh Waktu';
+        if (compact.includes('PJLP')) return 'PJLP';
+        if (compact.includes('PPPKPARUHWAKTU')) return 'PPPK Paruh Waktu';
         if (t === 'PNS') return 'PNS';
         if (t === 'CPNS') return 'CPNS';
         if (t.includes('PPPK') || t.includes('P3K')) return 'PPPK';
@@ -497,8 +509,8 @@ document.body.classList.toggle('role-super', isSuper);
       loadData();
     }
 
-    async function loadData(){
-      const params = new URLSearchParams({ limit:'30000', offset:'0', lite:'1' });
+      async function loadData(){
+        const params = new URLSearchParams({ limit:'30000', offset:'0', lite:'1', status:'AKTIF,TUBEL' });
       if (!isSuper) {
         if (isWilayahAdmin) {
           if (loginWilayah) params.set('wilayah', loginWilayah);
@@ -519,16 +531,21 @@ document.body.classList.toggle('role-super', isSuper);
         const stamp = new Date(cached.cachedAt).toLocaleTimeString('id-ID');
         setStatus('Menampilkan cache (' + stamp + '), memperbarui data...');
       }
-      try {
-        const statsRes = await fetch(`${API_BASE}?action=dashboard_stats&${params.toString()}`, { headers: API_HEADERS });
-        const statsBody = await statsRes.json().catch(()=>null);
-        if (statsRes.ok && statsBody && statsBody.ok && statsBody.prepared) {
-          const prepared = statsBody.prepared;
-          preparedCache = prepared;
-          renderKpi(prepared.statusCounts);
-          updateChartTitles(chartMode);
-          renderCharts(prepared);
-          renderTable(prepared.tableRows || []);
+        try {
+          const statsRes = await fetch(`${API_BASE}?action=dashboard_stats&${params.toString()}`, { headers: API_HEADERS });
+          const statsBody = await statsRes.json().catch(()=>null);
+          if (statsRes.ok && statsBody && statsBody.ok && statsBody.prepared) {
+            const prepared = statsBody.prepared;
+            const statusCounts = prepared.statusCounts || {};
+            const hasPjlpKey = Object.prototype.hasOwnProperty.call(statusCounts, 'PJLP');
+            if (!hasPjlpKey) {
+              throw new Error('Dashboard stats missing PJLP');
+            }
+            preparedCache = prepared;
+            renderKpi(prepared.statusCounts);
+            updateChartTitles(chartMode);
+            renderCharts(prepared);
+            renderTable(prepared.tableRows || []);
           const totalRows = statsBody.total || prepared.totalRows || 0;
           setStatus('Data dimuat: ' + totalRows + ' baris.');
           writeDashboardCache(cacheKey, prepared, totalRows);
@@ -561,13 +578,13 @@ document.body.classList.toggle('role-super', isSuper);
       }
     }
 
-    function prepareData(rows){
-      const statusCounts = { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, 'PPPK Paruh Waktu':0 };
-      const genderCounts = { LAKI:0, PEREMPUAN:0 };
-      const maritalCounts = { BELUM_MENIKAH:0, MENIKAH:0, CERAI_HIDUP:0, CERAI_MATI:0 };
-      const emptyStatusCounts = () => ({ PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, 'PPPK Paruh Waktu':0 });
-      const emptyGenderCounts = () => ({ LAKI:0, PEREMPUAN:0 });
-      const emptyMaritalCounts = () => ({ BELUM_MENIKAH:0, MENIKAH:0, CERAI_HIDUP:0, CERAI_MATI:0 });
+      function prepareData(rows){
+        const statusCounts = { PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0, 'PPPK Paruh Waktu':0 };
+        const genderCounts = { LAKI:0, PEREMPUAN:0 };
+        const maritalCounts = { BELUM_MENIKAH:0, MENIKAH:0, CERAI_HIDUP:0, CERAI_MATI:0 };
+        const emptyStatusCounts = () => ({ PNS:0, CPNS:0, PPPK:0, PROFESIONAL:0, PJLP:0, 'PPPK Paruh Waktu':0 });
+        const emptyGenderCounts = () => ({ LAKI:0, PEREMPUAN:0 });
+        const emptyMaritalCounts = () => ({ BELUM_MENIKAH:0, MENIKAH:0, CERAI_HIDUP:0, CERAI_MATI:0 });
       const unitStatusMap = {};
       const unitGenderMap = {};
       const unitMaritalMap = {};
@@ -585,7 +602,7 @@ document.body.classList.toggle('role-super', isSuper);
         const rumpun = cleanLabel(r.nama_status_rumpun);
         const pend = cleanLabel(r.jenjang_pendidikan);
 
-        const st = normalizeStatus(r.nama_jenis_pegawai || r.nama_status_aktif || r.nama_status_rumpun);
+          const st = normalizeStatus(r.nama_jenis_pegawai || r.nama_status_aktif || r.nama_status_rumpun || r.jenis_kontrak);
         if (st !== 'LAINNYA') {
           statusCounts[st] = (statusCounts[st] || 0) + 1;
           wilMap[wilayah] = wilMap[wilayah] || {};
@@ -851,9 +868,9 @@ document.body.classList.toggle('role-super', isSuper);
       if (charts[key]) { charts[key].destroy(); charts[key] = null; }
     }
 
-    function renderTable(rows){
-      tableBody.innerHTML = '';
-      let totalP=0,totalC=0,totalP3=0,totalPro=0,totalJ=0,totalAll=0;
+      function renderTable(rows){
+        tableBody.innerHTML = '';
+        let totalP=0,totalC=0,totalP3=0,totalPro=0,totalPj=0,totalJ=0,totalAll=0;
       rows.forEach((r, idx)=>{
         const tr = document.createElement('tr');
         if (r.isGroup){
@@ -864,13 +881,20 @@ document.body.classList.toggle('role-super', isSuper);
             <td class="px-3 py-2">Wilayah: ${wilayahText}</td>
             <td class="px-3 py-2 text-center">${(r.PNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r['PPPK Paruh Waktu']||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r.PJLP||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r['PPPK Paruh Waktu']||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
           `;
         } else {
-          totalP += r.PNS || 0; totalC += r.CPNS || 0; totalP3 += r.PPPK || 0; totalPro += r.PROFESIONAL || 0; totalJ += r['PPPK Paruh Waktu'] || 0; totalAll += r.total || 0;
+            totalP += r.PNS || 0;
+            totalC += r.CPNS || 0;
+            totalP3 += r.PPPK || 0;
+            totalPro += r.PROFESIONAL || 0;
+            totalPj += r.PJLP || 0;
+            totalJ += r['PPPK Paruh Waktu'] || 0;
+            totalAll += r.total || 0;
           const unitText = escapeHtml(r.unit || '-');
           const noText = escapeHtml(r.no || idx + 1);
           tr.className = 'border-b border-slate-100';
@@ -880,24 +904,26 @@ document.body.classList.toggle('role-super', isSuper);
             <td class="px-3 py-2">${unitText}</td>
             <td class="px-3 py-2 text-center">${(r.PNS||0).toLocaleString('id-ID')}</td>
             <td class="px-3 py-2 text-center">${(r.CPNS||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center">${(r['PPPK Paruh Waktu']||0).toLocaleString('id-ID')}</td>
-            <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r.PPPK||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r.PROFESIONAL||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r.PJLP||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center">${(r['PPPK Paruh Waktu']||0).toLocaleString('id-ID')}</td>
+              <td class="px-3 py-2 text-center font-semibold">${(r.total||0).toLocaleString('id-ID')}</td>
           `;
         }
         tableBody.appendChild(tr);
       });
       const cells = tableTotalRow?.querySelectorAll('td');
-      if (cells && cells.length >= 7){
-        cells[1].textContent = totalP.toLocaleString('id-ID');
-        cells[2].textContent = totalC.toLocaleString('id-ID');
-        cells[3].textContent = totalP3.toLocaleString('id-ID');
-        cells[4].textContent = totalPro.toLocaleString('id-ID');
-        cells[5].textContent = totalJ.toLocaleString('id-ID');
-        cells[6].textContent = totalAll.toLocaleString('id-ID');
+        if (cells && cells.length >= 8){
+          cells[1].textContent = totalP.toLocaleString('id-ID');
+          cells[2].textContent = totalC.toLocaleString('id-ID');
+          cells[3].textContent = totalP3.toLocaleString('id-ID');
+          cells[4].textContent = totalPro.toLocaleString('id-ID');
+          cells[5].textContent = totalPj.toLocaleString('id-ID');
+          cells[6].textContent = totalJ.toLocaleString('id-ID');
+          cells[7].textContent = totalAll.toLocaleString('id-ID');
+        }
       }
-    }
 
     if (chartModeSelect) {
       chartModeSelect.addEventListener('change', ()=>{
