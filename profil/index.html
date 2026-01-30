@@ -123,8 +123,8 @@
             <div class="info-item"><div class="info-label">Status Aktif</div><div class="info-value" id="statusAktifDetail">-</div></div>
             <div class="info-item"><div class="info-label">Status Rumpun</div><div class="info-value" id="statusRumpun">-</div></div>
             <div class="info-item"><div class="info-label">Jenis Kontrak</div><div class="info-value" id="jenisKontrak">-</div></div>
-            <div class="info-item"><div class="info-label">Jabatan ORB</div><div class="info-value" id="jabatanOrb">-</div></div>
-            <div class="info-item"><div class="info-label">Jabatan PRB</div><div class="info-value" id="jabatanPrb">-</div></div>
+            <div class="info-item"><div class="info-label">Jabatan Pergub </div><div class="info-value" id="jabatanOrb">-</div></div>
+            <div class="info-item"><div class="info-label">Jabatan Kepmenpan </div><div class="info-value" id="jabatanPrb">-</div></div>
             <div class="info-item"><div class="info-label">TMT Kerja UKPD</div><div class="info-value" id="tmtKerja">-</div></div>
             <div class="info-item"><div class="info-label">UKPD</div><div class="info-value" id="ukpdDetail">-</div></div>
           </div>
@@ -311,7 +311,7 @@
       const namaInti = p.nama_pegawai || p.nama || '-';
       const namaFull = `${gelarDepan ? gelarDepan + ' ' : ''}${namaInti}${gelarBelakang ? ', ' + gelarBelakang : ''}`;
       document.getElementById('namaPegawai').textContent = namaFull.trim();
-      document.getElementById('jabatanPegawai').textContent = p.nama_jabatan_orb || p.jabatan || '-';
+      document.getElementById('jabatanPegawai').textContent = p.nama_jabatan_prb || p.jabatan || '-';
       document.getElementById('unitPegawai').textContent = p.nama_ukpd || p.unit || p.ukpd || '-';
       document.getElementById('statusAktif').textContent = p.nama_status_aktif || p.aktif || '-';
 
