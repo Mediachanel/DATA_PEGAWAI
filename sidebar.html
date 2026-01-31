@@ -1,24 +1,76 @@
-<style>
+﻿<style>
   body:not(.role-super) .nav-item[data-role="super"] { display: none; }
   .sidebar{
-    background: #3f4d63;
-    color: #cbd5e1;
-    border-right: 1px solid #4b5a71;
-    box-shadow: 8px 0 30px -20px rgba(15,23,42,0.45);
+    position: relative;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(15,157,148,0.12), transparent 35%),
+      radial-gradient(circle at 80% 30%, rgba(245,158,11,0.10), transparent 38%),
+      linear-gradient(180deg, #f8fbff 0%, #f2f6f6 100%);
+    color: #0f172a;
+    border-right: 1px solid #e1e8ef;
+    box-shadow: 8px 0 30px -20px rgba(15,23,42,0.18);
   }
-  .sidebar .logo{ color: #f8fafc; }
-  .sidebar .logo-sub{ color: #a8b3c5; }
-  .sidebar .nav-title{ color: #9aa7bd; }
-  .sidebar .nav-item{ color: #cbd5e1; }
-  .sidebar .nav-item:hover{ background: #48586f; color: #ffffff; }
+  .sidebar::before{
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, #0f9d94 0%, #22c55e 45%, #f59e0b 100%);
+  }
+  .sidebar .logo{ color: #0f172a; }
+  .sidebar .logo-sub{ color: #6b7280; }
+  .sidebar .nav-title{ color: #94a3b8; }
+  .sidebar .logo{
+    background: #ffffff;
+    border: 1px solid #e5edf2;
+    border-radius: 16px;
+    padding: 10px 12px;
+    box-shadow: 0 12px 24px rgba(15,23,42,0.08);
+  }
+  .sidebar .nav-item{
+    color: #334155;
+    border: 1px solid transparent;
+    position: relative;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .sidebar .nav-item:hover{
+    background: #f0fbf9;
+    color: #0f7f73;
+    border-color: #d6f1ed;
+    transform: translateX(2px);
+  }
   .sidebar .nav-item.active{
-    background: #2e3a4d;
-    color: #ff8c3a;
-    box-shadow: inset 3px 0 0 #ff8c3a;
+    background: #ffffff;
+    color: #0f7f73;
+    border-color: #cbeee9;
+    box-shadow: 0 12px 26px rgba(15,157,148,0.18);
+  }
+  .sidebar .nav-item.active::before{
+    content: '';
+    position: absolute;
+    left: 8px;
+    width: 4px;
+    height: 18px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #0f9d94, #22c55e);
   }
   .sidebar .icon-round{
-    background: #2e3a4d;
-    color: #cbd5e1;
+    width: 30px;
+    height: 30px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #e8fbf8, #def3f0);
+    color: #0f7f73;
+    border: 1px solid #d2ebe7;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.7), 0 6px 14px rgba(15,23,42,0.08);
+  }
+  .sidebar .nav-item.active .icon-round{
+    background: linear-gradient(180deg, #d9fbf5, #c9f0ea);
+    border-color: #b9e6df;
+  }
+  .sidebar .icon-round svg{
+    width:16px;
+    height:16px;
+    display:block;
   }
   .nav-badge{
     margin-left:auto;
@@ -30,8 +82,9 @@
     font-weight:800;
     color:#ffffff;
   }
-.nav-badge.red{ background:#ff5a6a; }
-  .nav-badge.green{ background:#20c997; }</style>
+  .nav-badge.red{ background: linear-gradient(135deg, #ff6b6b, #ff9f6b); }
+  .nav-badge.green{ background: linear-gradient(135deg, #10b981, #22c55e); }
+</style>
 <aside class="sidebar">
   <div class="logo">
     <img src="foto/Dinkes.png" alt="Logo" data-logo />
@@ -42,22 +95,100 @@
   </div>
   <nav>
     <div class="nav-title">Menu</div>
-    <a class="nav-item" href="#" data-path="home/"><span class="icon-round">H</span>Home</a>
-    <a class="nav-item" href="#" data-path="dashboard/"><span class="icon-round">🏠</span>Dashboard</a>
-    <a class="nav-item" href="#" data-path="data-pegawai/"><span class="icon-round">📋</span>Data Pegawai<span class="nav-badge red">100+</span></a>
-    <a class="nav-item" href="#" data-path="bezetting/"><span class="icon-round">🗺️</span>Peta Jabatan</a>
+    <a class="nav-item" href="#" data-path="home/">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 10.5L12 3l9 7.5"></path>
+          <path d="M5 9.5V21h14V9.5"></path>
+          <path d="M9 21v-6h6v6"></path>
+        </svg>
+      </span>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="#" data-path="dashboard/">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="8" height="8" rx="2"></rect>
+          <rect x="13" y="3" width="8" height="8" rx="2"></rect>
+          <rect x="3" y="13" width="8" height="8" rx="2"></rect>
+          <rect x="13" y="13" width="8" height="8" rx="2"></rect>
+        </svg>
+      </span>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" href="#" data-path="data-pegawai/">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 11a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"></path>
+          <path d="M4 21a8 8 0 0 1 16 0"></path>
+        </svg>
+      </span>
+      <span>Data Pegawai</span>
+      <span class="nav-badge red">100+</span>
+    </a>
+    <a class="nav-item" href="#" data-path="bezetting/">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6.5l6-2 6 2 6-2v13l-6 2-6-2-6 2z"></path>
+          <path d="M9 4.5v13"></path>
+          <path d="M15 6.5v13"></path>
+        </svg>
+      </span>
+      <span>Peta Jabatan</span>
+    </a>
     <div class="nav-title">Layanan</div>
-    <a class="nav-item" href="#" data-path="usulan-mutasi/"><span class="icon-round">dY",</span>Usulan Mutasi</span></a>
-    <a class="nav-item" href="#" data-path="pemutusan-jf/"><span class="icon-round">�o,�,?</span>Pemutusan JF</span></a>
+    <a class="nav-item" href="#" data-path="usulan-mutasi/">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8h13"></path>
+          <path d="M12 4l4 4-4 4"></path>
+          <path d="M21 16H8"></path>
+          <path d="M12 12l-4 4 4 4"></path>
+        </svg>
+      </span>
+      <span>Usulan Mutasi</span>
+    </a>
+    <a class="nav-item" href="#" data-path="pemutusan-jf/">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h10l6 6v10H4z"></path>
+          <path d="M14 4v6h6"></path>
+          <path d="M9 13l6 6"></path>
+          <path d="M15 13l-6 6"></path>
+        </svg>
+      </span>
+      <span>Pemutusan JF</span>
+    </a>
     <div class="nav-title">Master</div>
-    <a class="nav-item" href="#" data-path="qna/" data-role="super"><span class="icon-round">Q</span>QnA</a>
+    <a class="nav-item" href="#" data-path="qna/" data-role="super">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.7.6-1.2 1-1.2 2.2"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+      </span>
+      <span>QnA</span>
+    </a>
     <div class="nav-title">Akun</div>
-    <a class="nav-item" href="#" data-path="ubah-password/"><span class="icon-round">🔐</span>Ubah Password</a>
-    <a class="nav-item nav-logout" href="#" data-logout="1"><span class="icon-round">🚪</span>Keluar</a>
+    <a class="nav-item" href="#" data-path="ubah-password/">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="11" width="16" height="9" rx="2"></rect>
+          <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+        </svg>
+      </span>
+      <span>Ubah Password</span>
+    </a>
+    <a class="nav-item nav-logout" href="#" data-logout="1">
+      <span class="icon-round" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2"></path>
+          <path d="M15 12H4"></path>
+          <path d="M7 9l-3 3 3 3"></path>
+        </svg>
+      </span>
+      <span>Keluar</span>
+    </a>
   </nav>
 </aside>
-
-
-
-
-

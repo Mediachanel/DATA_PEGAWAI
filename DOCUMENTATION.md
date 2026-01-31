@@ -1,40 +1,118 @@
-﻿﻿# Dokumentasi Integrasi SI Data Pegawai
+﻿# Dokumentasi Integrasi SI Data Pegawai
 
-## Log Kegiatan Terbaru (Des 2025)
-- Data Pegawai: perbaikan error JavaScript akibat sisa blok export Excel; sidebar/header kembali ter-load normal.
-- Login redirect ke `/home/` dengan halaman home statis ringan (lebih cepat setelah login).
-- Halaman home memakai header + sidebar; menu "Home" ditambahkan di `sidebar.html`.
-- Pencarian Data Pegawai kini client-side (ambil data sekali lalu filter lokal); pagination lokal jadi lebih cepat.
-- Notifikasi status login diperjelas (warna success/warn/error).
-- Landing page login + QnA dibuat lebih hidup (tipografi baru, palet hangat, animasi masuk).
-- MySQL/Hybrid dihapus: worker disederhanakan, mysql-gateway + schema SQL dihapus, dokumentasi dibersihkan.
-- Perbaikan pencarian Data Pegawai: semua filter dinormalisasi ke string sebelum `toLowerCase()` sehingga tidak error saat nilai numerik/undefined.
-- Pengambilan data/aksi API dibungkus `safeHandle_()` agar error selalu JSON (tidak lagi HTML/DOCTYPE) dan login/search tidak gagal parse.
-- Pencarian Data Pegawai di UI hanya dijalankan saat klik tombol Terapkan (atau Enter), tidak lagi auto-run setiap ketik.
-- Revert branding MANDALA ke Dinas Kesehatan; hapus menu Verifikasi & Validasi serta Master Data dari sidebar (tersisa QnA untuk superadmin).
-- Percepatan Apps Script `code.js`: cache untuk `list`, `mutasi_list`, `pemutusan_jf_list`, `bezetting_list`, `qna_list`, dan `dashboard_stats`. TTL default: list 20s, dashboard 30s, bezetting 60s, meta 300s.
-- Cache invalidasi otomatis via `bumpCacheVersion()` pada create/update/delete (pegawai, mutasi, pemutusan JF, bezetting, QnA). Bisa bypass cache dengan query `nocache=1` atau `cache=0`.
-- Mapping UKPD->wilayah sekarang di-cache untuk filter wilayah (mutasi/pemutusan JF).
-- Cloudflare Worker mendukung TTL khusus bezetting via env `CACHE_TTL_BEZETTING`.
-- Backend Node men-cache bezetting in-memory (env `BEZETTING_CACHE_TTL`) dan invalidasi saat create/update/delete.
-- Frontend bezetting memakai API lokal saat localhost dan input search sudah debounce; loader global diperbarui (orbital + skeleton shimmer).
-- Usulan Mutasi: status dan keterangan hanya bisa diubah oleh superadmin; admin UKPD/wilayah dikunci di UI dan di backend (status non-super dipaksa `DIUSULKAN`, update status/keterangan diabaikan).
-- Pemutusan JF: tombol "Cetak Word" hanya untuk superadmin dan memakai template DOCX `templates/Putus JF Batch 3.docx` dengan pengisian placeholder.
-- Template kajian mutasi disimpan di `templates/usulan-mutasi-kajian.html`.
+Dokumen ini adalah **sumber utama** (single source of truth). README hanya ringkas dan mengarah ke dokumen ini.
 
-## Backend (Node/Express + Google Sheets)
-- File: `server.js`
-- Port: 5002 (dipakai bila menjalankan backend Node; front-end default kini langsung ke Web App Apps Script)
-- Spreadsheet ID: `1Bjz0kVWodHQUr0O9FiVPd7Z9LrQVY4GG6nZiczlv_Vw`
-- Sheet data: `DATA PEGAWAI!A:AD` (30 kolom)
-- Sheet login: `username!A:E` (Nama UKPD, Username, Password, Hak akses, Wilayah)
-- Service account: file JSON di folder (mis. `update-bezetting-8055dfe44912.json`), spreadsheet harus dibagikan ke `data-pegawai-2025@update-bezetting.iam.gserviceaccount.com` (Editor).
+---
 
-## Frontend
-- Halaman berada di folder index-based: `/DATA_PEGAWAI/` (login), `/DATA_PEGAWAI/home/`, `/DATA_PEGAWAI/dashboard/`, `/DATA_PEGAWAI/data-pegawai/`, `/DATA_PEGAWAI/profil/`, `/DATA_PEGAWAI/usulan-mutasi/`, `/DATA_PEGAWAI/pemutusan-jf/`, `/DATA_PEGAWAI/bezetting/`, `/DATA_PEGAWAI/ubah-password/`. Base path dihitung otomatis: jika di GitHub Pages akan memakai `/DATA_PEGAWAI/`, jika lokal cukup `/`.
-- Header/sidebar/footer di-root (`header.html`, `sidebar.html`, `footer.html`) diambil dengan BASE dinamis; logo/favikon juga di-set ulang via BASE + `foto/Dinkes.png`.
+## Links
 
-### Kolom data (urutan A:AD)
+- Repo: `https://github.com/Mediachanel/DATA_PEGAWAI`
+- GitHub Pages: `https://mediachanel.github.io/DATA_PEGAWAI/`
+
+---
+
+## Gambaran Umum
+
+SIKEPEG memakai Google Sheets sebagai database utama. Akses data dilakukan lewat:
+- **Apps Script Web App** (`code.js`) dengan endpoint action-based (utama), atau
+- **Node/Express** (`server.js`) dengan service account (opsional).
+
+Frontend memanggil API melalui Cloudflare Worker (disarankan), atau langsung ke Apps Script saat lokal.
+
+---
+
+## Struktur Folder Frontend
+
+Halaman utama berada di folder index-based:
+- `/` (login / index.html)
+- `/home/`
+- `/dashboard/`
+- `/data-pegawai/`
+- `/profil/`
+- `/usulan-mutasi/`
+- `/pemutusan-jf/`
+- `/bezetting/`
+- `/ubah-password/`
+
+Komponen bersama:
+- `header.html`
+- `sidebar.html`
+- `footer.html`
+
+Base path dihitung otomatis:
+- Lokal: `/`
+- GitHub Pages: `/<NAMA_REPO>/` (contoh `/DATA_PEGAWAI/`)
+
+---
+
+## Backend Utama (Apps Script)
+
+File: `code.js`
+
+### Konsep Endpoint (action-based)
+Semua request memakai query/body `action`.
+
+**GET**
+- `?action=health`
+- `?action=list`
+- `?action=dashboard_stats`
+- `?action=get&id=...`
+- `?action=mutasi_list`
+- `?action=pemutusan_jf_list`
+- `?action=bezetting_list`
+- `?action=qna_list`
+
+**POST (JSON)**
+- `action=login`
+- `action=password_change`
+- `action=create|update|delete` (pegawai)
+- `action=mutasi_create|mutasi_update|mutasi_delete`
+- `action=pemutusan_jf_create|pemutusan_jf_update|pemutusan_jf_delete`
+- `action=bezetting_create|bezetting_update|bezetting_delete`
+- `action=upload`
+
+### Keamanan
+- Frontend mengirim header `X-Proxy-Key` ke Worker.
+- Worker menambahkan `key` ke Apps Script.
+- `key` harus sama dengan `API_KEY` di `code.js`.
+
+### Cache
+- `list`: 20s
+- `dashboard_stats`: 30s
+- `bezetting_list`: 60s
+- `meta/ukpd map`: 300s
+
+Bisa bypass cache dengan query `nocache=1` atau `cache=0`.
+
+---
+
+## Backend Opsional (Node/Express)
+
+File: `server.js`
+
+Digunakan jika ingin akses Google Sheets via service account.
+
+### Setup
+- Taruh file service account JSON di folder ini.
+- Spreadsheet harus di-share ke email service account (Editor).
+
+### Jalankan
+- `npm install`
+- `npm start`
+
+### Endpoint
+- `GET /health`
+- `POST /login`
+- `GET /pegawai`
+- `POST /pegawai`
+- `PUT /pegawai/:id`
+- `DELETE /pegawai/:id`
+
+---
+
+## Struktur Sheet
+
+### DATA PEGAWAI (A:AD, 30 kolom)
 1. nama_pegawai
 2. npwp
 3. no_bpjs
@@ -65,10 +143,15 @@
 28. alamat_domisili
 29. created_at
 30. updated_at
-Catatan:
-- NIP bersifat opsional. Jika NIP kosong, identifikasi data memakai kombinasi `nama_pegawai + tanggal_lahir`, jadi pastikan kombinasi tersebut unik agar proses edit/hapus tidak ambigu.
 
-### Usulan Mutasi (USULAN_MUTASI!A:AC, 29 kolom)
+Catatan:
+- NIP opsional. Jika kosong, identifikasi pakai kombinasi `nama_pegawai + tanggal_lahir` (harus unik).
+
+### USERNAME (A:E)
+- Nama UKPD | Username | Password | Hak akses | Wilayah
+- Password disimpan hash `sha256$<salt>$<hash>` (auto-upgrade saat login jika masih plaintext).
+
+### USULAN_MUTASI (A:AC, 29 kolom)
 1. id
 2. nip
 3. nama_pegawai
@@ -98,12 +181,8 @@ Catatan:
 27. mutasi_id
 28. jenis_mutasi
 29. verif_checklist
-Catatan usulan mutasi:
-- Tombol "Validasi" dan "Cetak Word" hanya muncul untuk superadmin.
-- Admin UKPD/wilayah tidak bisa mengubah `status` dan `keterangan` (dikunci di UI dan di-backend).
-- Status untuk non-superadmin selalu diset ke `DIUSULKAN` saat create/update.
 
-### Usulan Pemutusan JF (USULAN_PEMUTUSAN_JF!A:U, 21 kolom)
+### USULAN_PEMUTUSAN_JF (A:U, 21 kolom)
 1. id
 2. nip
 3. pangkat_golongan
@@ -126,151 +205,55 @@ Catatan usulan mutasi:
 20. updated_at
 21. keterangan
 
-Catatan pemutusan JF:
-- Backend dan front-end melakukan normalisasi header (lowercase + underscore). Jika sheet masih memakai nama lama, fallback dilakukan:
-  - `id_usulan` -> `id`
-  - `pangkat_gol` -> `pangkat_golongan`
-  - `jabatan_lama` -> `jabatan`
-  - `ukpd` -> `nama_ukpd`
-  - `alasan_usulan` -> `alasan_pemutusan`
-  - `link_dokumen` -> `berkas_path`
-- Urutan tampil di tabel: status `DIUSULKAN`, `DIPROSES`, `SELESAI`, `DITOLAK`; di dalam status disortir terbaru berdasarkan `created_at` -> `tanggal_usulan` -> `updated_at` -> `tanggal_surat`.
+Fallback header untuk pemutusan (legacy):
+- `id_usulan` -> `id`
+- `pangkat_gol` -> `pangkat_golongan`
+- `jabatan_lama` -> `jabatan`
+- `ukpd` -> `nama_ukpd`
+- `alasan_usulan` -> `alasan_pemutusan`
+- `link_dokumen` -> `berkas_path`
 
-### Aturan Akses Wilayah/UKPD
-- Superadmin: lihat semua data.
-- Admin Wilayah: data dibatasi sesuai `wilayah` login.
-- Admin UKPD: data dibatasi UKPD login.
-- Frontend mengirim query `wilayah`/`ukpd` otomatis saat load; backend memfilter ulang sesuai query.
-- Penambahan data otomatis mengisi `tanggal_usulan`, `created_at`, `updated_at` (pemutusan JF). Untuk mutasi, filter wilayah dihitung dari mapping `nama_ukpd` -> `wilayah` di sheet `username` (kolom wilayah tidak disimpan di sheet mutasi).
-- Filter wilayah untuk pemutusan JF dihitung dari mapping `nama_ukpd` -> `wilayah` di sheet `username` (kolom wilayah tidak disimpan di sheet pemutusan).
+---
 
-### Endpoint utama (action-based)
-Semua request lewat Cloudflare Worker, gunakan query/body `action`.
+## Aturan Akses
 
-GET
-- `?action=health` - cek status.
-- `?action=list` - daftar pegawai (query: `offset`, `limit`, `search`, `unit`, `jabatan`, `status`).
-- `?action=dashboard_stats` - ringkasan dashboard (query sama seperti `list`).
-- `?action=get&id=...` - detail pegawai.
-- `?action=mutasi_list`, `?action=pemutusan_jf_list`, `?action=bezetting_list`, `?action=qna_list`.
+- **Superadmin/Dinkes**: lihat semua data.
+- **Admin Wilayah**: data sesuai wilayah login.
+- **Admin UKPD**: data sesuai UKPD login.
 
-POST (JSON)
-- `action=login`
-- `action=password_change`
-- `action=create|update|delete` (pegawai)
-- `action=mutasi_create|mutasi_update|mutasi_delete`
-- `action=pemutusan_jf_create|pemutusan_jf_update|pemutusan_jf_delete`
-- `action=bezetting_create|bezetting_update|bezetting_delete`
-- `action=upload`
+Filter wilayah dihitung dari mapping `nama_ukpd -> wilayah` di sheet `username`.
 
-Keamanan:
-- Frontend mengirim header `X-Proxy-Key` ke Worker.
-- Worker menambahkan query `key` untuk Apps Script (harus sama dengan `API_KEY` di `code.js`).
-- Password disimpan hash `sha256$<salt>$<hash>`; login menerima plaintext/hashed dan akan upgrade otomatis ke hash saat login sukses.
-- Untuk migrasi massal password lama di sheet `username`, jalankan `npm run migrate-passwords` (opsional `--dry-run`) di backend Node.
+---
 
-### Catatan backend
-- Header sheet di-normalisasi (trim + lowercase) dan ada fallback index, sehingga tetap terbaca meski ada spasi tersembunyi.
-- Untuk pemutusan JF, ada fallback nama kolom lama (id_usulan, pangkat_gol, jabatan_lama, ukpd, alasan_usulan, link_dokumen) agar data lama tetap terbaca.
-- Role filter di front-end juga normalisasi nama_ukpd (trim + lowercase).
+## Cloudflare Worker (Recommended)
 
-## Front-end
-- File utama: `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html`, `usulan-mutasi.html`, `pemutusan-jf/index.html`, `bezetting/index.html`, `ubah-password/index.html`.
-- `API_BASE` default: `https://sikepeg.seftianh23.workers.dev` (Cloudflare Worker). Frontend hanya memanggil Worker.
-- Sidebar dan header diinject dari `sidebar.html` dan `header.html` (sticky). Footer dari `footer.html` dipakai di dashboard dan data-pegawai.
-- Auth disimpan di `localStorage` (`authUser`: username, role, namaUkpd) setelah login di `index.html`.
-- Role filter: non-super/dinkes otomatis hanya melihat data UKPD login; super admin/dinkes dapat melihat semua.
+Frontend sebaiknya memanggil Worker, bukan Apps Script langsung.
 
-### Dashboard (`dashboard.html`)
-- Memuat header/footer/sidebar dinamis; menampilkan badge role/UKPD dari `authUser`.
-- Fetch `?action=list` (limit default 20000, role non-superadmin otomatis filter `unit`), render KPI per status, chart status/UKPD/pendidikan/rumpun, tabel UKPD.
-- Compact mode, tombol unduh PNG chart, sticky header.
+- Frontend kirim `X-Proxy-Key`.
+- Worker menambahkan query `key` ke Apps Script.
+- `PROXY_KEY` (frontend/worker) harus sama dengan `API_KEY` di Apps Script.
 
-### Data Pegawai (`data-pegawai.html`)
-  - Pencarian/filter dilakukan client-side setelah data awal dimuat; pagination lokal agar responsif. Non-superadmin tetap terfilter sesuai UKPD/wilayah.
-- Form validasi: dropdown status rumpun, jenis kontrak, agama, status aktif, jenis kelamin, golongan darah, jenjang pendidikan, status pernikahan. Semua field wajib; tanggal pakai `type=date`; UKPD otomatis sesuai login (readonly untuk non-superadmin).
-- Tabel aksi dengan ikon (lihat profil → simpan ke `localStorage` dan buka `profil.html`, edit, hapus). Footer konsisten.
+---
 
-### Profil (`profil.html`)
-- Membaca `selectedPegawai` dari `localStorage` (klik "lihat profil"). Jika tidak ada, fallback fetch pertama sesuai role filter.
-- Menampilkan profil lengkap: identitas, kepegawaian, pendidikan/gelar, kontak/alamat, catatan.
+## Troubleshooting
 
-### Pemutusan JF (`pemutusan-jf/index.html`)
-- List dan form mengikuti kolom baru (pangkat_golongan, jabatan, nama_ukpd, dll).
-- Filter status + UKPD, sorting status berurutan dan terbaru (lihat catatan pemutusan JF di atas).
-- Aksi per baris muncul via dropdown (Lihat/Ubah/Hapus + link berkas jika ada).
-- Cetak Word: hanya superadmin, memakai template `templates/Putus JF Batch 3.docx`.
-- Placeholder template pemutusan JF:
-  - `Nomor_Surat`, `Tanggal_Surat`, `Hal`, `Pimpinan`, `ASAL_SURAT`, `Nama_`, `NIP`,
-    `Pangkatgolongan`, `Nama_Jabatan_fungsional`, `UKPD`, `Alasan_Pemutusan`.
+- **forbidden**: cek `PROXY_KEY` dan `API_KEY`.
+- **Data tidak muncul**: cek role filter UKPD/Wilayah.
+- **Sheet kosong/offset kolom**: pastikan header mulai dari kolom A dan urut sesuai struktur.
 
-## Menjalankan (lokal)
-1. Pastikan file key service account JSON ada di folder; spreadsheet dibagikan ke service account (Editor).
-2. Jalankan backend (PowerShell):
-   ```
-   cd "D:\SI DATA PEGAWAI"
-   $env:PORT=5002
-   npm start
-   ```
-3. Jika ingin memakai backend lokal ini, ubah `API_BASE` di front-end menjadi `http://127.0.0.1:5002` (default repo mengarah ke Cloudflare Worker), lalu buka front-end (file:// atau server statis).
-
-## Catatan percobaan proxy (Des 2025)
-- Sudah dibuat fungsi proxy Vercel di `api/proxy.js` dan konfigurasi `vercel.json` untuk build route `/api/proxy` dengan env `WEB_APP_BASE` ke Apps Script. Deployment Vercel project `data` masih gagal (500) karena project terhubung ke repo lain yang belum memuat commit `api/proxy.js`/`vercel.json` atau belum redeploy dari commit terbaru.
-- Cloudflare Worker proxy (`cf-worker-proxy.js`) aktif; set env `WEB_APP_BASE`, `PROXY_KEY`, `APPS_SCRIPT_KEY`, lalu gunakan URL Worker (mis. `https://sikepeg.seftianh23.workers.dev`).
-- API_BASE di repo sekarang diarahkan ke Cloudflare Worker `https://sikepeg.seftianh23.workers.dev`.
-- Jika ingin pakai proxy/backend publik lagi: pastikan deployment Vercel memakai repo commit terbaru (ada `api/proxy.js` + `vercel.json`) atau backend Render/Fly, set env `WEB_APP_BASE`, redeploy, lalu set `API_BASE` sesuai URL backend/proxy (mis. `https://<domain-vercel>/api/proxy` atau `https://nama-app.onrender.com`).
-
-## Menjalankan via ngrok (sementara)
-1. Backend di port 5002.
-2. Jalankan `ngrok http 5002`, catat URL https ngrok.
-3. Ubah `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL ngrok tersebut; hard refresh halaman. (Hanya perlu jika memakai backend lokal; default repo sudah ke Cloudflare Worker.)
+---
 
 ## Catatan UI
-- Header sticky, logout merah, badge role/UKPD dari `authUser`.
-- Sidebar logo 38px konsisten di semua halaman.
-- Footer seragam via `footer.html` (dashboard, data-pegawai).
 
-## Ringkasan Perubahan & Deployment
-- Backend proxy: `server.js` mendukung `WEB_APP_BASE` (URL Apps Script /exec), CORS `*`, port default 5002. Env lain: `SPREADSHEET_ID`, `RANGE`, `USER_RANGE`.
-- Endpoint baru usulan mutasi:
-  - Sheet: `USULAN_MUTASI!A:AC` (id, nip, nama_pegawai, gelar_depan, gelar_belakang, pangkat_golongan, jabatan, abk_j_lama, bezetting_j_lama, nonasn_bezetting_lama, nonasn_abk_lama, jabatan_baru, abk_j_baru, bezetting_j_baru, nonasn_bezetting_baru, nonasn_abk_baru, nama_ukpd, ukpd_tujuan, alasan, tanggal_usulan, status, berkas_path, created_by_ukpd, created_at, updated_at, keterangan, mutasi_id, jenis_mutasi, verif_checklist).
-  - API: `GET /mutasi` (filter: search, status, jenis_mutasi, ukpd, tujuan), `GET /mutasi/:id`, `POST /mutasi`, `PUT /mutasi/:id`, `DELETE /mutasi/:id`.
-  - Upload berkas: `POST /upload` body `{filename,mimeType,dataBase64}`; simpan ke Google Drive (folder `DRIVE_FOLDER_ID` jika di-set), permission public reader; balikan `{url}` untuk diisi ke `berkas_url`.
-- Front-end:
-  - `dashboard.html`, `data-pegawai.html`, `profil.html`: sidebar/header/footer standar via include; sidebar fixed + toggle mobile/backdrop; layout responsif; logout nav pakai `data-logout`.
-  - `sidebar.html`: ikon huruf sederhana, item Keluar pakai `data-logout`.
-  - `data-pegawai.html`: textarea form distyling, panel responsif.
-  - `profil.html`: footer include, sidebar mobile toggle.
-- `usulan-mutasi.html`: halaman usulan mutasi (form tambah/ubah via modal, filter, tabel, metrik ringkas), `API_BASE` default ke Cloudflare Worker, upload PDF ke Drive via `/upload` (link disimpan di `berkas_path`).
-- Tambahan file:
-  - `DEPLOY.md`: panduan deploy backend (Render/Fly/Heroku), set `WEB_APP_BASE`, update `API_BASE` front-end.
-  - `cf-worker-proxy.js`: Cloudflare Worker proxy ke Apps Script dengan CORS `*` (butuh var `WEB_APP_BASE` di Worker).
+- Sidebar/Header/Footer di-load dari file root (`sidebar.html`, `header.html`, `footer.html`).
+- `BASE` otomatis menyesuaikan GitHub Pages atau lokal.
+- Data Pegawai: filter client-side setelah load awal.
+- Profil: membaca `selectedPegawai` dari localStorage.
 
-### Cara pakai Cloudflare Worker (opsi tanpa backend Node)
-1) Cloudflare Dashboard → Workers & Pages → Create Worker → paste isi `cf-worker-proxy.js`.
-2) Settings → Variables:
-   - `WEB_APP_BASE=https://script.google.com/macros/s/AKfycbzUwGHAdQGsTu7Lh0E1zxPeLAFl3t7lgMeSvv6uB4WfS8mYn_dCC45TGI72t9I74ol_sw/exec`
-   - `PROXY_KEY` sama dengan `PROXY_KEY` di front-end.
-   - `APPS_SCRIPT_KEY` sama dengan `API_KEY` di `code.js` Apps Script.
-3) Deploy, catat URL Worker, mis. `https://nama-worker.subdomain.workers.dev`.
-4) Set `API_BASE` di `index.html`, `dashboard.html`, `data-pegawai.html`, `profil.html` ke URL Worker.
-5) Hard refresh dan uji `action=health` dengan header `X-Proxy-Key`.
+---
 
-### Cara deploy backend Node (opsi Render)
-1) Repo punya `server.js` dan `package.json` (`npm start`).
-2) Render → New Web Service → Build `npm install`, Start `npm start`.
-3) Env: `WEB_APP_BASE` (URL Apps Script /exec), `PORT` (boleh kosong).
-4) Dapatkan URL publik, set `API_BASE` di semua HTML ke URL ini, push ke GitHub Pages.
+## Changelog Singkat (Des 2025)
 
-### Menjalankan lokal
-- Pastikan tidak ada proses lain di port 5002 (matikan server lama sebelum `npm start`).
-- Jalankan backend: `npm start` (PORT default 5002).
-- Jika memakai backend lokal ini, set `API_BASE` di front-end ke `http://127.0.0.1:5002`, lalu cek `http://127.0.0.1:5002/health` harus `{ok:true}`, `http://127.0.0.1:5002/mutasi` untuk usulan mutasi.
-- Front-end lokal via `http-server` di port 5500/5501 (default repo `API_BASE` ke Cloudflare Worker; ganti ke localhost/ngrok/backend publik sesuai kebutuhan).
-- Untuk upload berkas, set env `SERVICE_ACCOUNT_PATH` ke file JSON service account dan `DRIVE_FOLDER_ID` ke folder di Shared Drive yang sudah dibagikan Editor ke service account.
-
-## Perubahan utama yang dilakukan
-- Menyesuaikan layout sesuai contoh Dinkes: dashboard dan data pegawai dengan sidebar/header konsisten, stat cards, filter bar, tabel.
-- Menambah pagination di front-end dan query filter di backend.
-- Memperbaiki mapping kolom (trim header + fallback index) agar `nama_ukpd`, NIP, dll. terbaca.
-- API_BASE di repo saat ini diarahkan ke Cloudflare Worker; ganti bila memakai backend lain (Render/ngrok/localhost).
+- Perbaikan sidebar/header, tampilan status, dan pencarian client-side.
+- Cache API untuk list, dashboard, bezetting, qna.
+- Filter wilayah/role diseragamkan.

@@ -132,6 +132,12 @@
       border-radius: 14px; padding: 10px 14px; display:none; align-items:center; gap:8px; font-weight:800;
       box-shadow: 0 12px 26px rgba(18,183,166,0.35);
     }
+    body.sidebar-open .mobile-toggle{
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      transition: opacity .15s ease, transform .15s ease;
+    }
     #sidebarBackdrop{
       position: fixed; inset:0; background: rgba(0,0,0,0.45);
       opacity:0; pointer-events:none; transition: opacity .2s ease; z-index:50;
@@ -547,11 +553,23 @@
       if (!initialized) return;
       setStatus('Memuat data pegawai...');
       try {
-        const params = new URLSearchParams({ limit: '30000', offset: '0' });
-        const res = await fetch(`${API_BASE}?action=list&${params.toString()}`, { headers: API_HEADERS });
-        const body = await res.json();
-        if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
-        allRows = applyRoleFilter(body.rows || []).map((row) => {
+        const limit = 30000;
+        let offset = 0;
+        let totalExpected = null;
+        let merged = [];
+        while (true) {
+          const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+          const res = await fetch(`${API_BASE}?action=list&${params.toString()}`, { headers: API_HEADERS });
+          const body = await res.json();
+          if (!res.ok || !body.ok) throw new Error(body.error || 'Gagal ambil data');
+          const rows = body.rows || body.data?.rows || [];
+          merged = merged.concat(rows);
+          if (totalExpected === null) totalExpected = body.total ?? body.data?.total ?? null;
+          offset += rows.length;
+          if (!rows.length || rows.length < limit) break;
+          if (totalExpected !== null && offset >= totalExpected) break;
+        }
+        allRows = applyRoleFilter(merged).map((row) => {
           const normalizedJenis = normalizePjlpLabel(row.nama_jenis_pegawai);
           const normalizedStatus = normalizePjlpLabel(row.nama_status_aktif);
           return {
@@ -560,7 +578,7 @@
             nama_status_aktif: normalizedJenis === LABEL_PPPK_PARUH ? LABEL_PPPK_PARUH : normalizedStatus
           };
         });
-        populateFilters(body, allRows);
+        populateFilters({ units: [], jabs: [], statuses: [] }, allRows);
         applyFilters({ resetPage: false });
         setStatus('Data dimuat: ' + allRows.length.toLocaleString('id-ID') + ' baris.');
       } catch(err){
@@ -847,11 +865,17 @@
       const backdrop = document.getElementById('sidebarBackdrop');
       const sidebar = document.querySelector('.sidebar');
       if (!btn || !sidebar || !backdrop) return;
-      const close = ()=>{ sidebar.classList.remove('show'); backdrop.classList.remove('show'); document.body.style.overflow=''; };
+      const close = ()=>{
+        sidebar.classList.remove('show');
+        backdrop.classList.remove('show');
+        document.body.classList.remove('sidebar-open');
+        document.body.style.overflow='';
+      };
       btn.addEventListener('click', ()=>{
         const willShow = !sidebar.classList.contains('show');
         sidebar.classList.toggle('show', willShow);
         backdrop.classList.toggle('show', willShow);
+        document.body.classList.toggle('sidebar-open', willShow);
         document.body.style.overflow = willShow ? 'hidden' : '';
       });
       backdrop.addEventListener('click', close);

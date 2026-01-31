@@ -655,19 +655,22 @@ app.put('/pegawai/:id', async (req, res) => {
     const rows = values.data.values || [];
     const [header, ...data] = rows;
     const h = header || [];
+    const idxId = h.findIndex(x => (x || '').toLowerCase().trim() === 'id');
     const idxNip = h.findIndex(x => (x || '').toLowerCase().trim() === 'nip');
     const idxNik = h.findIndex(x => (x || '').toLowerCase().trim() === 'nik');
     const idx = rows.findIndex(r => {
+      const idVal = (idxId >= 0 ? r[idxId] : '') || '';
       const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
       const nikVal = (idxNik >= 0 ? r[idxNik] : '') || '';
-      return nipVal === id || nikVal === id;
+      return idVal === id || nipVal === id || nikVal === id;
     });
     if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP/NIK) tidak ditemukan' });
     const rowNumber = idx + 1; // 1-based
     const payload = COLS.map(k => d[k] || '');
+    const lastCol = columnToLetter(COLS.length - 1);
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A${rowNumber}:AC${rowNumber}`,
+      range: `${SHEET_NAME}!A${rowNumber}:${lastCol}${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [payload] }
     });
@@ -685,12 +688,14 @@ app.delete('/pegawai/:id', async (req, res) => {
     const rows = values.data.values || [];
     const header = rows[0] || [];
     const h = header || [];
+    const idxId = h.findIndex(x => (x || '').toLowerCase().trim() === 'id');
     const idxNip = h.findIndex(x => (x || '').toLowerCase().trim() === 'nip');
     const idxNik = h.findIndex(x => (x || '').toLowerCase().trim() === 'nik');
     const idx = rows.findIndex(r => {
+      const idVal = (idxId >= 0 ? r[idxId] : '') || '';
       const nipVal = (idxNip >= 0 ? r[idxNip] : '') || '';
       const nikVal = (idxNik >= 0 ? r[idxNik] : '') || '';
-      return nipVal === id || nikVal === id;
+      return idVal === id || nipVal === id || nikVal === id;
     });
     if (idx < 1) return res.status(404).json({ ok: false, error: 'ID (NIP/NIK) tidak ditemukan' });
     const sheetId = await getSheetIdByName(SHEET_NAME);
